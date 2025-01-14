@@ -1,0 +1,36 @@
+# Zig build artifacts
+zig-cache/
+.zig-cache/
+zig-out/
+/release/
+/debug/
+/build/
+/build-*/
+src/orderbook/svm/.zig-cache
+
+# Zig build dependencies
+deps.zig
+
+# Generated files
+*.o
+*.obj
+*.exe
+*.pdb
+*.lib
+*.a
+*.so
+*.dylib
+*.dll
+*.sublime-workspace
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Project specific
+bench_results/
+perf_data/
+*.log
