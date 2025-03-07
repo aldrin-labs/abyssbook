@@ -1,0 +1,35 @@
+# End-to-end tests package
+# End-to-End Tests
+
+This directory contains end-to-end tests for the application. These tests verify that the entire application works correctly from the user's perspective by simulating real user interactions.
+
+## Structure
+
+- `conftest.py` - Contains pytest fixtures for e2e tests
+- `test_*.py` - Individual test files for different features
+
+## Running Tests
+
+To run the e2e tests:
+
+```bash
+pytest src/tests/e2e
+```
+import pytest
+
+# Add fixtures for e2e tests here
+@pytest.fixture
+def setup_e2e_environment():
+    """Setup the environment for e2e tests."""
+    # Setup code here
+    yield
+    # Teardown code here
+import pytest
+
+def test_e2e_example():
+    """
+    Example e2e test.
+    Replace with actual tests for your application.
+    """
+    # This is a placeholder test
+    assert True
