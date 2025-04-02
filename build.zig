@@ -44,4 +44,20 @@ pub fn build(b: *std.Build) void {
     const run_unit_tests = b.addRunArtifact(unit_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
+
+    // E2E tests
+    const e2e_tests = b.addTest(.{
+        .root_source_file = .{ .cwd_relative = "src/e2e_tests.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const run_e2e_tests = b.addRunArtifact(e2e_tests);
+    const e2e_test_step = b.step("test-e2e", "Run end-to-end tests");
+    e2e_test_step.dependOn(&run_e2e_tests.step);
+
+    // Combined test step
+    const all_tests_step = b.step("test-all", "Run all tests (unit and e2e)");
+    all_tests_step.dependOn(&run_unit_tests.step);
+    all_tests_step.dependOn(&run_e2e_tests.step);
 }

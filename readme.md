@@ -161,6 +161,28 @@ This will execute tests across:
 - Advanced order types
 - Settlement processing
 
+## 🧪 Testing
+
+### Unit Tests
+Run the unit test suite:
+```bash
+zig build test
+```
+
+### End-to-End Tests
+Run comprehensive end-to-end tests that simulate real-world trading scenarios:
+```bash
+zig build test-e2e
+```
+
+### All Tests
+Run both unit and end-to-end tests:
+```bash
+zig build test-all
+```
+
+Detailed documentation on the e2e tests is available at [E2E Tests Documentation](docs/e2e_tests.md).
+
 ## 📄 License
 
 AbyssBook is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
