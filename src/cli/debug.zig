@@ -12,14 +12,14 @@ pub fn handleDebugCommand(args: []const []const u8) !void {
     if (std.mem.eql(u8, subcommand, "log")) {
         if (args.len < 2) {
             std.debug.print("Error: Missing log level\n", .{});
-            std.debug.print("Usage: abyss debug log <level>\n", .{});
+            std.debug.print("Usage: abyssbook debug log <level>\n", .{});
             return;
         }
         try setLogLevel(args[1]);
     } else if (std.mem.eql(u8, subcommand, "dump")) {
         if (args.len < 2) {
             std.debug.print("Error: Missing dump target\n", .{});
-            std.debug.print("Usage: abyss debug dump <target>\n", .{});
+            std.debug.print("Usage: abyssbook debug dump <target>\n", .{});
             return;
         }
         try dumpState(args[1]);

@@ -12,14 +12,14 @@ pub fn handleConfigCommand(args: []const []const u8) !void {
     if (std.mem.eql(u8, subcommand, "get")) {
         if (args.len < 2) {
             std.debug.print("Error: Missing key name\n", .{});
-            std.debug.print("Usage: abyss config get <key>\n", .{});
+            std.debug.print("Usage: abyssbook config get <key>\n", .{});
             return;
         }
         try getConfigValue(args[1]);
     } else if (std.mem.eql(u8, subcommand, "set")) {
         if (args.len < 3) {
             std.debug.print("Error: Missing key or value\n", .{});
-            std.debug.print("Usage: abyss config set <key> <value>\n", .{});
+            std.debug.print("Usage: abyssbook config set <key> <value>\n", .{});
             return;
         }
         try setConfigValue(args[1], args[2]);

@@ -60,7 +60,7 @@ pub const CommandRegistry = struct {
 /// Help command implementation
 fn executeHelp(args: []const []const u8) !void {
     std.debug.print("Abyssbook Node Management CLI\n\n", .{});
-    std.debug.print("Usage: abyss <command> [options]\n\n", .{});
+    std.debug.print("Usage: abyssbook <command> [options]\n\n", .{});
     std.debug.print("Available commands:\n", .{});
     
     // If a specific command was requested, show its usage
@@ -112,7 +112,7 @@ pub fn helpCommand() Command {
     return .{
         .name = "help",
         .description = "Display help information",
-        .usage = "abyss help [command]",
+        .usage = "abyssbook help [command]",
         .execute = executeHelp,
     };
 }
@@ -121,7 +121,7 @@ pub fn tuiCommand() Command {
     return .{
         .name = "tui",
         .description = "Launch the text-based user interface",
-        .usage = "abyss tui",
+        .usage = "abyssbook tui",
         .execute = executeTui,
     };
 }
@@ -130,7 +130,7 @@ pub fn statusCommand() Command {
     return .{
         .name = "status",
         .description = "Show node status and performance metrics",
-        .usage = "abyss status",
+        .usage = "abyssbook status",
         .execute = executeStatus,
     };
 }
@@ -139,7 +139,7 @@ pub fn configCommand() Command {
     return .{
         .name = "config",
         .description = "View or modify configuration settings",
-        .usage = "abyss config [get|set] [key] [value]",
+        .usage = "abyssbook config [get|set] [key] [value]",
         .execute = executeConfig,
     };
 }
@@ -148,7 +148,7 @@ pub fn ordersCommand() Command {
     return .{
         .name = "orders",
         .description = "Manage orders in the orderbook",
-        .usage = "abyss orders [list|place|cancel] [options]",
+        .usage = "abyssbook orders [list|place|cancel] [options]",
         .execute = executeOrders,
     };
 }
@@ -157,7 +157,7 @@ pub fn debugCommand() Command {
     return .{
         .name = "debug",
         .description = "Debug and diagnostic commands",
-        .usage = "abyss debug [options]",
+        .usage = "abyssbook debug [options]",
         .execute = executeDebug,
     };
 }
