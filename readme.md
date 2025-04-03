@@ -110,19 +110,29 @@ const result = try book.executeMarketOrder(
 );
 ```
 
-## 🔮 Future Developments
+## 🔮 Roadmap
 
-### Q1 2024
-- Cross-chain integration
-- Layer 2 optimization
-- Advanced market making
-- MEV protection
+Our development roadmap is continuously evolving based on community feedback and market needs. Here's our current focus:
 
-### Q2 2024
-- Machine learning integration
-- Dynamic sharding
-- Custom order types
-- Enhanced analytics
+### Current Focus
+- Performance optimization for high-frequency trading
+- Enhanced security measures and formal verification
+- Expanded API for easier integration
+- Comprehensive documentation and examples
+
+### Short-term Goals (Next 3-6 months)
+- Support for more complex order types
+- Improved analytics and monitoring tools
+- Enhanced testing infrastructure
+- Community contribution framework
+
+### Long-term Vision
+- Cross-chain integration capabilities
+- Advanced market making features
+- MEV protection mechanisms
+- Machine learning integration for predictive analytics
+
+> Note: This roadmap is subject to change based on community feedback and market developments. For the most up-to-date information, please check our GitHub issues and discussions.
 
 ## 🤝 Contributing
 
