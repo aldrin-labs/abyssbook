@@ -29,7 +29,9 @@ The enhanced version (`EnhancedBlockchainClient`) adds caching and error handlin
 
 The `OrderService` replaces mocked order data with real blockchain calls, providing:
 - Order listing with filtering
-- Order placement with price and size validation
+- Order placement with price and size validation:
+  - Price validation: Checks that the provided price is a positive number, falls within the defined minimum and maximum market thresholds, and follows the correct decimal precision as required by the blockchain market.
+  - Size validation: Ensures the order size is a positive value, meets the market’s minimum order size, and adheres to allowed lot size increments.
 - Order cancellation
 
 ### Wallet Integration
