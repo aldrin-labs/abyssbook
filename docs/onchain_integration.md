@@ -81,16 +81,18 @@ This cancels the order with the specified ID.
 
 ## Testing
 
-To test the onchain integration:
+To test the onchain integration, make sure you have all required dependencies installed and properly configured:
 
-1. Ensure you have the Zig compiler installed
-2. Run the test script: `./test_onchain.sh`
+1. Zig Compiler: Verify that the Zig compiler is installed (version X.Y.Z or later). You can download it from https://ziglang.org/download/ if needed.
+2. Environment Setup: Confirm that any necessary environment variables or configuration settings (e.g., blockchain API keys, network settings) are correctly set as detailed in the Configuration section.
+3. Test Execution: Run the test script by executing:
+   ./test_onchain.sh
 
-The test script verifies:
-- Blockchain client initialization
-- Orderbook retrieval
-- Caching functionality
-- Error handling
+The test script performs the following verifications:
+- Blockchain client initialization.
+- Orderbook retrieval.
+- Caching functionality.
+- Error handling.
 
 ## Configuration
 
