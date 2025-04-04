@@ -45,7 +45,7 @@ pub const ErrorHandler = struct {
         while (retry_count <= self.max_retries) : (retry_count += 1) {
             // If this isn't the first attempt, apply exponential backoff
             if (retry_count > 0) {
-                const delay_ms = self.base_delay_ms * std.math.pow(u32, 2, retry_count - 1);
+                const delay_ms = self.base_delay_ms * (1 << (retry_count - 1));
                 std.time.sleep(delay_ms * std.time.ns_per_ms);
                 
                 // Log retry attempt
