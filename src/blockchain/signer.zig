@@ -50,7 +50,7 @@ pub const TransactionSigner = struct {
         // For now, we'll create a simplified transaction message
         var message_buf: [1024]u8 = undefined;
         const message = try std.fmt.bufPrint(&message_buf, 
-            "place_order:{s}:{s}:{d}:{d}:{d}", 
+            "place_order:{s}:{s}:{f}:{f}:{d}", 
             .{
                 market,
                 side,
