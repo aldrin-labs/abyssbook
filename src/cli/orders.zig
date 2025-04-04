@@ -1,5 +1,9 @@
 const std = @import("std");
 const EnhancedOrderService = @import("../services/enhanced_orders.zig").EnhancedOrderService;
+const args_module = @import("args.zig");
+const OrdersCommandArgs = args_module.OrdersCommandArgs;
+const ArgParser = args_module.ArgParser;
+const ArgError = args_module.ArgError;
 
 /// Handle orders commands with blockchain integration
 pub fn handleOrdersCommand(args: []const []const u8) !void {
@@ -19,21 +23,77 @@ pub fn handleOrdersCommand(args: []const []const u8) !void {
     
     const subcommand = args[0];
     if (std.mem.eql(u8, subcommand, "list")) {
-        try order_service.listOrders(if (args.len > 1) args[1] else null);
+        // Parse list arguments
+        var parser = try OrdersCommandArgs.listArgs(allocator);
+        defer parser.deinit();
+        
+        // Set arguments from command line
+        if (args.len > 1) {
+            parser.args = args[1..];
+        }
+        
+        try parser.parse();
+        const side = parser.getString("side");
+        try order_service.listOrders(side);
     } else if (std.mem.eql(u8, subcommand, "place")) {
-        if (args.len < 4) {
+        // Parse place arguments
+        var parser = try OrdersCommandArgs.placeArgs(allocator);
+        defer parser.deinit();
+        
+        // Set arguments from command line
+        if (args.len > 1) {
+            parser.args = args[1..];
+        } else {
             std.debug.print("Error: Insufficient arguments for place order\n", .{});
-            std.debug.print("Usage: abyssbook orders place <buy|sell> <price> <size>\n", .{});
+            std.debug.print("Usage: abyssbook orders place <buy|sell> <price in USD> <size in shares>\n", .{});
             return;
         }
-        try order_service.placeOrder(args[1], args[2], args[3]);
+        
+        // Parse and validate arguments
+        parser.parse() catch |err| {
+            switch (err) {
+                ArgError.MissingRequiredArgument => {
+                    std.debug.print("Error: Missing required arguments for place order\n", .{});
+                    std.debug.print("Usage: abyssbook orders place <buy|sell> <price in USD> <size in shares>\n", .{});
+                    return;
+                },
+                else => return err,
+            }
+        };
+        
+        const side = try parser.getStringOrError("side");
+        const price = try parser.getStringOrError("price");
+        const size = try parser.getStringOrError("size");
+        
+        try order_service.placeOrder(side, price, size);
     } else if (std.mem.eql(u8, subcommand, "cancel")) {
-        if (args.len < 2) {
+        // Parse cancel arguments
+        var parser = try OrdersCommandArgs.cancelArgs(allocator);
+        defer parser.deinit();
+        
+        // Set arguments from command line
+        if (args.len > 1) {
+            parser.args = args[1..];
+        } else {
             std.debug.print("Error: Missing order ID\n", .{});
             std.debug.print("Usage: abyssbook orders cancel <order_id>\n", .{});
             return;
         }
-        try order_service.cancelOrder(args[1]);
+        
+        // Parse and validate arguments
+        parser.parse() catch |err| {
+            switch (err) {
+                ArgError.MissingRequiredArgument => {
+                    std.debug.print("Error: Missing order ID\n", .{});
+                    std.debug.print("Usage: abyssbook orders cancel <order_id>\n", .{});
+                    return;
+                },
+                else => return err,
+            }
+        };
+        
+        const order_id = try parser.getStringOrError("order_id");
+        try order_service.cancelOrder(order_id);
     } else {
         std.debug.print("Unknown orders subcommand: {s}\n", .{subcommand});
         showOrdersHelp();
@@ -46,6 +106,6 @@ fn showOrdersHelp() void {
     std.debug.print("=======================\n\n", .{});
     std.debug.print("Available subcommands:\n", .{});
     std.debug.print("  list [buy|sell]  - List all orders or filter by side\n", .{});
-    std.debug.print("  place <buy|sell> <price> <size> - Place a new order\n", .{});
+    std.debug.print("  place <buy|sell> <price in USD> <size in shares> - Place a new order\n", .{});
     std.debug.print("  cancel <order_id> - Cancel an existing order\n", .{});
 }
