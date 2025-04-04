@@ -1,7 +1,21 @@
 const std = @import("std");
+const BlockchainClient = @import("../blockchain/client.zig").BlockchainClient;
+const TUIService = @import("../services/tui.zig").TUIService;
 
 /// Main TUI application
 pub fn run() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+    
+    // Initialize the TUI service with API credentials
+    // In a production environment, these would be loaded from a secure configuration
+    const api_key = "YOUR_API_KEY";
+    const base_url = "https://ny.solana.dex.blxrbdn.com";
+    
+    var tui_service = try TUIService.init(allocator, api_key, base_url);
+    defer tui_service.deinit();
+    
     std.debug.print("Starting Abyssbook TUI...\n", .{});
     
     // Clear screen
@@ -10,8 +24,16 @@ pub fn run() !void {
     // Display header
     std.debug.print("\x1B[1;36m===== ABYSSBOOK ORDERBOOK MONITOR =====\x1B[0m\n\n", .{});
     
-    // Display mock orderbook data
-    displayOrderbook();
+    // Get real orderbook data from blockchain
+    var orderbook = try tui_service.getOrderbook();
+    defer orderbook.deinit(allocator);
+    
+    // Display orderbook data
+    displayOrderbook(orderbook);
+    
+    // Calculate and display spread
+    const spread = try tui_service.calculateSpread(orderbook);
+    std.debug.print("\n\x1B[1;33mSPREAD: {d:.2}\x1B[0m\n\n", .{spread});
     
     // Display controls
     std.debug.print("\n\x1B[1;33mControls:\x1B[0m\n", .{});
@@ -19,8 +41,22 @@ pub fn run() !void {
     std.debug.print("  r - Refresh data\n", .{});
     std.debug.print("  h - Toggle help\n\n", .{});
     
-    // Display status bar
-    std.debug.print("\x1B[1;44m STATUS: Running | Orders: 42 | Trades: 18 | Uptime: 01:23:45 \x1B[0m\n", .{});
+    // Get current time for uptime calculation
+    const current_time = std.time.timestamp();
+    const start_time = current_time - 60 * 60; // Simulate 1 hour uptime
+    const uptime_seconds = current_time - start_time;
+    const hours = @divFloor(uptime_seconds, 3600);
+    const minutes = @divFloor(uptime_seconds % 3600, 60);
+    const seconds = uptime_seconds % 60;
+    
+    // Display status bar with real data
+    std.debug.print("\x1B[1;44m STATUS: Running | Orders: {} | Market: {} | Uptime: {:0>2}:{:0>2}:{:0>2} \x1B[0m\n", .{
+        orderbook.bids.len + orderbook.asks.len,
+        orderbook.market,
+        hours,
+        minutes,
+        seconds,
+    });
     
     // In a real implementation, we would handle keyboard input and update the display
     // For now, we'll just wait for a keypress to exit
@@ -33,42 +69,35 @@ pub fn run() !void {
     std.debug.print("Exiting TUI...\n", .{});
 }
 
-/// Display a mock orderbook
-fn displayOrderbook() void {
+/// Display orderbook data
+fn displayOrderbook(orderbook: anytype) void {
     // Display buy orders (green)
     std.debug.print("\x1B[1;32mBUY ORDERS\x1B[0m\n", .{});
     std.debug.print("+-----------+------------+------------+\n", .{});
     std.debug.print("| Price     | Size       | Total      |\n", .{});
     std.debug.print("+-----------+------------+------------+\n", .{});
-    std.debug.print("| 100.50    | 5.0        | 502.50     |\n", .{});
-    std.debug.print("| 100.25    | 10.0       | 1002.50    |\n", .{});
-    std.debug.print("| 100.00    | 15.0       | 1500.00    |\n", .{});
-    std.debug.print("| 99.75     | 8.0        | 798.00     |\n", .{});
-    std.debug.print("| 99.50     | 12.0       | 1194.00    |\n", .{});
-    std.debug.print("+-----------+------------+------------+\n", .{});
     
-    // Display spread
-    std.debug.print("\n\x1B[1;33mSPREAD: 0.50\x1B[0m\n\n", .{});
+    for (orderbook.bids) |bid| {
+        const total = bid.price * bid.size;
+        std.debug.print("| {d:9.2} | {d:10.2} | {d:10.2} |\n", .{
+            bid.price, bid.size, total
+        });
+    }
+    
+    std.debug.print("+-----------+------------+------------+\n", .{});
     
     // Display sell orders (red)
     std.debug.print("\x1B[1;31mSELL ORDERS\x1B[0m\n", .{});
     std.debug.print("+-----------+------------+------------+\n", .{});
     std.debug.print("| Price     | Size       | Total      |\n", .{});
     std.debug.print("+-----------+------------+------------+\n", .{});
-    std.debug.print("| 101.00    | 7.0        | 707.00     |\n", .{});
-    std.debug.print("| 101.25    | 9.0        | 911.25     |\n", .{});
-    std.debug.print("| 101.50    | 3.0        | 304.50     |\n", .{});
-    std.debug.print("| 101.75    | 6.0        | 610.50     |\n", .{});
-    std.debug.print("| 102.00    | 4.0        | 408.00     |\n", .{});
-    std.debug.print("+-----------+------------+------------+\n", .{});
     
-    // Display recent trades
-    std.debug.print("\n\x1B[1;36mRECENT TRADES\x1B[0m\n", .{});
-    std.debug.print("+-----------+------------+------------+\n", .{});
-    std.debug.print("| Price     | Size       | Time       |\n", .{});
-    std.debug.print("+-----------+------------+------------+\n", .{});
-    std.debug.print("| 100.75    | 2.5        | 14:32:01   |\n", .{});
-    std.debug.print("| 100.50    | 1.0        | 14:31:45   |\n", .{});
-    std.debug.print("| 100.75    | 3.0        | 14:30:22   |\n", .{});
+    for (orderbook.asks) |ask| {
+        const total = ask.price * ask.size;
+        std.debug.print("| {d:9.2} | {d:10.2} | {d:10.2} |\n", .{
+            ask.price, ask.size, total
+        });
+    }
+    
     std.debug.print("+-----------+------------+------------+\n", .{});
 }
