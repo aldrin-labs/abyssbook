@@ -17,7 +17,7 @@ The CLI is included with the Abyssbook node software. After building the project
 Display help information about available commands.
 
 ```
-abyss help [command]
+abyssbook help [command]
 ```
 
 ### TUI (Text-based User Interface)
@@ -25,7 +25,7 @@ abyss help [command]
 Launch the interactive text-based user interface for monitoring the orderbook in real-time.
 
 ```
-abyss tui
+abyssbook tui
 ```
 
 ### Status
@@ -33,7 +33,7 @@ abyss tui
 Display the current status and performance metrics of the node.
 
 ```
-abyss status
+abyssbook status
 ```
 
 ### Config
@@ -41,40 +41,40 @@ abyss status
 View or modify configuration settings.
 
 ```
-abyss config [get|set|list] [key] [value]
+abyssbook config [get|set|list] [key] [value]
 ```
 
 Examples:
-- `abyss config list` - Show all configuration settings
-- `abyss config get node.name` - Get a specific configuration value
-- `abyss config set orderbook.max_orders 20000` - Update a configuration value
+- `abyssbook config list` - Show all configuration settings
+- `abyssbook config get node.name` - Get a specific configuration value
+- `abyssbook config set orderbook.max_orders 20000` - Update a configuration value
 
 ### Orders
 
 Manage orders in the orderbook.
 
 ```
-abyss orders [list|place|cancel] [options]
+abyssbook orders [list|place|cancel] [options]
 ```
 
 Examples:
-- `abyss orders list` - List all orders
-- `abyss orders list buy` - List only buy orders
-- `abyss orders place buy 100.50 5.0` - Place a buy order at price 100.50 for size 5.0
-- `abyss orders cancel ord-1001` - Cancel order with ID ord-1001
+- `abyssbook orders list` - List all orders
+- `abyssbook orders list buy` - List only buy orders
+- `abyssbook orders place buy 100.50 5.0` - Place a buy order at price 100.50 USD for size 5.0 shares
+- `abyssbook orders cancel ord-1001` - Cancel order with ID ord-1001
 
 ### Debug
 
 Debug and diagnostic commands.
 
 ```
-abyss debug [log|dump|perf] [options]
+abyssbook debug [log|dump|perf] [options]
 ```
 
 Examples:
-- `abyss debug log debug` - Set log level to debug
-- `abyss debug dump orderbook` - Dump the current orderbook state
-- `abyss debug perf` - Run performance tests
+- `abyssbook debug log debug` - Set log level to debug
+- `abyssbook debug dump orderbook` - Dump the current orderbook state
+- `abyssbook debug perf` - Run performance tests
 
 ## TUI Interface
 

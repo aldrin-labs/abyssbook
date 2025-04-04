@@ -14,14 +14,14 @@ pub fn handleOrdersCommand(args: []const []const u8) !void {
     } else if (std.mem.eql(u8, subcommand, "place")) {
         if (args.len < 4) {
             std.debug.print("Error: Insufficient arguments for place order\n", .{});
-            std.debug.print("Usage: abyss orders place <buy|sell> <price> <size>\n", .{});
+            std.debug.print("Usage: abyssbook orders place <buy|sell> <price> <size>\n", .{});
             return;
         }
         try placeOrder(args[1], args[2], args[3]);
     } else if (std.mem.eql(u8, subcommand, "cancel")) {
         if (args.len < 2) {
             std.debug.print("Error: Missing order ID\n", .{});
-            std.debug.print("Usage: abyss orders cancel <order_id>\n", .{});
+            std.debug.print("Usage: abyssbook orders cancel <order_id>\n", .{});
             return;
         }
         try cancelOrder(args[1]);
