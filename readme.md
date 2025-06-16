@@ -15,6 +15,8 @@ AbyssBook represents a quantum leap in DEX infrastructure, achieving performance
 | Price Levels | Unlimited | Limited | Limited |
 | Slippage | Near-Zero | High | Low |
 
+> **🎯 New to AbyssBook?** Start with our [**One-Page Thesis**](docs/thesis.md) to understand the revolutionary approach, then explore [**detailed use cases**](docs/use-cases.md) and see how we [**compare to competitors**](docs/comparison.md).
+
 ## 🔥 Key Innovations
 
 ### 1. Hyper-Optimized Architecture
@@ -144,11 +146,19 @@ We welcome contributions in:
 
 ## 📚 Documentation
 
-Detailed documentation available at:
-- [Technical Architecture](docs/architecture.md)
-- [Integration Guide](docs/integration.md)
-- [Performance Tuning](docs/performance.md)
-- [API Reference](docs/api.md)
+**🚀 [Complete Documentation Hub](docs/index.html)** - Interactive documentation with search
+
+### **Quick Access**
+- 📄 [**One-Page Thesis**](docs/thesis.md) - Revolutionary approach and value proposition
+- 🚀 [**Quick Start Guide**](docs/integration.md#quick-start) - Get running in 5 minutes  
+- 📊 [**Use Cases & Benefits**](docs/use-cases.md) - Detailed applications and ROI analysis
+- 🔍 [**Comparison Matrix**](docs/comparison.md) - vs Serum, OpenBook, Manifesto
+
+### **Technical Documentation**
+- ⚡ [**Architecture Guide**](docs/architecture.md) - SIMD optimization and system design
+- 🛠️ [**Integration Guide**](docs/integration.md) - Complete implementation walkthrough
+- 📖 [**API Reference**](docs/api.md) - Full technical documentation
+- 🔧 [**Performance Tuning**](docs/performance.md) - Optimization strategies
 
 ## 🔒 Security
 
