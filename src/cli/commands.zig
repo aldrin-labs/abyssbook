@@ -4,6 +4,10 @@ const status = @import("status.zig");
 const config = @import("config.zig");
 const orders = @import("orders.zig");
 const debug = @import("debug.zig");
+const args = @import("args.zig");
+
+/// Global registry reference for help command access
+var registry_ref: ?*CommandRegistry = null;
 
 /// Function type for command execution
 pub const CommandFn = *const fn (args: []const []const u8) anyerror!void;
@@ -22,14 +26,21 @@ pub const CommandRegistry = struct {
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) CommandRegistry {
-        return .{
+        var registry = CommandRegistry{
             .commands = std.StringHashMap(Command).init(allocator),
             .allocator = allocator,
         };
+        // Store reference for help command access
+        registry_ref = &registry;
+        return registry;
     }
 
     pub fn deinit(self: *CommandRegistry) void {
         self.commands.deinit();
+        // Clear registry reference if it points to this instance
+        if (registry_ref == self) {
+            registry_ref = null;
+        }
     }
 
     pub fn register(self: *CommandRegistry, command: Command) void {
@@ -57,27 +68,32 @@ pub const CommandRegistry = struct {
     }
 };
 
-/// Help command implementation
+/// Help command implementation with registry access
 fn executeHelp(args: []const []const u8) !void {
+    // Store registry reference in thread-local storage for access
+    if (registry_ref == null) {
+        std.debug.print("Error: Command registry not initialized\n", .{});
+        return;
+    }
+    
     std.debug.print("Abyssbook Node Management CLI\n\n", .{});
     std.debug.print("Usage: abyssbook <command> [options]\n\n", .{});
     std.debug.print("Available commands:\n", .{});
     
     // If a specific command was requested, show its usage
     if (args.len > 0) {
-        // This would require access to the registry, which we don't have here
-        // For simplicity, we'll just show all commands
-        std.debug.print("Specific command help not implemented yet.\n", .{});
-        return;
+        const command_name = args[0];
+        if (registry_ref.?.commands.get(command_name)) |command| {
+            std.debug.print("\n{s} - {s}\n", .{ command.name, command.description });
+            std.debug.print("Usage: {s}\n\n", .{command.usage});
+            return;
+        } else {
+            std.debug.print("Unknown command: {s}\n\n", .{command_name});
+        }
     }
     
-    // List all commands with descriptions
-    std.debug.print("  help           - Display this help message\n", .{});
-    std.debug.print("  tui            - Launch the text-based user interface\n", .{});
-    std.debug.print("  status         - Show node status and performance metrics\n", .{});
-    std.debug.print("  config         - View or modify configuration settings\n", .{});
-    std.debug.print("  orders         - Manage orders in the orderbook\n", .{});
-    std.debug.print("  debug          - Debug and diagnostic commands\n", .{});
+    // List all commands with descriptions using the registry
+    try registry_ref.?.listCommands();
 }
 
 /// TUI command implementation
