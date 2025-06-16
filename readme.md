@@ -148,6 +148,8 @@ We welcome contributions in:
 
 **🚀 [Complete Documentation Hub](docs/index.html)** - Interactive documentation with search
 
+> **🌐 Live Documentation**: The documentation is fully configured for [Netlify deployment](NETLIFY_DEPLOY.md) with optimized performance, security headers, and global CDN delivery.
+
 ### **Quick Access**
 - 📄 [**One-Page Thesis**](docs/thesis.md) - Revolutionary approach and value proposition
 - 🚀 [**Quick Start Guide**](docs/integration.md#quick-start) - Get running in 5 minutes  
@@ -159,6 +161,9 @@ We welcome contributions in:
 - 🛠️ [**Integration Guide**](docs/integration.md) - Complete implementation walkthrough
 - 📖 [**API Reference**](docs/api.md) - Full technical documentation
 - 🔧 [**Performance Tuning**](docs/performance.md) - Optimization strategies
+
+### **Deployment**
+- 🌐 [**Netlify Deployment Guide**](NETLIFY_DEPLOY.md) - Complete setup instructions for hosting the documentation
 
 ## 🔒 Security
 

@@ -1,0 +1,74 @@
+[build]
+  # Publish directory - where the built documentation files are located
+  publish = "docs"
+  
+  # Build command - since we have static HTML/CSS/JS, no build needed
+  command = "echo 'Documentation is ready for deployment'"
+
+[build.environment]
+  # Node.js version for any future build processes
+  NODE_VERSION = "18"
+
+# Configure redirects for better SEO and user experience
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+
+# Configure headers for better performance and security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.json"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    Content-Type = "application/json; charset=utf-8"
+
+# Configure form processing (if needed in the future)
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = false
+  minify = false
+
+[build.processing.js]
+  bundle = false
+  minify = false
+
+[build.processing.html]
+  pretty_urls = true
+
+# Configure branch deployments
+[context.production]
+  publish = "docs"
+  command = "echo 'Production deployment ready'"
+
+[context.deploy-preview]
+  publish = "docs"
+  command = "echo 'Deploy preview ready'"
+
+[context.branch-deploy]
+  publish = "docs"
+  command = "echo 'Branch deployment ready'"
