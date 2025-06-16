@@ -45,6 +45,7 @@ pub fn handleOrdersCommand(args: []const []const u8) !void {
             parser.args = args[1..];
         } else {
             std.debug.print("Error: Insufficient arguments for place order\n", .{});
+            std.debug.print("Usage: abyssbook orders place <buy|sell> <price> <size>\n", .{});
             std.debug.print("Usage: abyssbook orders place <buy|sell> <price in USD> <size in shares>\n", .{});
             return;
         }
