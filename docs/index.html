@@ -637,50 +637,39 @@ try book.updateBulkQuotes(quotes);</code></pre>
         // Documentation search functionality
         const searchInput = document.getElementById('searchInput');
         const searchResults = document.getElementById('searchResults');
-
-        // Search data - in a real implementation, this would come from an API or search index
-        const searchData = [
-            {
-                title: "Quick Start Guide",
-                url: "integration.md#quick-start",
-                excerpt: "Get up and running with AbyssBook in under 5 minutes"
-            },
-            {
-                title: "One-Page Thesis",
-                url: "thesis.md",
-                excerpt: "Revolutionary approach to DEX infrastructure with sub-microsecond latency"
-            },
-            {
-                title: "SIMD Optimization",
-                url: "architecture.md#simd-optimized-matching-engine",
-                excerpt: "CPU vector instructions for 8x faster bulk order processing"
-            },
-            {
-                title: "High-Frequency Trading",
-                url: "use-cases.md#high-frequency-trading-hft",
-                excerpt: "Sub-microsecond execution for algorithmic trading strategies"
-            },
-            {
-                title: "Market Making Features",
-                url: "use-cases.md#professional-market-making",
-                excerpt: "Sub-tick pricing and bulk operations for professional liquidity providers"
-            },
-            {
-                title: "Performance Comparison",
-                url: "comparison.md#performance-comparison",
-                excerpt: "How AbyssBook compares to Serum, OpenBook, and Manifesto orderbooks"
-            },
-            {
-                title: "API Reference",
-                url: "api.md",
-                excerpt: "Complete technical documentation for developers"
-            },
-            {
-                title: "TWAP Orders",
-                url: "api.md#advanced-order-types",
-                excerpt: "Time-Weighted Average Price execution for institutional trading"
-            }
-        ];
+        
+        let searchData = [];
+        
+        // Load search data from JSON file
+        fetch('search-data.json')
+            .then(response => response.json())
+            .then(data => {
+                searchData = data;
+            })
+            .catch(error => {
+                console.warn('Could not load search data:', error);
+                // Fallback search data
+                searchData = [
+                    {
+                        title: "Quick Start Guide",
+                        url: "integration.md#quick-start",
+                        excerpt: "Get up and running with AbyssBook in under 5 minutes",
+                        category: "Integration"
+                    },
+                    {
+                        title: "One-Page Thesis", 
+                        url: "thesis.md",
+                        excerpt: "Revolutionary approach to DEX infrastructure with sub-microsecond latency",
+                        category: "Overview"
+                    },
+                    {
+                        title: "Performance Comparison",
+                        url: "comparison.md#performance-comparison",
+                        excerpt: "How AbyssBook compares to Serum, OpenBook, and Manifesto orderbooks",
+                        category: "Comparison"
+                    }
+                ];
+            });
 
         let searchTimeout;
 
@@ -694,18 +683,51 @@ try book.updateBulkQuotes(quotes);</code></pre>
                     return;
                 }
 
-                const results = searchData.filter(item => 
-                    item.title.toLowerCase().includes(query) ||
-                    item.excerpt.toLowerCase().includes(query)
-                ).slice(0, 6);
+                // Enhanced search with keyword matching and scoring
+                const results = searchData
+                    .map(item => {
+                        let score = 0;
+                        const queryLower = query.toLowerCase();
+                        
+                        // Title matching (highest weight)
+                        if (item.title.toLowerCase().includes(queryLower)) {
+                            score += 10;
+                        }
+                        
+                        // Exact keyword matching (high weight)
+                        if (item.keywords && item.keywords.some(keyword => 
+                            keyword.toLowerCase().includes(queryLower))) {
+                            score += 8;
+                        }
+                        
+                        // Excerpt matching (medium weight)
+                        if (item.excerpt.toLowerCase().includes(queryLower)) {
+                            score += 5;
+                        }
+                        
+                        // Category matching (low weight)
+                        if (item.category && item.category.toLowerCase().includes(queryLower)) {
+                            score += 3;
+                        }
+                        
+                        return { ...item, score };
+                    })
+                    .filter(item => item.score > 0)
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 8);
 
                 if (results.length === 0) {
-                    searchResults.innerHTML = '<div class="search-result">No results found</div>';
+                    searchResults.innerHTML = `
+                        <div class="search-result">
+                            <div class="result-title">No results found</div>
+                            <div class="result-excerpt">Try searching for "thesis", "integration", "performance", or "examples"</div>
+                        </div>`;
                 } else {
                     searchResults.innerHTML = results.map(result => `
                         <div class="search-result" onclick="window.location.href='${result.url}'">
                             <div class="result-title">${result.title}</div>
                             <div class="result-excerpt">${result.excerpt}</div>
+                            ${result.category ? `<div style="font-size: 0.8em; color: var(--accent); margin-top: 0.25rem;">${result.category}</div>` : ''}
                         </div>
                     `).join('');
                 }
