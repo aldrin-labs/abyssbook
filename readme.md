@@ -44,11 +44,13 @@ try book.placePegOrder(
 );
 ```
 
-### 3. Performance Monitoring
+### 3. Performance Monitoring & Security
 - Real-time SIMD utilization tracking
 - Cache hit rate optimization
 - Latency percentile analysis
-- Throughput metrics
+- **Structured JSON logging** for security monitoring
+- **Comprehensive audit trails** for all operations
+- **Threat detection** and anomaly monitoring
 
 ## 💫 Technical Advantages
 
@@ -147,11 +149,18 @@ We welcome contributions in:
 Detailed documentation available at:
 - [Technical Architecture](docs/architecture.md)
 - [Integration Guide](docs/integration.md)
+- [CLI Usage](docs/cli.md)
+- [Logging & Monitoring](docs/logging.md)
+- [Onchain Integration](docs/onchain_integration.md)
 - [Performance Tuning](docs/performance.md)
 - [API Reference](docs/api.md)
 
 ## 🔒 Security
 
+- **Structured audit logging** with JSON format for easy analysis
+- **Real-time security monitoring** and threat detection
+- **CLI command security logging** with input validation
+- **Suspicious activity detection** and alerting
 - Formal verification of core components
 - Regular security audits
 - Comprehensive test coverage
