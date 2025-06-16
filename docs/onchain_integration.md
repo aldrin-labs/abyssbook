@@ -1,17 +1,44 @@
-# Abyssbook Onchain Integration
+# Abyssbook Secure Onchain Integration
 
-This document describes the integration of real blockchain data into the Abyssbook application, replacing all mocked data with actual onchain calls.
+This document describes the secure integration of real blockchain data into the Abyssbook application, replacing all mocked data with actual onchain calls while implementing comprehensive security measures.
 
-## Architecture Overview
+## 🔒 Security Architecture Overview
 
-The onchain integration follows a layered architecture:
+The secure onchain integration follows a layered security architecture with multiple defense mechanisms:
 
-1. **Blockchain Client Layer** - Handles direct communication with the Solana blockchain
-2. **Service Layer** - Provides business logic and interfaces between CLI and blockchain
-3. **CLI Layer** - User interface for interacting with the blockchain
-4. **Wallet Layer** - Manages keys and transaction signing
-5. **Error Handling Layer** - Provides robust error handling with retry logic
-6. **Caching Layer** - Optimizes performance by caching frequently accessed data
+1. **Secure Blockchain Client Layer** - Thread-safe communication with comprehensive validation
+2. **Enhanced Service Layer** - Business logic with atomic operations and error recovery
+3. **Secure CLI Layer** - User interface with input sanitization
+4. **Cryptographic Wallet Layer** - Secure key management and transaction signing
+5. **Comprehensive Error Handling Layer** - Robust error handling with retry logic and security validation
+6. **Performance-Optimized Caching Layer** - Secure caching with data integrity checks
+
+## 🛡️ Security Features
+
+### Thread Safety & Concurrency Control
+- **Mutex Protection**: All critical sections are protected by mutexes to prevent race conditions
+- **Atomic Operations**: Connection counts and operation tracking use atomic variables
+- **Rate Limiting**: Built-in rate limiting to prevent DoS attacks (100ms minimum between requests)
+- **Connection Management**: Thread-safe connection pooling with proper cleanup
+
+### Input Validation & Sanitization
+- **Market Name Validation**: Only alphanumeric characters, '/', '-', and '_' allowed
+- **Price/Size Bounds**: Maximum values enforced (1 billion USD/shares)
+- **Order ID Format**: Hexadecimal validation for order IDs
+- **URL Security**: Only HTTPS URLs accepted for API endpoints
+- **Parameter Length Limits**: All input parameters have maximum length restrictions
+
+### Memory Safety
+- **Secure Memory Clearing**: Sensitive data is securely zeroed after use
+- **Resource Management**: Proper cleanup of HTTP connections and allocated memory
+- **Buffer Overflow Protection**: Response size limited to 10MB to prevent attacks
+- **Memory Leak Prevention**: Comprehensive resource deinitialization
+
+### Error Handling & Recovery
+- **Exponential Backoff**: Retry mechanism with exponential backoff for transient errors
+- **Error Classification**: Different retry strategies for different error types
+- **Secure Error Messages**: Error messages don't leak sensitive information
+- **Graceful Degradation**: System continues operating even with partial failures
 
 ## Components
 

@@ -1,7 +1,8 @@
 const std = @import("std");
 
-/// Error types for blockchain operations
+/// Comprehensive error types for secure blockchain operations
 pub const BlockchainError = error{
+    // Network and connection errors
     NetworkError,
     ApiRequestFailed,
     AuthenticationFailed,
@@ -9,11 +10,64 @@ pub const BlockchainError = error{
     InvalidResponse,
     TimeoutError,
     ConnectionFailed,
+    ServiceUnavailable,
+    
+    // Security and validation errors
+    InvalidApiKey,
+    InvalidBaseUrl,
+    InsecureBaseUrl,
+    Unauthorized,
+    Forbidden,
+    NotFound,
+    RateLimited,
+    ServerError,
+    ResponseTooLarge,
+    ResponseReadFailed,
+    
+    // Data validation errors
+    InvalidMarket,
+    MarketNameTooLong,
+    InvalidMarketCharacters,
+    EmptyResponse,
+    InvalidJsonFormat,
+    JsonSyntaxError,
+    JsonUnexpectedToken,
+    JsonParseError,
+    
+    // Order validation errors
+    InvalidSide,
+    InvalidPrice,
+    PriceTooHigh,
+    InvalidPriceValue,
+    InvalidSize,
+    SizeTooHigh,
+    InvalidSizeValue,
+    InvalidOrderId,
+    OrderIdTooLong,
+    InvalidOrderIdFormat,
+    InvalidOwnerAddress,
+    CrossedOrderbook,
+    
+    // HTTP and URL errors
+    InvalidUrl,
+    RequestPreparationFailed,
+    HeaderSetupFailed,
+    RequestStartFailed,
+    RequestFinishFailed,
+    ResponseWaitFailed,
+    UrlConstructionFailed,
+    
+    // Order generation errors
+    OrderIdGenerationFailed,
+    
+    // Client errors
+    ClientNotConnected,
+    
+    // Traditional errors
     InsufficientFunds,
     InvalidOrderParameters,
     OrderNotFound,
     MarketNotFound,
-    ServiceUnavailable,
     UnknownError,
 };
 
@@ -102,19 +156,21 @@ pub const ErrorHandler = struct {
         return switch (status_code) {
             200...299 => unreachable, // Success codes shouldn't be converted to errors
             400 => BlockchainError.InvalidOrderParameters,
-            401 => BlockchainError.AuthenticationFailed,
-            403 => BlockchainError.AuthenticationFailed,
-            404 => BlockchainError.MarketNotFound,
+            401 => BlockchainError.Unauthorized,
+            403 => BlockchainError.Forbidden,
+            404 => BlockchainError.NotFound,
             408 => BlockchainError.TimeoutError,
-            429 => BlockchainError.RateLimitExceeded,
-            500...599 => BlockchainError.ServiceUnavailable,
+            429 => BlockchainError.RateLimited,
+            500 => BlockchainError.ServerError,
+            502...599 => BlockchainError.ServiceUnavailable,
             else => BlockchainError.UnknownError,
         };
     }
     
-    /// Format error message for user display
+    /// Format error message for user display with security context
     pub fn formatErrorMessage(err: BlockchainError) []const u8 {
         return switch (err) {
+            // Network and connection errors
             BlockchainError.NetworkError => "Network error: Could not connect to blockchain service",
             BlockchainError.ApiRequestFailed => "API request failed: The blockchain service rejected the request",
             BlockchainError.AuthenticationFailed => "Authentication failed: Please check your API credentials",
@@ -122,11 +178,64 @@ pub const ErrorHandler = struct {
             BlockchainError.InvalidResponse => "Invalid response: The blockchain service returned unexpected data",
             BlockchainError.TimeoutError => "Timeout error: The blockchain service took too long to respond",
             BlockchainError.ConnectionFailed => "Connection failed: Could not establish connection to blockchain service",
-            BlockchainError.InsufficientFunds => "Insufficient funds: Not enough balance to complete the transaction",
-            BlockchainError.InvalidOrderParameters => "Invalid order parameters: Please check price and size values",
-            BlockchainError.OrderNotFound => "Order not found: The specified order ID does not exist",
-            BlockchainError.MarketNotFound => "Market not found: The specified market does not exist",
             BlockchainError.ServiceUnavailable => "Service unavailable: The blockchain service is currently down",
+            
+            // Security errors
+            BlockchainError.InvalidApiKey => "Security error: Invalid API key provided",
+            BlockchainError.InvalidBaseUrl => "Security error: Invalid base URL provided",
+            BlockchainError.InsecureBaseUrl => "Security error: Base URL must use HTTPS",
+            BlockchainError.Unauthorized => "Authorization failed: Invalid or expired credentials",
+            BlockchainError.Forbidden => "Access denied: Insufficient permissions",
+            BlockchainError.NotFound => "Resource not found: The requested resource does not exist",
+            BlockchainError.RateLimited => "Rate limited: Too many requests, please wait before retrying",
+            BlockchainError.ServerError => "Server error: The blockchain service encountered an internal error",
+            BlockchainError.ResponseTooLarge => "Security error: Response size exceeds safety limits",
+            BlockchainError.ResponseReadFailed => "Communication error: Failed to read response from service",
+            
+            // Data validation errors
+            BlockchainError.InvalidMarket => "Validation error: Invalid market identifier",
+            BlockchainError.MarketNameTooLong => "Validation error: Market name exceeds maximum length",
+            BlockchainError.InvalidMarketCharacters => "Security error: Market name contains invalid characters",
+            BlockchainError.EmptyResponse => "Data error: Received empty response from service",
+            BlockchainError.InvalidJsonFormat => "Data error: Response is not valid JSON",
+            BlockchainError.JsonSyntaxError => "Data error: JSON syntax error in response",
+            BlockchainError.JsonUnexpectedToken => "Data error: Unexpected token in JSON response",
+            BlockchainError.JsonParseError => "Data error: Failed to parse JSON response",
+            
+            // Order validation errors
+            BlockchainError.InvalidSide => "Validation error: Order side must be 'buy' or 'sell'",
+            BlockchainError.InvalidPrice => "Validation error: Price must be positive",
+            BlockchainError.PriceTooHigh => "Validation error: Price exceeds maximum allowed value",
+            BlockchainError.InvalidPriceValue => "Validation error: Price is not a valid number",
+            BlockchainError.InvalidSize => "Validation error: Size must be positive",
+            BlockchainError.SizeTooHigh => "Validation error: Size exceeds maximum allowed value",
+            BlockchainError.InvalidSizeValue => "Validation error: Size is not a valid number",
+            BlockchainError.InvalidOrderId => "Validation error: Invalid order ID format",
+            BlockchainError.OrderIdTooLong => "Validation error: Order ID exceeds maximum length",
+            BlockchainError.InvalidOrderIdFormat => "Security error: Order ID contains invalid characters",
+            BlockchainError.InvalidOwnerAddress => "Validation error: Invalid owner address",
+            BlockchainError.CrossedOrderbook => "Data integrity error: Orderbook has crossed bids and asks",
+            
+            // HTTP and URL errors
+            BlockchainError.InvalidUrl => "Configuration error: Invalid URL format",
+            BlockchainError.RequestPreparationFailed => "Network error: Failed to prepare HTTP request",
+            BlockchainError.HeaderSetupFailed => "Network error: Failed to set HTTP headers",
+            BlockchainError.RequestStartFailed => "Network error: Failed to start HTTP request",
+            BlockchainError.RequestFinishFailed => "Network error: Failed to complete HTTP request",
+            BlockchainError.ResponseWaitFailed => "Network error: Failed to receive HTTP response",
+            BlockchainError.UrlConstructionFailed => "Configuration error: Failed to construct request URL",
+            
+            // Generation errors
+            BlockchainError.OrderIdGenerationFailed => "System error: Failed to generate secure order ID",
+            
+            // Client errors
+            BlockchainError.ClientNotConnected => "System error: Blockchain client is not connected",
+            
+            // Traditional errors
+            BlockchainError.InsufficientFunds => "Transaction error: Insufficient funds to complete the transaction",
+            BlockchainError.InvalidOrderParameters => "Validation error: Please check order parameters",
+            BlockchainError.OrderNotFound => "Order error: The specified order ID does not exist",
+            BlockchainError.MarketNotFound => "Market error: The specified market does not exist",
             BlockchainError.UnknownError => "Unknown error: An unexpected error occurred",
         };
     }
