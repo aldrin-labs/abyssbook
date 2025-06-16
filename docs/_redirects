@@ -1,0 +1,23 @@
+# Netlify redirect rules for AbyssBook documentation
+
+# Main documentation redirects
+/home               /index.html          200
+/docs               /index.html          200
+/documentation      /index.html          200
+
+# Direct access to key documents
+/thesis             /thesis.md           200
+/comparison         /comparison.md       200
+/use-cases          /use-cases.md        200
+/faq                /faq.md              200
+/examples           /examples.md         200
+/migration          /migration.md        200
+/security           /security.md         200
+/api                /api.md              200
+/architecture       /architecture.md     200
+/performance        /performance.md      200
+/integration        /integration.md      200
+/cli                /cli.md              200
+
+# Fallback for any missing pages
+/*                  /index.html          404

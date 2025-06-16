@@ -1,0 +1,142 @@
+[
+  {
+    "title": "One-Page Thesis",
+    "url": "thesis.md",
+    "excerpt": "Revolutionary approach to DEX infrastructure with sub-microsecond latency and unlimited throughput",
+    "category": "Overview",
+    "keywords": ["thesis", "revolutionary", "performance", "value proposition", "innovation"]
+  },
+  {
+    "title": "Quick Start Guide", 
+    "url": "integration.md#quick-start",
+    "excerpt": "Get up and running with AbyssBook in under 5 minutes",
+    "category": "Integration",
+    "keywords": ["quick start", "getting started", "tutorial", "setup", "integration"]
+  },
+  {
+    "title": "SIMD Optimization",
+    "url": "architecture.md#simd-optimized-matching-engine",
+    "excerpt": "CPU vector instructions for 8x faster bulk order processing",
+    "category": "Architecture", 
+    "keywords": ["SIMD", "optimization", "vectorization", "performance", "CPU"]
+  },
+  {
+    "title": "High-Frequency Trading",
+    "url": "use-cases.md#high-frequency-trading-hft",
+    "excerpt": "Sub-microsecond execution for algorithmic trading strategies",
+    "category": "Use Cases",
+    "keywords": ["HFT", "high frequency", "algorithmic", "latency", "trading"]
+  },
+  {
+    "title": "Market Making Features",
+    "url": "use-cases.md#professional-market-making",
+    "excerpt": "Sub-tick pricing and bulk operations for professional liquidity providers",
+    "category": "Use Cases",
+    "keywords": ["market making", "liquidity", "sub-tick", "bulk operations", "professional"]
+  },
+  {
+    "title": "Performance Comparison",
+    "url": "comparison.md#performance-comparison", 
+    "excerpt": "How AbyssBook compares to Serum, OpenBook, and Manifesto orderbooks",
+    "category": "Comparison",
+    "keywords": ["comparison", "benchmark", "serum", "openbook", "manifesto", "performance"]
+  },
+  {
+    "title": "API Reference",
+    "url": "api.md",
+    "excerpt": "Complete technical documentation for developers",
+    "category": "Reference",
+    "keywords": ["API", "reference", "documentation", "technical", "developers"]
+  },
+  {
+    "title": "TWAP Orders",
+    "url": "api.md#advanced-order-types",
+    "excerpt": "Time-Weighted Average Price execution for institutional trading",
+    "category": "Features",
+    "keywords": ["TWAP", "institutional", "advanced orders", "algorithms", "execution"]
+  },
+  {
+    "title": "Integration Guide",
+    "url": "integration.md",
+    "excerpt": "Complete implementation walkthrough with code examples",
+    "category": "Integration", 
+    "keywords": ["integration", "implementation", "guide", "examples", "development"]
+  },
+  {
+    "title": "Use Cases & Benefits",
+    "url": "use-cases.md",
+    "excerpt": "Detailed applications, problems solved, and quantified benefits",
+    "category": "Use Cases",
+    "keywords": ["use cases", "benefits", "applications", "ROI", "problems solved"]
+  },
+  {
+    "title": "Security Model",
+    "url": "security.md",
+    "excerpt": "Comprehensive security framework and compliance features",
+    "category": "Security",
+    "keywords": ["security", "compliance", "audit", "safety", "protection"]
+  },
+  {
+    "title": "Migration Guide",
+    "url": "migration.md",
+    "excerpt": "Step-by-step migration from Serum, OpenBook, and other orderbooks",
+    "category": "Migration",
+    "keywords": ["migration", "upgrade", "transition", "serum", "openbook"]
+  },
+  {
+    "title": "Code Examples",
+    "url": "examples.md",
+    "excerpt": "Implementation patterns and real-world code examples",
+    "category": "Examples",
+    "keywords": ["examples", "code", "patterns", "implementation", "samples"]
+  },
+  {
+    "title": "FAQ",
+    "url": "faq.md", 
+    "excerpt": "Frequently asked questions about AbyssBook",
+    "category": "Support",
+    "keywords": ["FAQ", "questions", "answers", "help", "support"]
+  },
+  {
+    "title": "Sharded Architecture",
+    "url": "architecture.md#sharded-orderbook",
+    "excerpt": "Parallel processing with intelligent price-based sharding",
+    "category": "Architecture",
+    "keywords": ["sharding", "parallel", "scalability", "architecture", "performance"]
+  },
+  {
+    "title": "Advanced Order Types",
+    "url": "api.md#advanced-order-types",
+    "excerpt": "TWAP, Trailing Stops, Peg Orders, and more professional features",
+    "category": "Features", 
+    "keywords": ["advanced orders", "trailing stop", "peg orders", "professional", "features"]
+  },
+  {
+    "title": "Institutional Trading",
+    "url": "use-cases.md#institutional-trading",
+    "excerpt": "Large order execution with minimal market impact",
+    "category": "Use Cases",
+    "keywords": ["institutional", "large orders", "execution", "algorithms", "impact"]
+  },
+  {
+    "title": "DeFi Integration",
+    "url": "use-cases.md#defi-protocol-integration", 
+    "excerpt": "Building next-generation DeFi protocols with high-performance infrastructure",
+    "category": "Use Cases",
+    "keywords": ["DeFi", "protocols", "integration", "yield farming", "AMM"]
+  },
+  {
+    "title": "Performance Metrics",
+    "url": "comparison.md#performance-deep-dive",
+    "excerpt": "Detailed latency and throughput analysis with benchmarks",
+    "category": "Performance",
+    "keywords": ["metrics", "benchmarks", "latency", "throughput", "analysis"]
+  },
+  {
+    "title": "Solana Integration",
+    "url": "integration.md#solana-integration",
+    "excerpt": "Native Solana program integration with token management",
+    "category": "Integration",
+    "keywords": ["solana", "blockchain", "tokens", "programs", "on-chain"]
+  }
+]

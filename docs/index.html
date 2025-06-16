@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AbyssBook Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --border: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .search-container {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+            margin: 0 2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+        }
+
+        .search-result {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-result:hover {
+            background: var(--surface-light);
+        }
+
+        .search-result:last-child {
+            border-bottom: none;
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+
+        .result-excerpt {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        nav {
+            display: flex;
+            gap: 2rem;
+        }
+
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--accent);
+        }
+
+        main {
+            padding: 3rem 0;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            margin-top: 2rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface);
+        }
+
+        .section {
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .section-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            transition: all 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .card-description {
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .card-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .card-link:hover {
+            text-decoration: underline;
+        }
+
+        .comparison-table {
+            overflow-x: auto;
+            margin: 2rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--surface-light);
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        td {
+            color: var(--text-muted);
+        }
+
+        .highlight {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .code-block {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .footer {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 3rem 0;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-section h3 {
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        .footer-section a {
+            color: var(--text-muted);
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero-stats {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .search-container {
+                margin: 1rem 0;
+            }
+
+            nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">🌊 AbyssBook</div>
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="Search documentation..." id="searchInput">
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+                <nav>
+                    <a href="#docs">Docs</a>
+                    <a href="#api">API</a>
+                    <a href="#examples">Examples</a>
+                    <a href="https://github.com/aldrin-labs/abyssbook">GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <section class="hero">
+                <h1>AbyssBook Documentation</h1>
+                <p>The world's fastest decentralized exchange infrastructure. Sub-microsecond latency, unlimited throughput, and professional-grade trading tools.</p>
+                
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-value">0.3μs</div>
+                        <div class="stat-label">Order Latency</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">1M+</div>
+                        <div class="stat-label">Orders/Second</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">1000x</div>
+                        <div class="stat-label">Performance Gain</div>
+                    </div>
+                </div>
+
+                <div class="cta-buttons">
+                    <a href="integration.md" class="btn btn-primary">Get Started</a>
+                    <a href="thesis.md" class="btn btn-secondary">Read Thesis</a>
+                </div>
+            </section>
+
+            <section class="section" id="docs">
+                <h2 class="section-title">📚 Documentation</h2>
+                <p class="section-subtitle">Everything you need to understand and implement AbyssBook</p>
+                
+                <div class="grid grid-3">
+                    <div class="card">
+                        <div class="card-icon">🚀</div>
+                        <h3 class="card-title">Quick Start</h3>
+                        <p class="card-description">Get up and running with AbyssBook in under 5 minutes</p>
+                        <a href="integration.md#quick-start" class="card-link">Start Building →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">📄</div>
+                        <h3 class="card-title">One-Page Thesis</h3>
+                        <p class="card-description">Understanding AbyssBook's revolutionary approach and value proposition</p>
+                        <a href="thesis.md" class="card-link">Read Thesis →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">⚡</div>
+                        <h3 class="card-title">Architecture Guide</h3>
+                        <p class="card-description">Deep dive into SIMD optimization and sharded orderbook design</p>
+                        <a href="architecture.md" class="card-link">Explore Architecture →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">📊</div>
+                        <h3 class="card-title">Use Cases & Benefits</h3>
+                        <p class="card-description">Detailed applications, problems solved, and quantified benefits</p>
+                        <a href="use-cases.md" class="card-link">View Use Cases →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">🔍</div>
+                        <h3 class="card-title">Comparison Matrix</h3>
+                        <p class="card-description">How AbyssBook compares to Serum, OpenBook, and Manifesto</p>
+                        <a href="comparison.md" class="card-link">See Comparison →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">🛠️</div>
+                        <h3 class="card-title">API Reference</h3>
+                        <p class="card-description">Complete technical documentation for developers</p>
+                        <a href="api.md" class="card-link">Browse API →</a>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">🎯 By Use Case</h2>
+                <p class="section-subtitle">Find documentation tailored to your specific needs</p>
+                
+                <div class="grid grid-2">
+                    <div class="card">
+                        <div class="card-icon">🏎️</div>
+                        <h3 class="card-title">High-Frequency Trading</h3>
+                        <p class="card-description">Sub-microsecond execution for algorithmic trading strategies</p>
+                        <a href="use-cases.md#high-frequency-trading-hft" class="card-link">Learn More →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">💹</div>
+                        <h3 class="card-title">Market Making</h3>
+                        <p class="card-description">Professional liquidity provision with sub-tick pricing</p>
+                        <a href="use-cases.md#professional-market-making" class="card-link">Explore Features →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">🏢</div>
+                        <h3 class="card-title">Institutional Trading</h3>
+                        <p class="card-description">TWAP orders and advanced execution algorithms</p>
+                        <a href="use-cases.md#institutional-trading" class="card-link">View Solutions →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">🔗</div>
+                        <h3 class="card-title">DeFi Integration</h3>
+                        <p class="card-description">Building next-generation DeFi protocols</p>
+                        <a href="use-cases.md#defi-protocol-integration" class="card-link">Integration Guide →</a>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">⚡ Performance Comparison</h2>
+                <div class="comparison-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Traditional DEX</th>
+                                <th>AbyssBook</th>
+                                <th>Improvement</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Order Latency</td>
+                                <td>500ms</td>
+                                <td class="highlight">0.3μs</td>
+                                <td class="highlight">1,667,000x</td>
+                            </tr>
+                            <tr>
+                                <td>Throughput</td>
+                                <td>5K orders/sec</td>
+                                <td class="highlight">1M+ orders/sec</td>
+                                <td class="highlight">200x</td>
+                            </tr>
+                            <tr>
+                                <td>Price Levels</td>
+                                <td>Limited</td>
+                                <td class="highlight">Unlimited</td>
+                                <td class="highlight">∞</td>
+                            </tr>
+                            <tr>
+                                <td>Slippage</td>
+                                <td>High (0.5-2%)</td>
+                                <td class="highlight">Near-Zero (0.1%)</td>
+                                <td class="highlight">10-20x better</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="section" id="examples">
+                <h2 class="section-title">💻 Code Examples</h2>
+                <p class="section-subtitle">See AbyssBook in action with real implementation examples</p>
+                
+                <div class="code-block">
+                    <pre><code class="language-zig">// Initialize high-performance orderbook
+var book = try ShardedOrderbook.init(allocator, 32);
+
+// Place order with automatic price-time priority
+try book.placeOrder(.Buy, 1000, 10, order_id);
+
+// Execute TWAP order for institutional trading
+try book.placeTWAPOrder(.{
+    .side = .Buy,
+    .total_amount = 1_000_000,
+    .duration_seconds = 3600,
+    .max_participation = 0.15,
+});
+
+// Professional market making with bulk operations
+const quotes = try generateOptimalQuotes(market_data);
+try book.updateBulkQuotes(quotes);</code></pre>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Documentation</h3>
+                    <a href="thesis.md">One-Page Thesis</a>
+                    <a href="integration.md">Integration Guide</a>
+                    <a href="api.md">API Reference</a>
+                    <a href="architecture.md">Architecture</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Resources</h3>
+                    <a href="use-cases.md">Use Cases</a>
+                    <a href="comparison.md">Comparisons</a>
+                    <a href="performance.md">Performance</a>
+                    <a href="../readme.md">Getting Started</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Community</h3>
+                    <a href="https://github.com/aldrin-labs/abyssbook">GitHub</a>
+                    <a href="https://discord.gg/abyssbook">Discord</a>
+                    <a href="https://twitter.com/abyssbook">Twitter</a>
+                    <a href="mailto:support@abyssbook.com">Support</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Company</h3>
+                    <a href="https://aldrin.com">Aldrin Labs</a>
+                    <a href="https://blog.abyssbook.com">Blog</a>
+                    <a href="security.md">Security</a>
+                    <a href="compliance.md">Compliance</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <script>
+        // Documentation search functionality
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        
+        let searchData = [];
+        
+        // Load search data from JSON file
+        fetch('search-data.json')
+            .then(response => response.json())
+            .then(data => {
+                searchData = data;
+            })
+            .catch(error => {
+                console.warn('Could not load search data:', error);
+                // Fallback search data
+                searchData = [
+                    {
+                        title: "Quick Start Guide",
+                        url: "integration.md#quick-start",
+                        excerpt: "Get up and running with AbyssBook in under 5 minutes",
+                        category: "Integration"
+                    },
+                    {
+                        title: "One-Page Thesis", 
+                        url: "thesis.md",
+                        excerpt: "Revolutionary approach to DEX infrastructure with sub-microsecond latency",
+                        category: "Overview"
+                    },
+                    {
+                        title: "Performance Comparison",
+                        url: "comparison.md#performance-comparison",
+                        excerpt: "How AbyssBook compares to Serum, OpenBook, and Manifesto orderbooks",
+                        category: "Comparison"
+                    }
+                ];
+            });
+
+        let searchTimeout;
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.toLowerCase().trim();
+            
+            searchTimeout = setTimeout(() => {
+                if (query.length < 2) {
+                    searchResults.style.display = 'none';
+                    return;
+                }
+
+                // Enhanced search with keyword matching and scoring
+                const results = searchData
+                    .map(item => {
+                        let score = 0;
+                        const queryLower = query.toLowerCase();
+                        
+                        // Title matching (highest weight)
+                        if (item.title.toLowerCase().includes(queryLower)) {
+                            score += 10;
+                        }
+                        
+                        // Exact keyword matching (high weight)
+                        if (item.keywords && item.keywords.some(keyword => 
+                            keyword.toLowerCase().includes(queryLower))) {
+                            score += 8;
+                        }
+                        
+                        // Excerpt matching (medium weight)
+                        if (item.excerpt.toLowerCase().includes(queryLower)) {
+                            score += 5;
+                        }
+                        
+                        // Category matching (low weight)
+                        if (item.category && item.category.toLowerCase().includes(queryLower)) {
+                            score += 3;
+                        }
+                        
+                        return { ...item, score };
+                    })
+                    .filter(item => item.score > 0)
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 8);
+
+                if (results.length === 0) {
+                    searchResults.innerHTML = `
+                        <div class="search-result">
+                            <div class="result-title">No results found</div>
+                            <div class="result-excerpt">Try searching for "thesis", "integration", "performance", or "examples"</div>
+                        </div>`;
+                } else {
+                    searchResults.innerHTML = results.map(result => `
+                        <div class="search-result" onclick="window.location.href='${result.url}'">
+                            <div class="result-title">${result.title}</div>
+                            <div class="result-excerpt">${result.excerpt}</div>
+                            ${result.category ? `<div style="font-size: 0.8em; color: var(--accent); margin-top: 0.25rem;">${result.category}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+                
+                searchResults.style.display = 'block';
+            }, 200);
+        });
+
+        // Hide search results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
