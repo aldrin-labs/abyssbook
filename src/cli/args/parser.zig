@@ -1,4 +1,5 @@
 const std = @import("std");
+const logging = @import("../../logging.zig");
 
 /// Argument parsing error types
 pub const ArgError = error{
@@ -67,6 +68,13 @@ pub const ArgParser = struct {
     }
 
     pub fn parse(self: *ArgParser) !void {
+        // Log argument parsing attempt for security monitoring
+        logging.debugGlobalWithContext("cli.args", "Parsing CLI arguments", .{
+            .subcommand = if (self.subcommand) |cmd| cmd else "none",
+            .arg_count = self.args.len,
+            .definition_count = self.definitions.items.len,
+        });
+
         // Skip the first argument (subcommand) if it exists
         const start_index: usize = if (self.args.len > 0) 1 else 0;
         
@@ -77,6 +85,21 @@ pub const ArgParser = struct {
         while (def_index < self.definitions.items.len and arg_index < self.args.len) {
             const def = self.definitions.items[def_index];
             const arg_value = self.args[arg_index];
+            
+            // Log argument processing for security
+            logging.debugGlobalWithContext("cli.args", "Processing argument", .{
+                .name = def.name,
+                .has_value = true,
+                .is_required = def.required,
+            });
+
+            // Basic validation for potentially dangerous inputs
+            if (self.containsSuspiciousCharacters(arg_value)) {
+                logging.warnGlobalWithContext("cli.args", "Suspicious characters detected in argument", .{
+                    .argument_name = def.name,
+                    .value_length = arg_value.len,
+                });
+            }
             
             try self.parsed_args.put(def.name, .{
                 .name = def.name,
@@ -91,17 +114,29 @@ pub const ArgParser = struct {
         // Check for missing required arguments
         for (self.definitions.items) |def| {
             if (def.required and !self.parsed_args.contains(def.name)) {
+                logging.warnGlobalWithContext("cli.args", "Missing required argument", .{
+                    .argument_name = def.name,
+                });
+                
                 if (def.default_value) |default| {
+                    logging.debugGlobalWithContext("cli.args", "Using default value for missing argument", .{
+                        .argument_name = def.name,
+                    });
                     try self.parsed_args.put(def.name, .{
                         .name = def.name,
                         .value = default,
                         .allocator = self.allocator,
                     });
                 } else {
+                    logging.errorGlobalWithContext("cli.args", "Required argument missing with no default", .{
+                        .argument_name = def.name,
+                    });
                     return ArgError.MissingRequiredArgument;
                 }
             }
         }
+        
+        logging.infoGlobal("cli.args", "CLI arguments parsed successfully");
     }
 
     pub fn getString(self: *ArgParser, name: []const u8) ?[]const u8 {
@@ -117,6 +152,45 @@ pub const ArgParser = struct {
         }
         
         return null;
+    }
+
+    /// Check for suspicious characters that might indicate injection attempts
+    fn containsSuspiciousCharacters(self: *ArgParser, value: []const u8) bool {
+        _ = self;
+        
+        // Check for common injection patterns
+        const suspicious_patterns = [_][]const u8{
+            "../",      // Path traversal
+            "./",       // Current directory access
+            "\\x",      // Hex escape sequences
+            "$()",      // Command substitution
+            "`",        // Backticks for command execution
+            ";",        // Command separator
+            "|",        // Pipe operator
+            "&",        // Background execution
+            "rm ",      // Dangerous file operations
+            "del ",     // Windows delete command
+            "format ",  // Format command
+            "<script",  // Script injection
+            "javascript:", // JavaScript protocol
+        };
+        
+        for (suspicious_patterns) |pattern| {
+            if (std.mem.indexOf(u8, value, pattern) != null) {
+                return true;
+            }
+        }
+        
+        // Check for excessive special characters
+        var special_char_count: usize = 0;
+        for (value) |char| {
+            if (!std.ascii.isAlphanumeric(char) and char != '-' and char != '_' and char != '.' and char != '/') {
+                special_char_count += 1;
+            }
+        }
+        
+        // If more than 20% of characters are special, consider suspicious
+        return special_char_count > value.len / 5;
     }
 
     pub fn getStringOrError(self: *ArgParser, name: []const u8) ![]const u8 {

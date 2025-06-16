@@ -1,6 +1,7 @@
 const std = @import("std");
 const commands = @import("cli/commands.zig");
 const tui = @import("cli/tui.zig");
+const logging = @import("logging.zig");
 
 pub const Command = commands.Command;
 pub const CommandRegistry = commands.CommandRegistry;
@@ -24,12 +25,29 @@ pub fn init() CommandRegistry {
 pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
     if (args.len <= 1) {
         // No command provided, show help
+        logging.debugGlobal("cli", "No command provided, showing help");
         try registry.executeCommand("help", &[_][]const u8{});
         return;
     }
 
     const command_name = args[1];
     const command_args = if (args.len > 2) args[2..] else &[_][]const u8{};
+    
+    // Log command execution for security monitoring
+    logging.infoGlobalWithContext("cli", "CLI command execution", .{
+        .command = command_name,
+        .arg_count = command_args.len,
+    });
 
-    try registry.executeCommand(command_name, command_args);
+    registry.executeCommand(command_name, command_args) catch |err| {
+        logging.errorGlobalWithContext("cli", "Command execution failed", .{
+            .command = command_name,
+            .error_name = @errorName(err),
+        });
+        return err;
+    };
+    
+    logging.debugGlobalWithContext("cli", "Command completed successfully", .{
+        .command = command_name,
+    });
 }

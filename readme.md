@@ -46,11 +46,13 @@ try book.placePegOrder(
 );
 ```
 
-### 3. Performance Monitoring
+### 3. Performance Monitoring & Security
 - Real-time SIMD utilization tracking
 - Cache hit rate optimization
 - Latency percentile analysis
-- Throughput metrics
+- **Structured JSON logging** for security monitoring
+- **Comprehensive audit trails** for all operations
+- **Threat detection** and anomaly monitoring
 
 ## 💫 Technical Advantages
 
@@ -165,8 +167,13 @@ We welcome contributions in:
 ### **Deployment**
 - 🌐 [**Netlify Deployment Guide**](NETLIFY_DEPLOY.md) - Complete setup instructions for hosting the documentation
 
+
 ## 🔒 Security
 
+- **Structured audit logging** with JSON format for easy analysis
+- **Real-time security monitoring** and threat detection
+- **CLI command security logging** with input validation
+- **Suspicious activity detection** and alerting
 - Formal verification of core components
 - Regular security audits
 - Comprehensive test coverage

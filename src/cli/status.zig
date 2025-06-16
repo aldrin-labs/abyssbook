@@ -1,7 +1,10 @@
 const std = @import("std");
+const logging = @import("../logging.zig");
 
 /// Show node status and performance metrics
 pub fn showStatus() !void {
+    logging.infoGlobal("cli.status", "System status requested");
+    
     std.debug.print("Abyssbook Node Status\n", .{});
     std.debug.print("====================\n\n", .{});
     
