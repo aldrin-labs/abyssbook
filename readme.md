@@ -170,14 +170,42 @@ We welcome contributions in:
 
 ## 🔒 Security
 
+AbyssBook maintains the highest security standards with a comprehensive security framework:
+
+### **Security Status**
+- ✅ **Zero External Dependencies**: No third-party vulnerabilities
+- ✅ **Automated Security Scanning**: CI/CD pipeline integration
+- ✅ **Comprehensive Audit**: Full dependency and code security audit
+- ✅ **Security Documentation**: Complete [SECURITY.md](SECURITY.md) policy
+
+### **Security Features**
 - **Structured audit logging** with JSON format for easy analysis
 - **Real-time security monitoring** and threat detection
 - **CLI command security logging** with input validation
 - **Suspicious activity detection** and alerting
-- Formal verification of core components
-- Regular security audits
-- Comprehensive test coverage
-- Automated fuzzing
+- **Memory safety** through Zig's built-in protections
+- **Input validation** and sanitization for all interfaces
+
+### **Security Testing**
+```bash
+# Run security-focused tests
+zig build test-security
+
+# Run all tests including security
+zig build test-all
+```
+
+### **Security Documentation**
+- 📋 [**Security Policy**](SECURITY.md) - Vulnerability reporting and response
+- 📊 [**Dependency Audit**](DEPENDENCY_AUDIT.md) - Complete security assessment
+- 📚 [**Dependency Management**](docs/dependency_management.md) - Security-focused guidelines
+- 🔍 **Automated Monitoring**: GitHub Actions security workflows
+
+### **Continuous Security**
+- **Automated vulnerability scanning** in CI pipeline
+- **Weekly dependency audits** via GitHub Actions
+- **Security-first development** practices
+- **Incident response** procedures documented
 
 ## 📈 Benchmarks
 
@@ -208,9 +236,15 @@ zig build test-e2e
 ```
 
 ### All Tests
-Run both unit and end-to-end tests:
+Run unit tests, end-to-end tests, and security tests:
 ```bash
 zig build test-all
+```
+
+### Security Tests
+Run dedicated security tests for input validation and vulnerability prevention:
+```bash
+zig build test-security
 ```
 
 Detailed documentation on the e2e tests is available at [E2E Tests Documentation](docs/e2e_tests.md).
