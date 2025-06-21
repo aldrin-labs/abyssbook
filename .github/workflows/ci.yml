@@ -22,7 +22,7 @@ jobs:
     - name: Setup Zig
       uses: mlugg/setup-zig@v1
       with:
-        version: master
+        version: 0.13.0
         
     - name: Cache Zig build artifacts
       uses: actions/cache@v4
@@ -63,7 +63,7 @@ jobs:
     - name: Setup Zig
       uses: mlugg/setup-zig@v1
       with:
-        version: master
+        version: 0.13.0
         
     - name: Security-focused build
       run: |
