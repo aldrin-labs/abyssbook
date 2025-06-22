@@ -56,8 +56,30 @@ pub fn build(b: *std.Build) void {
     const e2e_test_step = b.step("test-e2e", "Run end-to-end tests");
     e2e_test_step.dependOn(&run_e2e_tests.step);
 
+    // Security tests
+    const security_tests = b.addTest(.{
+        .root_source_file = .{ .cwd_relative = "src/tests/security_tests.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const blockchain_security_tests = b.addTest(.{
+        .root_source_file = .{ .cwd_relative = "src/tests/blockchain_security_tests.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const run_security_tests = b.addRunArtifact(security_tests);
+    const run_blockchain_security_tests = b.addRunArtifact(blockchain_security_tests);
+    
+    const security_test_step = b.step("test-security", "Run security tests");
+    security_test_step.dependOn(&run_security_tests.step);
+    security_test_step.dependOn(&run_blockchain_security_tests.step);
+
     // Combined test step
-    const all_tests_step = b.step("test-all", "Run all tests (unit and e2e)");
+    const all_tests_step = b.step("test-all", "Run all tests (unit, e2e, and security)");
     all_tests_step.dependOn(&run_unit_tests.step);
     all_tests_step.dependOn(&run_e2e_tests.step);
+    all_tests_step.dependOn(&run_security_tests.step);
+    all_tests_step.dependOn(&run_blockchain_security_tests.step);
 }
