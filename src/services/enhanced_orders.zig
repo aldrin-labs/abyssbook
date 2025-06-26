@@ -5,14 +5,20 @@ const Wallet = @import("../blockchain/wallet.zig").Wallet;
 const logging = @import("../logging.zig");
 const BlockchainError = @import("../blockchain/error.zig").BlockchainError;
 const ErrorHandler = @import("../blockchain/error.zig").ErrorHandler;
+const BlockchainConstants = @import("../blockchain/constants.zig").BlockchainConstants;
 const Thread = std.Thread;
 
-/// Enhanced order service with secure wallet integration and thread safety
+/// Enhanced order service with secure wallet integration and granular thread safety
 pub const EnhancedOrderService = struct {
     allocator: std.mem.Allocator,
     order_service: OrderService,
     wallet: Wallet,
-    mutex: Thread.Mutex,
+    
+    // Granular locking for better performance
+    read_mutex: Thread.Mutex,    // For read operations (list orders)
+    write_mutex: Thread.Mutex,   // For write operations (place/cancel orders)
+    config_mutex: Thread.Mutex,  // For configuration changes
+    
     error_handler: ErrorHandler,
     operation_count: std.atomic.Value(u64),
     
@@ -53,7 +59,10 @@ pub const EnhancedOrderService = struct {
         };
         
         // Initialize error handler with security-focused retry strategy
-        const error_handler = ErrorHandler.init(3, 200); // 3 retries, 200ms base delay
+        const error_handler = ErrorHandler.init(
+            BlockchainConstants.DEFAULT_ERROR_HANDLER_RETRIES, 
+            BlockchainConstants.DEFAULT_ERROR_HANDLER_BASE_DELAY_MS
+        );
         
         logging.infoGlobal("service.orders", "Secure enhanced order service initialized successfully");
         
@@ -61,16 +70,18 @@ pub const EnhancedOrderService = struct {
             .allocator = allocator,
             .order_service = order_service,
             .wallet = wallet,
-            .mutex = Thread.Mutex{},
+            .read_mutex = Thread.Mutex{},
+            .write_mutex = Thread.Mutex{},
+            .config_mutex = Thread.Mutex{},
             .error_handler = error_handler,
             .operation_count = std.atomic.Value(u64).init(0),
         };
     }
     
-    /// List orders from the blockchain with thread safety
+    /// List orders from the blockchain with thread safety (read operation)
     pub fn listOrders(self: *EnhancedOrderService, side: ?[]const u8) !void {
-        self.mutex.lock();
-        defer self.mutex.unlock();
+        self.read_mutex.lock();
+        defer self.read_mutex.unlock();
         
         _ = self.operation_count.fetchAdd(1, .monotonic);
         defer _ = self.operation_count.fetchSub(1, .monotonic);
@@ -111,10 +122,10 @@ pub const EnhancedOrderService = struct {
         try self.error_handler.executeWithRetry(void, context, listOrdersImpl);
     }
     
-    /// Place a new order with comprehensive security and validation
+    /// Place a new order with comprehensive security and validation (write operation)
     pub fn placeOrder(self: *EnhancedOrderService, side: []const u8, price_str: []const u8, size_str: []const u8) !void {
-        self.mutex.lock();
-        defer self.mutex.unlock();
+        self.write_mutex.lock();
+        defer self.write_mutex.unlock();
         
         _ = self.operation_count.fetchAdd(1, .monotonic);
         defer _ = self.operation_count.fetchSub(1, .monotonic);
@@ -126,21 +137,21 @@ pub const EnhancedOrderService = struct {
         });
 
         // Input validation with security checks
-        if (side.len == 0 or side.len > 10) {
+        if (side.len == 0 or side.len > BlockchainConstants.MAX_SIDE_LENGTH) {
             logging.warnGlobalWithContext("service.orders", "Invalid side length", .{
                 .side_length = side.len,
             });
             return BlockchainError.InvalidSide;
         }
         
-        if (price_str.len == 0 or price_str.len > 32) {
+        if (price_str.len == 0 or price_str.len > BlockchainConstants.MAX_PRICE_STRING_LENGTH) {
             logging.warnGlobalWithContext("service.orders", "Invalid price string length", .{
                 .price_length = price_str.len,
             });
             return BlockchainError.InvalidPrice;
         }
         
-        if (size_str.len == 0 or size_str.len > 32) {
+        if (size_str.len == 0 or size_str.len > BlockchainConstants.MAX_SIZE_STRING_LENGTH) {
             logging.warnGlobalWithContext("service.orders", "Invalid size string length", .{
                 .size_length = size_str.len,
             });
@@ -188,14 +199,14 @@ pub const EnhancedOrderService = struct {
         }
         
         // Additional security checks
-        if (price > 1000000000.0) { // $1B max
+        if (price > BlockchainConstants.MAX_PRICE_VALUE) {
             logging.warnGlobalWithContext("service.orders", "Price exceeds maximum allowed", .{
                 .price = price,
             });
             return BlockchainError.PriceTooHigh;
         }
         
-        if (size > 1000000000.0) { // 1B max
+        if (size > BlockchainConstants.MAX_SIZE_VALUE) {
             logging.warnGlobalWithContext("service.orders", "Size exceeds maximum allowed", .{
                 .size = size,
             });
@@ -278,24 +289,26 @@ pub const EnhancedOrderService = struct {
                     .wallet_address = ctx.service.wallet.getAddress(),
                 });
                 
-                // Display transaction information
-                std.debug.print("Order placed successfully:\n", .{});
-                std.debug.print("  Order ID: {s}\n", .{order_id});
-                std.debug.print("  Side: {s}\n", .{ctx.side});
-                std.debug.print("  Price: {d} USD\n", .{ctx.price});
-                std.debug.print("  Size: {d} shares\n", .{ctx.size});
-                std.debug.print("  Wallet: {s}\n", .{ctx.service.wallet.getAddress()});
-                std.debug.print("  Transaction signed securely\n", .{});
+                // Display transaction information with improved formatting
+                std.debug.print("\n✅ Order Placement Successful\n", .{});
+                std.debug.print("─────────────────────────────────\n", .{});
+                std.debug.print("  🏷️  Order ID: {s}\n", .{order_id});
+                std.debug.print("  📊 Side: {s}\n", .{ctx.side});
+                std.debug.print("  💰 Price: ${d:.2}\n", .{ctx.price});
+                std.debug.print("  📦 Size: {d:.6} units\n", .{ctx.size});
+                std.debug.print("  👛 Wallet: {s}\n", .{ctx.service.wallet.getAddress()});
+                std.debug.print("  🔐 Status: Transaction signed securely\n", .{});
+                std.debug.print("─────────────────────────────────\n\n", .{});
             }
         }.execute;
         
         try self.error_handler.executeWithRetry(void, context, placeOrderImpl);
     }
     
-    /// Cancel an existing order with comprehensive security
+    /// Cancel an existing order with comprehensive security (write operation)
     pub fn cancelOrder(self: *EnhancedOrderService, order_id: []const u8) !void {
-        self.mutex.lock();
-        defer self.mutex.unlock();
+        self.write_mutex.lock();
+        defer self.write_mutex.unlock();
         
         _ = self.operation_count.fetchAdd(1, .monotonic);
         defer _ = self.operation_count.fetchSub(1, .monotonic);
@@ -310,7 +323,7 @@ pub const EnhancedOrderService = struct {
             return BlockchainError.InvalidOrderId;
         }
         
-        if (order_id.len > 64) {
+        if (order_id.len > BlockchainConstants.MAX_ORDER_ID_LENGTH) {
             logging.warnGlobalWithContext("service.orders", "Order ID too long", .{
                 .order_id_length = order_id.len,
             });
@@ -376,10 +389,13 @@ pub const EnhancedOrderService = struct {
                     .wallet_address = ctx.service.wallet.getAddress(),
                 });
                 
-                // Display transaction information
-                std.debug.print("Order {s} cancelled successfully.\n", .{ctx.order_id});
-                std.debug.print("  Wallet: {s}\n", .{ctx.service.wallet.getAddress()});
-                std.debug.print("  Transaction signed securely\n", .{});
+                // Display transaction information with improved formatting
+                std.debug.print("\n✅ Order Cancellation Successful\n", .{});
+                std.debug.print("─────────────────────────────────\n", .{});
+                std.debug.print("  🗑️  Order ID: {s}\n", .{ctx.order_id});
+                std.debug.print("  👛 Wallet: {s}\n", .{ctx.service.wallet.getAddress()});
+                std.debug.print("  🔐 Status: Transaction signed securely\n", .{});
+                std.debug.print("─────────────────────────────────\n\n", .{});
             }
         }.execute;
         
@@ -388,9 +404,9 @@ pub const EnhancedOrderService = struct {
     
     /// Deinitialize the service and free resources securely
     pub fn deinit(self: *EnhancedOrderService) void {
-        // Wait for all operations to complete
+        // Wait for all operations to complete with improved timing
         while (self.operation_count.load(.monotonic) > 0) {
-            std.time.sleep(10 * std.time.ns_per_ms);
+            std.time.sleep(BlockchainConstants.OPERATION_CLEANUP_SLEEP_MS * std.time.ns_per_ms);
         }
         
         self.order_service.deinit();

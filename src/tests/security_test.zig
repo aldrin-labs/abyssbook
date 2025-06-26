@@ -3,17 +3,20 @@ const testing = std.testing;
 const BlockchainClient = @import("../blockchain/client.zig").BlockchainClient;
 const BlockchainError = @import("../blockchain/error.zig").BlockchainError;
 const ErrorHandler = @import("../blockchain/error.zig").ErrorHandler;
+const BlockchainConstants = @import("../blockchain/constants.zig").BlockchainConstants;
 const EnhancedOrderService = @import("../services/enhanced_orders.zig").EnhancedOrderService;
 
 /// Test suite for security features in blockchain integration
 pub fn runSecurityTests() !void {
-    std.debug.print("Running security tests...\n", .{});
+    std.debug.print("Running comprehensive security tests...\n", .{});
     
     try testBlockchainClientSecurity();
     try testInputValidation();
     try testConcurrencySafety();
     try testErrorHandling();
     try testMemoryManagement();
+    try testConstants();
+    try testImprovedErrorMessages();
     
     std.debug.print("All security tests passed!\n", .{});
 }
@@ -345,4 +348,47 @@ test "orderbook validation" {
     
     // Clean up
     orderbook.deinit(allocator);
+}
+
+/// Test centralized constants
+fn testConstants() !void {
+    std.debug.print("Testing centralized constants...\n", .{});
+    
+    // Test that constants are properly defined and reasonable
+    try testing.expect(BlockchainConstants.MAX_RETRIES > 0);
+    try testing.expect(BlockchainConstants.BASE_RETRY_DELAY_MS > 0);
+    try testing.expect(BlockchainConstants.RATE_LIMIT_DELAY_MS > 0);
+    try testing.expect(BlockchainConstants.MAX_RESPONSE_SIZE > 1024); // At least 1KB
+    try testing.expect(BlockchainConstants.MAX_MARKET_NAME_LENGTH > 0);
+    try testing.expect(BlockchainConstants.MAX_ORDER_ID_LENGTH > 0);
+    try testing.expect(BlockchainConstants.MAX_PRICE_VALUE > 0);
+    try testing.expect(BlockchainConstants.MAX_SIZE_VALUE > 0);
+    try testing.expect(BlockchainConstants.ORDER_ID_BYTES > 0);
+    try testing.expect(BlockchainConstants.ORDER_ID_HEX_LENGTH == BlockchainConstants.ORDER_ID_BYTES * 2);
+    
+    std.debug.print("Constants validation tests passed.\n", .{});
+}
+
+/// Test improved error message formatting
+fn testImprovedErrorMessages() !void {
+    std.debug.print("Testing improved error messages...\n", .{});
+    
+    // Test that error messages contain emojis and context
+    const network_error_msg = ErrorHandler.formatErrorMessage(BlockchainError.NetworkError);
+    try testing.expect(std.mem.indexOf(u8, network_error_msg, "🌐") != null);
+    
+    const auth_error_msg = ErrorHandler.formatErrorMessage(BlockchainError.AuthenticationFailed);
+    try testing.expect(std.mem.indexOf(u8, auth_error_msg, "🔑") != null);
+    
+    const validation_error_msg = ErrorHandler.formatErrorMessage(BlockchainError.InvalidPrice);
+    try testing.expect(std.mem.indexOf(u8, validation_error_msg, "💰") != null);
+    
+    // Test that all error messages are non-empty
+    inline for (@typeInfo(BlockchainError).ErrorSet.?) |error_info| {
+        const error_value = @field(BlockchainError, error_info.name);
+        const msg = ErrorHandler.formatErrorMessage(error_value);
+        try testing.expect(msg.len > 0);
+    }
+    
+    std.debug.print("Error message formatting tests passed.\n", .{});
 }
