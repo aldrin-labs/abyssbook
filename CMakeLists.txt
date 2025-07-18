@@ -77,6 +77,7 @@ enable_testing()
 
 # Unit tests executable
 add_executable(unit_tests 
+    src/cpp/tests/test_framework.cpp
     src/cpp/tests/unit/test_orderbook.cpp
     src/cpp/tests/unit/test_order_types.cpp
     src/cpp/tests/unit/test_price_level.cpp

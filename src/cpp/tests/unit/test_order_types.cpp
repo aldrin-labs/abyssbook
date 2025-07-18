@@ -1,41 +1,8 @@
 #include "abyssbook/order_types.hpp"
+#include "../test_framework.hpp"
 #include <iostream>
 #include <cassert>
 #include <chrono>
-
-// Simple test framework
-class TestRunner {
-public:
-    static void run_test(const std::string& test_name, std::function<void()> test_func) {
-        try {
-            std::cout << "Running " << test_name << "... ";
-            test_func();
-            std::cout << "PASSED" << std::endl;
-            passed_++;
-        } catch (const std::exception& e) {
-            std::cout << "FAILED: " << e.what() << std::endl;
-            failed_++;
-        } catch (...) {
-            std::cout << "FAILED: Unknown exception" << std::endl;
-            failed_++;
-        }
-    }
-    
-    static void print_summary() {
-        std::cout << "\nTest Summary: " << passed_ << " passed, " << failed_ << " failed" << std::endl;
-    }
-    
-    static int get_exit_code() {
-        return failed_ > 0 ? 1 : 0;
-    }
-
-private:
-    static int passed_;
-    static int failed_;
-};
-
-int TestRunner::passed_ = 0;
-int TestRunner::failed_ = 0;
 
 // Test basic order creation and properties
 void test_basic_order_creation() {
