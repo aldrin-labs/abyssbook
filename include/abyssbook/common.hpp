@@ -1,0 +1,212 @@
+#pragma once
+
+#include <cstdint>
+#include <cstddef>
+#include <memory>
+#include <chrono>
+#include <atomic>
+#include <array>
+#include <vector>
+
+namespace abyssbook {
+
+// Type definitions for performance and consistency
+using OrderId = std::uint64_t;
+using Price = std::uint64_t;
+using Amount = std::uint64_t;
+using Timestamp = std::int64_t;
+using ShardIndex = std::size_t;
+
+// SIMD vector width - adjust based on target architecture
+constexpr std::size_t VECTOR_WIDTH = 4;  // AVX2 supports 4x 64-bit values
+constexpr std::size_t CACHE_LINE_SIZE = 64;
+constexpr std::size_t BATCH_SIZE = VECTOR_WIDTH * 4;
+constexpr std::size_t PREFETCH_DISTANCE = 8;
+
+// Cache alignment macro
+#define CACHE_ALIGNED alignas(CACHE_LINE_SIZE)
+
+// Order side enumeration
+enum class OrderSide : std::uint8_t {
+    Buy = 0,
+    Sell = 1
+};
+
+// Order type enumeration
+enum class OrderType : std::uint8_t {
+    Limit = 0,
+    Market = 1,
+    Stop = 2,
+    StopLimit = 3,
+    IOC = 4,        // Immediate or Cancel
+    FOK = 5,        // Fill or Kill
+    PostOnly = 6,   // Post only
+    GTD = 7,        // Good Till Date
+    Iceberg = 8,    // Iceberg order
+    OCO = 9,        // One-Cancels-Other
+    TWAP = 10,      // Time-Weighted Average Price
+    OSO = 11,       // One-Sends-Other
+    TrailingStop = 12,  // Trailing Stop
+    Peg = 13,       // Pegged to best bid/ask
+    MidpointPeg = 14,   // Pegged to spread midpoint
+    Discretionary = 15, // Limit order with discretionary price
+    Conditional = 16    // Executes based on custom conditions
+};
+
+// Peg type for pegged orders
+enum class PegType : std::uint8_t {
+    BestBid = 0,
+    BestAsk = 1,
+    Midpoint = 2,
+    LastTrade = 3
+};
+
+// Conditional order types
+enum class ConditionalType : std::uint8_t {
+    Price = 0,
+    Time = 1,
+    Volume = 2,
+    Custom = 3
+};
+
+// Order flags packed into a single byte for efficiency
+struct OrderFlags {
+    bool is_stop : 1;
+    bool is_ioc : 1;
+    bool is_fok : 1;
+    bool is_post_only : 1;
+    bool is_gtd : 1;
+    bool is_iceberg : 1;
+    bool is_oco : 1;
+    bool is_twap : 1;
+    bool is_oso : 1;
+    bool is_trailing_stop : 1;
+    bool is_peg : 1;
+    bool is_midpoint_peg : 1;
+    bool is_discretionary : 1;
+    bool is_conditional : 1;
+    std::uint8_t padding : 2;
+    
+    OrderFlags() : is_stop(false), is_ioc(false), is_fok(false), is_post_only(false),
+                   is_gtd(false), is_iceberg(false), is_oco(false), is_twap(false),
+                   is_oso(false), is_trailing_stop(false), is_peg(false),
+                   is_midpoint_peg(false), is_discretionary(false), 
+                   is_conditional(false), padding(0) {}
+};
+
+// High resolution timestamp
+inline Timestamp getCurrentTimestamp() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::high_resolution_clock::now().time_since_epoch()
+    ).count();
+}
+
+// Error types
+enum class OrderError {
+    Success = 0,
+    OutOfMemory,
+    InvalidPrice,
+    InvalidAmount,
+    OrderNotFound,
+    DuplicateOrder,
+    NoBestBid,
+    NoBestAsk,
+    LastTradeNotImplemented,
+    InvalidOrderType,
+    InsufficientLiquidity,
+    MarketClosed,
+    InvalidParameters,
+    ThreadingError
+};
+
+// Match result structure
+struct MatchResult {
+    Amount filled_amount;
+    Amount remaining_amount;
+    Price execution_price;
+    OrderError error;
+    
+    MatchResult() : filled_amount(0), remaining_amount(0), 
+                   execution_price(0), error(OrderError::Success) {}
+    
+    MatchResult(Amount filled, Amount remaining, Price price, OrderError err = OrderError::Success)
+        : filled_amount(filled), remaining_amount(remaining), 
+          execution_price(price), error(err) {}
+};
+
+// Order modification structure
+struct OrderModification {
+    std::optional<Price> new_price;
+    std::optional<Amount> new_amount;
+    
+    OrderModification() = default;
+    
+    static OrderModification withPrice(Price price) {
+        OrderModification mod;
+        mod.new_price = price;
+        return mod;
+    }
+    
+    static OrderModification withAmount(Amount amount) {
+        OrderModification mod;
+        mod.new_amount = amount;
+        return mod;
+    }
+    
+    OrderModification(Price price, Amount amount) 
+        : new_price(price), new_amount(amount) {}
+};
+
+// Price level statistics
+struct PriceLevelStats {
+    Amount total_volume;
+    std::size_t order_count;
+    Amount min_amount;
+    Amount max_amount;
+    Amount avg_amount;
+    
+    PriceLevelStats() : total_volume(0), order_count(0), min_amount(0), 
+                       max_amount(0), avg_amount(0) {}
+};
+
+// Market depth entry
+struct DepthEntry {
+    Price price;
+    Amount volume;
+    
+    DepthEntry() : price(0), volume(0) {}
+    DepthEntry(Price p, Amount v) : price(p), volume(v) {}
+};
+
+// Market depth structure
+struct MarketDepth {
+    std::vector<DepthEntry> bids;
+    std::vector<DepthEntry> asks;
+    
+    void clear() {
+        bids.clear();
+        asks.clear();
+    }
+};
+
+// Utility functions
+inline bool isBuyOrder(OrderSide side) {
+    return side == OrderSide::Buy;
+}
+
+inline bool isSellOrder(OrderSide side) {
+    return side == OrderSide::Sell;
+}
+
+inline OrderSide oppositeSide(OrderSide side) {
+    return isBuyOrder(side) ? OrderSide::Sell : OrderSide::Buy;
+}
+
+// Hash function for OrderId
+struct OrderIdHash {
+    std::size_t operator()(OrderId id) const noexcept {
+        return std::hash<std::uint64_t>{}(id);
+    }
+};
+
+} // namespace abyssbook
