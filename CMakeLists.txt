@@ -10,14 +10,47 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
+    
+    # Aggressive optimization for release builds
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -funroll-loops")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer -finline-functions")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffast-math")
+    
+    # Link-time optimization (commented for compatibility)
+    # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto -fuse-linker-plugin")
+    # set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -flto")
+    # set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -flto")
+    
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
     
-    # Enable SIMD optimizations
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2 -mavx2")
+    # Enhanced SIMD optimizations - detect what's available (conservative)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2 -mavx -mavx2")
     
-    # Enable fast math for better performance
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffast-math")
+    # Try to enable AVX-512 if available (disabled for compatibility)
+    # include(CheckCXXCompilerFlag)
+    # check_cxx_compiler_flag("-mavx512f" COMPILER_SUPPORTS_AVX512F)
+    # if(COMPILER_SUPPORTS_AVX512F)
+    #     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mavx512f -mavx512dq -mavx512bw")
+    #     message(STATUS "AVX-512 support enabled")
+    # endif()
+    
+    # Enable additional instruction sets if available
+    # include(CheckCXXCompilerFlag)
+    # check_cxx_compiler_flag("-mbmi" COMPILER_SUPPORTS_BMI)
+    # if(COMPILER_SUPPORTS_BMI)
+    #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi -mbmi2")
+    # endif()
+    
+    # check_cxx_compiler_flag("-mlzcnt" COMPILER_SUPPORTS_LZCNT)
+    # if(COMPILER_SUPPORTS_LZCNT)
+    #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mlzcnt")
+    # endif()
+    
+    # Profile-guided optimization setup (commented out by default)
+    # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate")
+    # set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -fprofile-generate")
+    
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
@@ -54,6 +87,9 @@ set(ABYSSBOOK_HEADERS
     include/abyssbook/memory_pool.hpp
     include/abyssbook/simd_helpers.hpp
     include/abyssbook/common.hpp
+    include/abyssbook/lockfree_structures.hpp
+    include/abyssbook/template_optimizations.hpp
+    include/abyssbook/optimized_matching.hpp
 )
 
 # Create static library
@@ -69,7 +105,12 @@ add_executable(abyssbook src/cpp/main.cpp)
 target_link_libraries(abyssbook abyssbook_static)
 
 # Benchmark executable
-add_executable(abyssbook_bench src/cpp/benchmark/benchmark_main.cpp src/cpp/benchmark/order_bench.cpp src/cpp/benchmark/matching_bench.cpp src/cpp/benchmark/advanced_order_bench.cpp)
+add_executable(abyssbook_bench 
+    src/cpp/benchmark/benchmark_main.cpp 
+    src/cpp/benchmark/order_bench.cpp 
+    src/cpp/benchmark/matching_bench.cpp 
+    src/cpp/benchmark/advanced_order_bench.cpp
+)
 target_link_libraries(abyssbook_bench abyssbook_static)
 
 # Testing

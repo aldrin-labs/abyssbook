@@ -11,10 +11,11 @@ CacheAlignedOrder::CacheAlignedOrder(const CacheAlignedOrder& other)
     : price(other.price)
     , amount(other.amount)
     , id(other.id)
+    , timestamp(other.timestamp)
     , side(other.side)
     , order_type(other.order_type)
-    , stop_price(other.stop_price)
     , flags(other.flags)
+    , stop_price(other.stop_price)
     , expiry_time(other.expiry_time)
     , display_amount(other.display_amount)
 {
@@ -49,7 +50,7 @@ CacheAlignedOrder::CacheAlignedOrder(const CacheAlignedOrder& other)
         conditional_params = std::make_unique<ConditionalParams>(*other.conditional_params);
     }
     
-    std::memset(padding, 0, sizeof(padding));
+    std::memset(padding1, 0, sizeof(padding1));
 }
 
 CacheAlignedOrder& CacheAlignedOrder::operator=(const CacheAlignedOrder& other) {
@@ -108,7 +109,7 @@ CacheAlignedOrder& CacheAlignedOrder::operator=(const CacheAlignedOrder& other) 
             conditional_params = std::make_unique<ConditionalParams>(*other.conditional_params);
         }
         
-        std::memset(padding, 0, sizeof(padding));
+        std::memset(padding1, 0, sizeof(padding1));
     }
     return *this;
 }
@@ -117,10 +118,11 @@ CacheAlignedOrder::CacheAlignedOrder(CacheAlignedOrder&& other) noexcept
     : price(other.price)
     , amount(other.amount)
     , id(other.id)
+    , timestamp(other.timestamp)
     , side(other.side)
     , order_type(other.order_type)
-    , stop_price(other.stop_price)
     , flags(other.flags)
+    , stop_price(other.stop_price)
     , expiry_time(other.expiry_time)
     , display_amount(other.display_amount)
     , twap_params(std::move(other.twap_params))
@@ -131,8 +133,7 @@ CacheAlignedOrder::CacheAlignedOrder(CacheAlignedOrder&& other) noexcept
     , discretionary_params(std::move(other.discretionary_params))
     , conditional_params(std::move(other.conditional_params))
 {
-    std::memset(padding, 0, sizeof(padding));
-    std::memset(other.padding, 0, sizeof(other.padding));
+    std::memset(padding1, 0, sizeof(padding1));
 }
 
 CacheAlignedOrder& CacheAlignedOrder::operator=(CacheAlignedOrder&& other) noexcept {
@@ -155,8 +156,7 @@ CacheAlignedOrder& CacheAlignedOrder::operator=(CacheAlignedOrder&& other) noexc
         discretionary_params = std::move(other.discretionary_params);
         conditional_params = std::move(other.conditional_params);
         
-        std::memset(padding, 0, sizeof(padding));
-        std::memset(other.padding, 0, sizeof(other.padding));
+        std::memset(padding1, 0, sizeof(padding1));
     }
     return *this;
 }

@@ -6,7 +6,113 @@
 #include <atomic>
 #include <mutex>
 
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/syscall.h>
+#include <cstdio>
+
+// NUMA policy constants
+#ifndef MPOL_BIND
+#define MPOL_BIND 2
+#endif
+
+#ifndef SYS_mbind
+#define SYS_mbind 237
+#endif
+#endif
+
 namespace abyssbook {
+
+// NUMA-aware memory allocation helpers
+namespace numa {
+#ifdef __linux__
+    // Check if NUMA is available
+    inline bool isNumaAvailable() {
+        return access("/sys/devices/system/node", F_OK) == 0;
+    }
+    
+    // Get number of NUMA nodes
+    inline int getNumaNodeCount() {
+        if (!isNumaAvailable()) return 1;
+        
+        int max_node = 0;
+        FILE* fp = fopen("/sys/devices/system/node/online", "r");
+        if (fp) {
+            fscanf(fp, "%*d-%d", &max_node);
+            fclose(fp);
+        }
+        return max_node + 1;
+    }
+    
+    // Allocate memory on specific NUMA node
+    void* allocateOnNode(std::size_t size, int node) {
+        if (!isNumaAvailable()) {
+            return std::aligned_alloc(CACHE_LINE_SIZE, size);
+        }
+        
+        void* ptr = std::aligned_alloc(CACHE_LINE_SIZE, size);
+        if (ptr) {
+            // Move pages to specific NUMA node (Linux specific)
+            long pages = (size + 4095) / 4096;
+            unsigned long nodemask = 1UL << node;
+            syscall(SYS_mbind, ptr, size, MPOL_BIND, &nodemask, sizeof(nodemask) * 8, 0);
+        }
+        return ptr;
+    }
+#else
+    inline bool isNumaAvailable() { return false; }
+    inline int getNumaNodeCount() { return 1; }
+    inline void* allocateOnNode(std::size_t size, int) {
+        return std::aligned_alloc(CACHE_LINE_SIZE, size);
+    }
+#endif
+} // namespace numa
+
+// Huge pages support
+namespace hugepages {
+#ifdef __linux__
+    // Check if huge pages are available
+    inline bool areHugePagesAvailable() {
+        return access("/proc/sys/vm/nr_hugepages", F_OK) == 0;
+    }
+    
+    // Allocate memory using huge pages
+    void* allocateHugePages(std::size_t size) {
+        if (!areHugePagesAvailable()) {
+            return std::aligned_alloc(CACHE_LINE_SIZE, size);
+        }
+        
+        // Round up to huge page boundary (2MB typically)
+        constexpr std::size_t HUGE_PAGE_SIZE = 2 * 1024 * 1024;
+        std::size_t aligned_size = ((size + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE) * HUGE_PAGE_SIZE;
+        
+        void* ptr = mmap(nullptr, aligned_size, PROT_READ | PROT_WRITE,
+                        MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
+        
+        if (ptr == MAP_FAILED) {
+            // Fall back to regular allocation
+            return std::aligned_alloc(CACHE_LINE_SIZE, size);
+        }
+        
+        return ptr;
+    }
+    
+    void deallocateHugePages(void* ptr, std::size_t size) {
+        constexpr std::size_t HUGE_PAGE_SIZE = 2 * 1024 * 1024;
+        std::size_t aligned_size = ((size + HUGE_PAGE_SIZE - 1) / HUGE_PAGE_SIZE) * HUGE_PAGE_SIZE;
+        munmap(ptr, aligned_size);
+    }
+#else
+    inline bool areHugePagesAvailable() { return false; }
+    inline void* allocateHugePages(std::size_t size) {
+        return std::aligned_alloc(CACHE_LINE_SIZE, size);
+    }
+    inline void deallocateHugePages(void* ptr, std::size_t) {
+        std::free(ptr);
+    }
+#endif
+} // namespace hugepages
 
 // High-performance memory pool for order allocation
 // Reduces allocation overhead and improves cache locality

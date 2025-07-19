@@ -26,6 +26,45 @@ constexpr std::size_t PREFETCH_DISTANCE = 8;
 // Cache alignment macro
 #define CACHE_ALIGNED alignas(CACHE_LINE_SIZE)
 
+// Branch prediction hints for optimization
+#ifdef __GNUC__
+#define LIKELY(x)       __builtin_expect(!!(x), 1)
+#define UNLIKELY(x)     __builtin_expect(!!(x), 0)
+#define PREFETCH_READ(addr)   __builtin_prefetch((addr), 0, 3)
+#define PREFETCH_WRITE(addr)  __builtin_prefetch((addr), 1, 3)
+#define FORCE_INLINE    __attribute__((always_inline)) inline
+#define NEVER_INLINE    __attribute__((noinline))
+#define HOT             __attribute__((hot))
+#define COLD            __attribute__((cold))
+#define PURE            __attribute__((pure))
+#define CONST           __attribute__((const))
+#else
+#define LIKELY(x)       (x)
+#define UNLIKELY(x)     (x)
+#define PREFETCH_READ(addr)   
+#define PREFETCH_WRITE(addr)  
+#define FORCE_INLINE    inline
+#define NEVER_INLINE    
+#define HOT             
+#define COLD            
+#define PURE            
+#define CONST           
+#endif
+
+// Memory alignment macros for different architectures
+#ifdef __AVX512F__
+constexpr std::size_t SIMD_ALIGNMENT = 64; // 512-bit alignment
+constexpr std::size_t SIMD_WIDTH = 8;      // 8x 64-bit values
+#elif defined(__AVX2__)
+constexpr std::size_t SIMD_ALIGNMENT = 32; // 256-bit alignment
+constexpr std::size_t SIMD_WIDTH = 4;      // 4x 64-bit values
+#else
+constexpr std::size_t SIMD_ALIGNMENT = 16; // 128-bit alignment
+constexpr std::size_t SIMD_WIDTH = 2;      // 2x 64-bit values
+#endif
+
+#define SIMD_ALIGNED alignas(SIMD_ALIGNMENT)
+
 // Order side enumeration
 enum class OrderSide : std::uint8_t {
     Buy = 0,

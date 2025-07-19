@@ -9,7 +9,136 @@ namespace simd {
 
 // SIMD helper functions for vectorized operations
 
-#ifdef __AVX2__
+#ifdef __AVX512F__
+
+// AVX-512 optimized functions for 8x 64-bit values
+constexpr std::size_t AVX512_VECTOR_WIDTH = 8;
+
+// Load 8 64-bit values into AVX-512 register
+inline __m512i load_prices_512(const Price* prices) {
+    return _mm512_loadu_si512(reinterpret_cast<const __m512i*>(prices));
+}
+
+// Load 8 64-bit amounts into AVX-512 register
+inline __m512i load_amounts_512(const Amount* amounts) {
+    return _mm512_loadu_si512(reinterpret_cast<const __m512i*>(amounts));
+}
+
+// Store 8 64-bit values from AVX-512 register
+inline void store_amounts_512(Amount* amounts, __m512i values) {
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(amounts), values);
+}
+
+// Compare prices for buy orders using AVX-512
+inline __mmask8 compare_buy_prices_512(__m512i our_prices, __m512i their_prices) {
+    return _mm512_cmpge_epu64_mask(our_prices, their_prices);
+}
+
+// Compare prices for sell orders using AVX-512
+inline __mmask8 compare_sell_prices_512(__m512i our_prices, __m512i their_prices) {
+    return _mm512_cmple_epu64_mask(our_prices, their_prices);
+}
+
+// Select values based on mask using AVX-512
+inline __m512i select_amounts_512(__mmask8 mask, __m512i true_values, __m512i false_values) {
+    return _mm512_mask_blend_epi64(mask, false_values, true_values);
+}
+
+// Sum all elements in a 512-bit register containing 8 64-bit integers
+inline Amount horizontal_sum_512(__m512i values) {
+    // Extract high and low 256-bit lanes
+    __m256i low = _mm512_extracti64x4_epi64(values, 0);
+    __m256i high = _mm512_extracti64x4_epi64(values, 1);
+    
+    // Add the lanes together
+    __m256i sum256 = _mm256_add_epi64(low, high);
+    
+    // Use manual horizontal sum for 256-bit
+    __m128i low128 = _mm256_extracti128_si256(sum256, 0);
+    __m128i high128 = _mm256_extracti128_si256(sum256, 1);
+    
+    // Add the lanes together
+    __m128i sum128 = _mm_add_epi64(low128, high128);
+    
+    // Extract the two 64-bit values and add them
+    std::uint64_t low_val = _mm_extract_epi64(sum128, 0);
+    std::uint64_t high_val = _mm_extract_epi64(sum128, 1);
+    
+    return low_val + high_val;
+}
+
+// Vectorized minimum operation for 8 amounts using AVX-512
+inline __m512i min_amounts_512(__m512i a, __m512i b) {
+    return _mm512_min_epu64(a, b);
+}
+
+// Vectorized maximum operation for 8 amounts using AVX-512
+inline __m512i max_amounts_512(__m512i a, __m512i b) {
+    return _mm512_max_epu64(a, b);
+}
+
+// Saturating subtraction for amounts using AVX-512
+inline __m512i saturating_sub_512(__m512i a, __m512i b) {
+    __mmask8 underflow = _mm512_cmpgt_epu64_mask(b, a);
+    __m512i result = _mm512_sub_epi64(a, b);
+    return _mm512_mask_mov_epi64(result, underflow, _mm512_setzero_si512());
+}
+
+// Saturating addition with overflow protection using AVX-512
+inline __m512i saturating_add_512(__m512i a, __m512i b) {
+    __m512i result = _mm512_add_epi64(a, b);
+    __mmask8 overflow = _mm512_cmplt_epu64_mask(result, a);
+    __m512i max_val = _mm512_set1_epi64(static_cast<std::int64_t>(UINT64_MAX));
+    return _mm512_mask_mov_epi64(result, overflow, max_val);
+}
+
+// Broadcast a single value to all 8 elements using AVX-512
+inline __m512i broadcast_amount_512(Amount value) {
+    return _mm512_set1_epi64(static_cast<std::int64_t>(value));
+}
+
+// Optimized batch matching using AVX-512
+inline void vectorized_match_amounts_512(
+    const Amount* our_amounts,
+    const Amount* their_amounts,
+    const bool* should_match,
+    Amount* matched_amounts,
+    std::size_t count
+) {
+    const std::size_t vector_count = count / AVX512_VECTOR_WIDTH;
+    const std::size_t remainder = count % AVX512_VECTOR_WIDTH;
+    
+    for (std::size_t i = 0; i < vector_count; ++i) {
+        const std::size_t idx = i * AVX512_VECTOR_WIDTH;
+        
+        // Load data
+        __m512i our_vals = load_amounts_512(&our_amounts[idx]);
+        __m512i their_vals = load_amounts_512(&their_amounts[idx]);
+        
+        // Create mask from boolean array
+        __mmask8 match_mask = 0;
+        for (int j = 0; j < AVX512_VECTOR_WIDTH; ++j) {
+            if (should_match[idx + j]) {
+                match_mask |= (1 << j);
+            }
+        }
+        
+        // Calculate minimum and apply mask
+        __m512i min_vals = min_amounts_512(our_vals, their_vals);
+        __m512i result = _mm512_mask_mov_epi64(_mm512_setzero_si512(), match_mask, min_vals);
+        
+        // Store result
+        store_amounts_512(&matched_amounts[idx], result);
+    }
+    
+    // Handle remainder with scalar code
+    for (std::size_t i = vector_count * AVX512_VECTOR_WIDTH; i < count; ++i) {
+        matched_amounts[i] = should_match[i] ? 
+            std::min(our_amounts[i], their_amounts[i]) : 0;
+    }
+}
+
+#elif defined(__AVX2__)
 
 // Load 4 64-bit values into AVX2 register
 inline __m256i load_prices(const Price* prices) {

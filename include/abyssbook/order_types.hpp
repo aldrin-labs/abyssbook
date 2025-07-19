@@ -136,18 +136,24 @@ struct OrderKeyHash {
 
 // Cache-aligned order structure for optimal performance
 struct CACHE_ALIGNED CacheAlignedOrder {
-    Price price;
-    Amount amount;
-    OrderId id;
-    OrderSide side;
-    OrderType order_type;
-    std::optional<Price> stop_price;
-    OrderFlags flags;
+    // Hot path data - accessed most frequently (first cache line)
+    Price price;                    // 8 bytes
+    Amount amount;                  // 8 bytes  
+    OrderId id;                     // 8 bytes
+    Timestamp timestamp;            // 8 bytes
+    OrderSide side;                 // 1 byte
+    OrderType order_type;           // 1 byte
+    OrderFlags flags;               // 1 byte + 2 padding bits = 2 bytes
+    std::uint8_t padding1[5];       // Padding to align to 8-byte boundary
     
-    // Advanced order parameters
-    std::optional<Timestamp> expiry_time;        // For GTD orders
-    std::optional<Amount> display_amount;        // For iceberg orders
-    std::unique_ptr<TWAPParams> twap_params;
+    // Second cache line - less frequently accessed data
+    std::optional<Price> stop_price;               // 16 bytes (8 + padding + bool)
+    std::optional<Timestamp> expiry_time;          // 16 bytes
+    std::optional<Amount> display_amount;          // 16 bytes
+    std::optional<Price> limit_price;              // 16 bytes
+    
+    // Third cache line - advanced order parameters (cold data)
+    std::unique_ptr<TWAPParams> twap_params;       // 8 bytes
     std::unique_ptr<TrailingStopParams> trailing_params;
     std::unique_ptr<OSOParams> oso_params;
     std::unique_ptr<OCOParams> oco_params;
@@ -158,59 +164,64 @@ struct CACHE_ALIGNED CacheAlignedOrder {
     // Padding to ensure cache alignment
     char padding[8];
     
-    // Constructors
-    CacheAlignedOrder() = default;
-    
-    CacheAlignedOrder(Price p, Amount amt, OrderId order_id, OrderSide s, 
-                     OrderType type, std::optional<Price> stop = std::nullopt)
-        : price(p), amount(amt), id(order_id), side(s), order_type(type), 
-          stop_price(stop) {
-        updateFlags();
-        std::memset(padding, 0, sizeof(padding));
+    // Constructors - optimized for hot path
+    CacheAlignedOrder() noexcept 
+        : price(0), amount(0), id(0), timestamp(getCurrentTimestamp()), 
+          side(OrderSide::Buy), order_type(OrderType::Limit), flags() {
+        std::memset(padding1, 0, sizeof(padding1));
     }
     
-    // Copy constructor (deep copy)
-    CacheAlignedOrder(const CacheAlignedOrder& other);
+    HOT FORCE_INLINE CacheAlignedOrder(Price p, Amount amt, OrderId order_id, 
+                                      OrderSide s, OrderType type, 
+                                      std::optional<Price> stop = std::nullopt) noexcept
+        : price(p), amount(amt), id(order_id), timestamp(getCurrentTimestamp()),
+          side(s), order_type(type), flags(), stop_price(stop) {
+        updateFlags();
+        std::memset(padding1, 0, sizeof(padding1));
+    }
     
-    // Copy assignment (deep copy)
-    CacheAlignedOrder& operator=(const CacheAlignedOrder& other);
+    // Copy constructor (deep copy) - marked cold as less frequent
+    COLD CacheAlignedOrder(const CacheAlignedOrder& other);
     
-    // Move constructor
-    CacheAlignedOrder(CacheAlignedOrder&& other) noexcept;
+    // Copy assignment (deep copy)  
+    COLD CacheAlignedOrder& operator=(const CacheAlignedOrder& other);
+    
+    // Move constructor - hot path for bulk operations
+    HOT CacheAlignedOrder(CacheAlignedOrder&& other) noexcept;
     
     // Move assignment
-    CacheAlignedOrder& operator=(CacheAlignedOrder&& other) noexcept;
+    HOT CacheAlignedOrder& operator=(CacheAlignedOrder&& other) noexcept;
     
     // Destructor
     ~CacheAlignedOrder() = default;
     
-    // Update flags based on order type
-    void updateFlags();
+    // Update flags based on order type - cold path
+    COLD void updateFlags();
     
-    // Check if order has expired (for GTD orders)
-    bool hasExpired() const;
+    // Check if order has expired (for GTD orders) - with likely hint
+    HOT bool hasExpired() const;
     
-    // Get effective display amount (for iceberg orders)
-    Amount getDisplayAmount() const;
+    // Get effective display amount (for iceberg orders) - hot path
+    HOT Amount getDisplayAmount() const;
     
-    // Check if order should be triggered (for stop orders)
-    bool shouldTrigger(Price market_price) const;
+    // Check if order should be triggered (for stop orders) - hot path with prediction
+    HOT bool shouldTrigger(Price market_price) const;
     
-    // Get next TWAP execution time
-    std::optional<Timestamp> getNextTWAPTime() const;
+    // Get next TWAP execution time - cold path
+    COLD std::optional<Timestamp> getNextTWAPTime() const;
     
-    // Update trailing stop price
-    void updateTrailingStop(Price market_price);
+    // Update trailing stop price - cold path
+    COLD void updateTrailingStop(Price market_price);
     
-    // Check if conditional order conditions are met
-    bool checkConditions(Price market_price, Amount market_volume) const;
+    // Check if conditional order conditions are met - cold path
+    COLD bool checkConditions(Price market_price, Amount market_volume) const;
     
-    // Get pegged price based on market data
-    std::optional<Price> getPeggedPrice(Price best_bid, Price best_ask, 
-                                       std::optional<Price> last_trade = std::nullopt) const;
+    // Get pegged price based on market data - cold path
+    COLD std::optional<Price> getPeggedPrice(Price best_bid, Price best_ask, 
+                                           std::optional<Price> last_trade = std::nullopt) const;
     
-    // Validate order parameters
-    OrderError validate() const;
+    // Validate order parameters - cold path
+    COLD PURE OrderError validate() const;
     
     // Get order summary string (for logging/debugging)
     std::string toString() const;
