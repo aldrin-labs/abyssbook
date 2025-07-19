@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# CMake options for advanced optimizations
+option(ENABLE_LTO "Enable Link-Time Optimization" OFF)
+option(ENABLE_PGO "Enable Profile-Guided Optimization" OFF)
+option(ENABLE_RUNTIME_SIMD_DETECTION "Enable runtime SIMD feature detection" ON)
+
 # Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
@@ -17,39 +22,81 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer -finline-functions")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffast-math")
     
-    # Link-time optimization (commented for compatibility)
-    # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto -fuse-linker-plugin")
-    # set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -flto")
-    # set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -flto")
+    # Link-time optimization with CMake option
+    if(ENABLE_LTO)
+        include(CheckIPOSupported)
+        check_ipo_supported(RESULT supported OUTPUT error)
+        if(supported)
+            set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+            set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto -fuse-linker-plugin")
+            set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -flto")
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -flto")
+            message(STATUS "Link-Time Optimization enabled")
+        else()
+            message(WARNING "IPO is not supported: ${error}")
+        endif()
+    endif()
+    
+    # Profile-guided optimization with CMake option
+    if(ENABLE_PGO)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -fprofile-generate")
+        message(STATUS "Profile-Guided Optimization (generation phase) enabled")
+        message(STATUS "Run benchmarks, then reconfigure with PGO_USE=ON")
+    endif()
+    
+    if(PGO_USE)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-use")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -fprofile-use")
+        message(STATUS "Profile-Guided Optimization (use phase) enabled")
+    endif()
     
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
     
-    # Enhanced SIMD optimizations - detect what's available (conservative)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2 -mavx -mavx2")
-    
-    # Try to enable AVX-512 if available (disabled for compatibility)
-    # include(CheckCXXCompilerFlag)
-    # check_cxx_compiler_flag("-mavx512f" COMPILER_SUPPORTS_AVX512F)
-    # if(COMPILER_SUPPORTS_AVX512F)
-    #     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mavx512f -mavx512dq -mavx512bw")
-    #     message(STATUS "AVX-512 support enabled")
-    # endif()
-    
-    # Enable additional instruction sets if available
-    # include(CheckCXXCompilerFlag)
-    # check_cxx_compiler_flag("-mbmi" COMPILER_SUPPORTS_BMI)
-    # if(COMPILER_SUPPORTS_BMI)
-    #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi -mbmi2")
-    # endif()
-    
-    # check_cxx_compiler_flag("-mlzcnt" COMPILER_SUPPORTS_LZCNT)
-    # if(COMPILER_SUPPORTS_LZCNT)
-    #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mlzcnt")
-    # endif()
-    
-    # Profile-guided optimization setup (commented out by default)
-    # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fprofile-generate")
-    # set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -fprofile-generate")
+    # SIMD optimizations with runtime detection support
+    if(ENABLE_RUNTIME_SIMD_DETECTION)
+        # Base SIMD support (SSE4.2 is widely available)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
+        
+        # Check for advanced SIMD support
+        include(CheckCXXCompilerFlag)
+        
+        check_cxx_compiler_flag("-mavx" COMPILER_SUPPORTS_AVX)
+        if(COMPILER_SUPPORTS_AVX)
+            add_compile_definitions(HAS_AVX_SUPPORT)
+            message(STATUS "AVX support detected and enabled")
+        endif()
+        
+        check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+        if(COMPILER_SUPPORTS_AVX2)
+            add_compile_definitions(HAS_AVX2_SUPPORT)
+            message(STATUS "AVX2 support detected and enabled")
+        endif()
+        
+        check_cxx_compiler_flag("-mavx512f" COMPILER_SUPPORTS_AVX512F)
+        if(COMPILER_SUPPORTS_AVX512F)
+            add_compile_definitions(HAS_AVX512_SUPPORT)
+            message(STATUS "AVX-512 support detected and enabled")
+        endif()
+        
+        check_cxx_compiler_flag("-mbmi" COMPILER_SUPPORTS_BMI)
+        if(COMPILER_SUPPORTS_BMI)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi -mbmi2")
+            add_compile_definitions(HAS_BMI_SUPPORT)
+            message(STATUS "BMI instruction support enabled")
+        endif()
+        
+        check_cxx_compiler_flag("-mlzcnt" COMPILER_SUPPORTS_LZCNT)
+        if(COMPILER_SUPPORTS_LZCNT)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mlzcnt")
+            add_compile_definitions(HAS_LZCNT_SUPPORT)
+            message(STATUS "LZCNT instruction support enabled")
+        endif()
+    else()
+        # Conservative SIMD optimizations (static)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2 -mavx -mavx2")
+        message(STATUS "Static SIMD optimizations enabled (SSE4.2, AVX, AVX2)")
+    endif()
     
 endif()
 
@@ -92,6 +139,9 @@ set(ABYSSBOOK_HEADERS
     include/abyssbook/optimized_matching.hpp
     include/abyssbook/novel_structures.hpp
     include/abyssbook/fusion_structures.hpp
+    include/abyssbook/thread_safe_random.hpp
+    include/abyssbook/memory_reclamation.hpp
+    include/abyssbook/runtime_simd.hpp
 )
 
 # Create static library
@@ -139,6 +189,7 @@ add_executable(unit_tests
     src/cpp/tests/unit/test_order_matching.cpp
     src/cpp/tests/unit/test_advanced_orders.cpp
     src/cpp/tests/unit/test_memory_pool.cpp
+    src/cpp/tests/unit/test_lockfree_concurrency.cpp
     src/cpp/tests/unit/test_main.cpp
 )
 target_link_libraries(unit_tests abyssbook_static)

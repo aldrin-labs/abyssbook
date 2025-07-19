@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "novel_structures.hpp"
+#include "thread_safe_random.hpp"
 #include <immintrin.h>
 #include <bit>
 #include <concepts>
@@ -87,40 +88,127 @@ public:
     FusionTree() : root_(std::make_unique<FusionNode>()), size_(0) {}
     
     HOT bool insert(T key, void* value) {
-        FusionNode* current = root_.get();
+        return insertHelper(root_.get(), key, value).first;
+    }
+    
+private:
+    // Helper for recursive insertion with proper splitting
+    std::pair<bool, std::unique_ptr<FusionNode>> insertHelper(FusionNode* node, T key, void* value) {
+        if (node->is_leaf) {
+            return insertInLeaf(node, key, value);
+        } else {
+            return insertInInternal(node, key, value);
+        }
+    }
+    
+    std::pair<bool, std::unique_ptr<FusionNode>> insertInLeaf(FusionNode* leaf, T key, void* value) {
+        int pos = leaf->findPosition(key);
         
-        while (!current->is_leaf) {
-            int pos = current->findPosition(key);
-            current = static_cast<FusionNode*>(current->children[pos]);
+        // Check for duplicate
+        if (pos < leaf->key_count && leaf->keys[pos] == key) {
+            return {false, nullptr}; // Duplicate
         }
         
-        // Insert in leaf
-        if (current->key_count < BRANCH_FACTOR) {
-            int pos = current->findPosition(key);
-            
-            // Check for duplicate
-            if (pos < current->key_count && current->keys[pos] == key) {
-                return false; // Duplicate
-            }
-            
+        // Insert if not full
+        if (leaf->key_count < BRANCH_FACTOR) {
             // Shift elements
-            for (int i = current->key_count; i > pos; i--) {
-                current->keys[i] = current->keys[i-1];
-                current->children[i+1] = current->children[i];
+            for (int i = leaf->key_count; i > pos; i--) {
+                leaf->keys[i] = leaf->keys[i-1];
+                leaf->children[i+1] = leaf->children[i];
             }
             
-            current->keys[pos] = key;
-            current->children[pos+1] = value;
-            current->key_count++;
-            current->updateSketch();
+            leaf->keys[pos] = key;
+            leaf->children[pos+1] = value;
+            leaf->key_count++;
+            leaf->updateSketch();
             
             size_.fetch_add(1, std::memory_order_relaxed);
-            return true;
+            return {true, nullptr};
         }
         
-        // Node is full - need to split (simplified)
-        return false;
+        // Split the leaf node
+        auto new_leaf = std::make_unique<FusionNode>(true);
+        int mid = BRANCH_FACTOR / 2;
+        
+        // Move half the keys to new leaf
+        for (int i = mid; i < BRANCH_FACTOR; i++) {
+            new_leaf->keys[i - mid] = leaf->keys[i];
+            new_leaf->children[i - mid + 1] = leaf->children[i + 1];
+            new_leaf->key_count++;
+        }
+        leaf->key_count = mid;
+        
+        // Insert the new key in appropriate leaf
+        if (key < leaf->keys[mid - 1]) {
+            insertInLeaf(leaf, key, value);
+        } else {
+            insertInLeaf(new_leaf.get(), key, value);
+        }
+        
+        // Update sketches
+        leaf->updateSketch();
+        new_leaf->updateSketch();
+        
+        return {true, std::move(new_leaf)};
     }
+    
+    std::pair<bool, std::unique_ptr<FusionNode>> insertInInternal(FusionNode* internal, T key, void* value) {
+        int pos = internal->findPosition(key);
+        FusionNode* child = static_cast<FusionNode*>(internal->children[pos]);
+        
+        auto [success, new_child] = insertHelper(child, key, value);
+        
+        if (!success) return {false, nullptr};
+        if (!new_child) return {true, nullptr}; // No split needed
+        
+        // Child was split, need to insert separator key
+        T separator_key = new_child->keys[0];
+        
+        // Insert separator if internal node has space
+        if (internal->key_count < BRANCH_FACTOR) {
+            // Shift to make room
+            for (int i = internal->key_count; i > pos; i--) {
+                internal->keys[i] = internal->keys[i-1];
+                internal->children[i+1] = internal->children[i];
+            }
+            
+            internal->keys[pos] = separator_key;
+            internal->children[pos+1] = new_child.release();
+            internal->key_count++;
+            internal->updateSketch();
+            
+            return {true, nullptr};
+        }
+        
+        // Split internal node
+        auto new_internal = std::make_unique<FusionNode>(false);
+        int mid = BRANCH_FACTOR / 2;
+        
+        // Move half the keys and children to new internal node
+        for (int i = mid + 1; i < BRANCH_FACTOR; i++) {
+            new_internal->keys[i - mid - 1] = internal->keys[i];
+            new_internal->children[i - mid] = internal->children[i + 1];
+            new_internal->key_count++;
+        }
+        
+        // T promoted_key = internal->keys[mid]; // Currently unused
+        internal->key_count = mid;
+        
+        // Insert separator and new child in appropriate node
+        if (pos <= mid) {
+            insertInInternal(internal, separator_key, new_child.release());
+        } else {
+            insertInInternal(new_internal.get(), separator_key, new_child.release());
+        }
+        
+        // Update sketches
+        internal->updateSketch();
+        new_internal->updateSketch();
+        
+        return {true, std::move(new_internal)};
+    }
+    
+public:
     
     HOT void* find(T key) const {
         FusionNode* current = root_.get();
@@ -591,7 +679,7 @@ private:
             }
             
             // Quantum measurement
-            float random_val = static_cast<float>(rand()) / RAND_MAX * total_probability;
+            float random_val = random::FastRNG::fastRandomFloat() * total_probability;
             for (int i = 0; i < count; i++) {
                 if (random_val <= cumulative_prob[i]) {
                     return {quantum_keys[i], quantum_values[i]};
@@ -636,12 +724,12 @@ private:
         float tunnel_prob = static_cast<float>(__builtin_popcountll(key_bits)) / 64.0f;
         
         // Random tunneling through the tree structure
-        while (current && static_cast<float>(rand()) / RAND_MAX < tunnel_prob) {
+        while (current && random::FastRNG::fastRandomFloat() < tunnel_prob) {
             QuantumNode* left = current->left.load(std::memory_order_acquire);
             QuantumNode* right = current->right.load(std::memory_order_acquire);
             
             if (left && right) {
-                current = (rand() % 2) ? left : right;
+                current = random::FastRNG::fastRandomBool() ? left : right;
             } else if (left) {
                 current = left;
             } else if (right) {

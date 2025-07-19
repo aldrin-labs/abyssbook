@@ -1,12 +1,14 @@
 #pragma once
 
 #include "common.hpp"
+#include "novel_structures.hpp"
 #include <array>
 #include <vector>
 #include <memory>
 #include <atomic>
 #include <bit>
 #include <cstring>
+#include <cmath>
 
 namespace abyssbook {
 namespace novel {
@@ -179,17 +181,18 @@ private:
         std::atomic<bool> has_max;
         std::atomic<std::uint32_t> min_val;
         std::atomic<std::uint32_t> max_val;
+        std::atomic<std::uint32_t> universe_size;
         
         std::unique_ptr<VEBNode> summary;
         std::vector<std::unique_ptr<VEBNode>> clusters;
         
-        VEBNode() : has_min(false), has_max(false), min_val(0), max_val(0) {
-            if (UNIVERSE_BITS > 1) {
-                summary = std::make_unique<VEBNode>();
-                clusters.resize(CLUSTER_COUNT);
-                for (auto& cluster : clusters) {
-                    cluster = std::make_unique<VEBNode>();
-                }
+        VEBNode(std::uint32_t universe_sz = UNIVERSE_SIZE) 
+            : has_min(false), has_max(false), min_val(0), max_val(0), universe_size(universe_sz) {
+            if (universe_sz > 2) {
+                std::uint32_t summary_size = static_cast<std::uint32_t>(std::sqrt(universe_sz));
+                summary = std::make_unique<VEBNode>(summary_size);
+                clusters.resize(summary_size);
+                // Clusters will be allocated on demand
             }
         }
     };
@@ -310,14 +313,67 @@ public:
     
 private:
     void insertRecursive(VEBNode* node, std::uint32_t x) {
-        // Recursive implementation
+        if (!node) return;
+        
+        std::uint32_t universe_size = node->universe_size.load(std::memory_order_relaxed);
+        
+        // Base case: universe size 2
+        if (universe_size == 2) {
+            if (x == 0) {
+                node->has_min.store(true, std::memory_order_release);
+            } else {
+                node->has_max.store(true, std::memory_order_release);
+            }
+            return;
+        }
+        
+        // If node is empty, set both min and max to x
         if (!node->has_min.load(std::memory_order_relaxed)) {
             node->min_val.store(x, std::memory_order_relaxed);
             node->max_val.store(x, std::memory_order_relaxed);
             node->has_min.store(true, std::memory_order_release);
             node->has_max.store(true, std::memory_order_release);
+            return;
         }
-        // Additional logic for recursive insertion
+        
+        std::uint32_t min_val = node->min_val.load(std::memory_order_relaxed);
+        std::uint32_t max_val = node->max_val.load(std::memory_order_relaxed);
+        
+        // Ensure x is not the minimum
+        if (x < min_val) {
+            std::swap(x, min_val);
+            node->min_val.store(min_val, std::memory_order_relaxed);
+        }
+        
+        // If x equals min, we're done
+        if (x == min_val) return;
+        
+        // Update max if necessary
+        if (x > max_val) {
+            node->max_val.store(x, std::memory_order_relaxed);
+            node->has_max.store(true, std::memory_order_release);
+        }
+        
+        // Recursive insertion in cluster
+        if (universe_size > 2) {
+            std::uint32_t h = high(x);
+            std::uint32_t l = low(x);
+            
+            // Ensure cluster exists
+            if (!node->clusters[h]) {
+                std::uint32_t cluster_size = static_cast<std::uint32_t>(
+                    std::sqrt(universe_size));
+                node->clusters[h] = std::make_unique<VEBNode>(cluster_size);
+            }
+            
+            // If cluster is empty, update summary
+            if (!node->clusters[h]->has_min.load(std::memory_order_relaxed)) {
+                insertRecursive(node->summary.get(), h);
+            }
+            
+            // Recursively insert in cluster
+            insertRecursive(node->clusters[h].get(), l);
+        }
     }
     
     bool memberRecursive(VEBNode* node, std::uint32_t x) const {
@@ -325,24 +381,144 @@ private:
             return false;
         }
         
-        return x == node->min_val.load(std::memory_order_relaxed) || 
-               x == node->max_val.load(std::memory_order_relaxed);
-        // Additional logic for recursive search
+        std::uint32_t universe_size = node->universe_size.load(std::memory_order_relaxed);
+        std::uint32_t min_val = node->min_val.load(std::memory_order_relaxed);
+        std::uint32_t max_val = node->max_val.load(std::memory_order_relaxed);
+        
+        // Check if x is min or max
+        if (x == min_val || x == max_val) {
+            return true;
+        }
+        
+        // Base case: universe size 2
+        if (universe_size == 2) {
+            return false;
+        }
+        
+        // Recursive search in cluster
+        std::uint32_t h = high(x);
+        std::uint32_t l = low(x);
+        
+        if (h < node->clusters.size() && node->clusters[h]) {
+            return memberRecursive(node->clusters[h].get(), l);
+        }
+        
+        return false;
     }
     
     std::optional<std::uint32_t> successorRecursive(VEBNode* node, std::uint32_t x) const {
-        // Recursive successor implementation
         if (!node || !node->has_min.load(std::memory_order_relaxed)) {
             return std::nullopt;
         }
         
+        std::uint32_t universe_size = node->universe_size.load(std::memory_order_relaxed);
         std::uint32_t min_val = node->min_val.load(std::memory_order_relaxed);
         std::uint32_t max_val = node->max_val.load(std::memory_order_relaxed);
         
-        if (x < min_val) return min_val;
-        if (x >= max_val) return std::nullopt;
+        // Base case: universe size 2
+        if (universe_size == 2) {
+            if (x == 0 && node->has_max.load(std::memory_order_relaxed)) {
+                return 1;
+            }
+            return std::nullopt;
+        }
         
-        return max_val;
+        // Check if x is less than min
+        if (x < min_val) {
+            return min_val;
+        }
+        
+        // Check if x is greater than or equal to max
+        if (x >= max_val) {
+            return std::nullopt;
+        }
+        
+        // Recursive search
+        std::uint32_t h = high(x);
+        std::uint32_t l = low(x);
+        
+        // Check within the same cluster
+        if (h < node->clusters.size() && node->clusters[h] && 
+            node->clusters[h]->has_max.load(std::memory_order_relaxed) &&
+            l < node->clusters[h]->max_val.load(std::memory_order_relaxed)) {
+            
+            auto succ_low = successorRecursive(node->clusters[h].get(), l);
+            if (succ_low) {
+                return index(h, *succ_low);
+            }
+        }
+        
+        // Search in summary for next non-empty cluster
+        auto succ_cluster = successorRecursive(node->summary.get(), h);
+        if (succ_cluster && *succ_cluster < node->clusters.size() && 
+            node->clusters[*succ_cluster]) {
+            
+            std::uint32_t succ_low = node->clusters[*succ_cluster]->min_val.load(
+                std::memory_order_relaxed);
+            return index(*succ_cluster, succ_low);
+        }
+        
+        return std::nullopt;
+    }
+    
+    std::optional<std::uint32_t> predecessorRecursive(VEBNode* node, std::uint32_t x) const {
+        if (!node || !node->has_min.load(std::memory_order_relaxed)) {
+            return std::nullopt;
+        }
+        
+        std::uint32_t universe_size = node->universe_size.load(std::memory_order_relaxed);
+        std::uint32_t min_val = node->min_val.load(std::memory_order_relaxed);
+        std::uint32_t max_val = node->max_val.load(std::memory_order_relaxed);
+        
+        // Base case: universe size 2
+        if (universe_size == 2) {
+            if (x == 1 && node->has_min.load(std::memory_order_relaxed)) {
+                return 0;
+            }
+            return std::nullopt;
+        }
+        
+        // Check if x is greater than max
+        if (x > max_val) {
+            return max_val;
+        }
+        
+        // Check if x is less than or equal to min
+        if (x <= min_val) {
+            return std::nullopt;
+        }
+        
+        // Recursive search
+        std::uint32_t h = high(x);
+        std::uint32_t l = low(x);
+        
+        // Check within the same cluster
+        if (h < node->clusters.size() && node->clusters[h] && 
+            node->clusters[h]->has_min.load(std::memory_order_relaxed) &&
+            l > node->clusters[h]->min_val.load(std::memory_order_relaxed)) {
+            
+            auto pred_low = predecessorRecursive(node->clusters[h].get(), l);
+            if (pred_low) {
+                return index(h, *pred_low);
+            }
+        }
+        
+        // Search in summary for previous non-empty cluster
+        auto pred_cluster = predecessorRecursive(node->summary.get(), h);
+        if (pred_cluster && *pred_cluster < node->clusters.size() && 
+            node->clusters[*pred_cluster]) {
+            
+            std::uint32_t pred_high = node->clusters[*pred_cluster]->max_val.load(
+                std::memory_order_relaxed);
+            return index(*pred_cluster, pred_high);
+        }
+        
+        // Check if min is a valid predecessor
+        if (x > min_val) {
+            return min_val;
+        }
+        
+        return std::nullopt;
     }
 };
 

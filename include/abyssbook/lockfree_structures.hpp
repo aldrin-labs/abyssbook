@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common.hpp"
+#include "thread_safe_random.hpp"
+#include "memory_reclamation.hpp"
 #include <atomic>
 #include <memory>
 #include <array>
@@ -97,7 +99,7 @@ private:
     // Random level generation for skip list
     HOT int randomLevel() const noexcept {
         int level = 1;
-        while ((rand() & 0x01) && level < MAX_LEVEL) {
+        while (random::FastRNG::fastRandomBit() && level < MAX_LEVEL) {
             level++;
         }
         return level;
