@@ -90,6 +90,8 @@ set(ABYSSBOOK_HEADERS
     include/abyssbook/lockfree_structures.hpp
     include/abyssbook/template_optimizations.hpp
     include/abyssbook/optimized_matching.hpp
+    include/abyssbook/novel_structures.hpp
+    include/abyssbook/fusion_structures.hpp
 )
 
 # Create static library
@@ -112,6 +114,18 @@ add_executable(abyssbook_bench
     src/cpp/benchmark/advanced_order_bench.cpp
 )
 target_link_libraries(abyssbook_bench abyssbook_static)
+
+# Novel structures benchmark executable
+add_executable(novel_structures_bench 
+    src/cpp/benchmark/novel_structures_bench.cpp
+)
+target_link_libraries(novel_structures_bench abyssbook_static)
+
+# Working novel benchmark executable  
+add_executable(working_novel_bench
+    src/cpp/benchmark/working_novel_bench.cpp
+)
+target_link_libraries(working_novel_bench abyssbook_static)
 
 # Testing
 enable_testing()
@@ -195,6 +209,18 @@ add_custom_target(bench
     COMMAND abyssbook_bench
     DEPENDS abyssbook_bench
     COMMENT "Running benchmarks"
+)
+
+add_custom_target(bench-novel
+    COMMAND novel_structures_bench
+    DEPENDS novel_structures_bench
+    COMMENT "Running novel data structures benchmarks"
+)
+
+add_custom_target(bench-working
+    COMMAND working_novel_bench  
+    DEPENDS working_novel_bench
+    COMMENT "Running working novel optimizations benchmark"
 )
 
 # Installation
