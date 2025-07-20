@@ -53,7 +53,7 @@ pub const LogEntry = struct {
         });
         
         if (self.context) |ctx| {
-            try writer.print(",\"context\":");
+            try writer.print(",\"context\":", .{});
             try std.json.stringify(ctx, .{}, writer);
         }
         
@@ -291,4 +291,25 @@ pub fn errorGlobal(module: []const u8, message: []const u8) void {
 
 pub fn criticalGlobal(module: []const u8, message: []const u8) void {
     logGlobal(.CRITICAL, module, message);
+}
+
+// Convenience functions with context for global logging
+pub fn debugGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
+    logGlobalWithContext(.DEBUG, module, message, context);
+}
+
+pub fn infoGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
+    logGlobalWithContext(.INFO, module, message, context);
+}
+
+pub fn warnGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
+    logGlobalWithContext(.WARN, module, message, context);
+}
+
+pub fn errorGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
+    logGlobalWithContext(.ERROR, module, message, context);
+}
+
+pub fn criticalGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
+    logGlobalWithContext(.CRITICAL, module, message, context);
 }

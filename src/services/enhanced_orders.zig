@@ -21,14 +21,14 @@ pub const EnhancedOrderService = struct {
         logging.debugGlobal("service.orders", "Blockchain configuration loaded");
         
         // Initialize order service
-        var order_service = try OrderService.init(
+        const order_service = try OrderService.init(
             allocator,
             config.api_key,
             config.base_url
         );
         
         // Initialize wallet
-        var wallet = try Wallet.initRandom(allocator);
+        const wallet = try Wallet.initRandom(allocator);
         
         logging.infoGlobal("service.orders", "Enhanced order service initialized successfully");
         
