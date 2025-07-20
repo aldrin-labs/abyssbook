@@ -23,10 +23,19 @@ private:
     // Initialize thread-local generator if needed
     static void ensureInitialized() {
         if (!generator_) {
-            // Use a combination of thread ID and high-resolution time for seeding
+            // Use multiple entropy sources for robust seeding
             auto now = std::chrono::high_resolution_clock::now();
             auto thread_id = std::hash<std::thread::id>{}(std::this_thread::get_id());
-            auto seed = static_cast<uint64_t>(now.time_since_epoch().count()) ^ thread_id;
+            
+            // Additional entropy from system clock and memory address
+            auto steady_time = std::chrono::steady_clock::now();
+            auto heap_entropy = reinterpret_cast<uintptr_t>(&now);
+            
+            // Combine multiple entropy sources
+            uint64_t seed = static_cast<uint64_t>(now.time_since_epoch().count()) ^ 
+                           thread_id ^ 
+                           static_cast<uint64_t>(steady_time.time_since_epoch().count()) ^
+                           static_cast<uint64_t>(heap_entropy);
             
             generator_ = std::make_unique<std::mt19937_64>(seed);
             float_dist_ = std::uniform_real_distribution<float>(0.0f, 1.0f);
@@ -95,9 +104,16 @@ private:
     
     static void ensureInitialized() {
         if (state_ == 0) {
+            // Enhanced seeding with multiple entropy sources
             auto now = std::chrono::high_resolution_clock::now();
+            auto steady_time = std::chrono::steady_clock::now();
             auto thread_id = std::hash<std::thread::id>{}(std::this_thread::get_id());
-            state_ = static_cast<uint64_t>(now.time_since_epoch().count()) ^ thread_id;
+            auto heap_entropy = reinterpret_cast<uintptr_t>(&now);
+            
+            state_ = static_cast<uint64_t>(now.time_since_epoch().count()) ^ 
+                    thread_id ^ 
+                    static_cast<uint64_t>(steady_time.time_since_epoch().count()) ^
+                    static_cast<uint64_t>(heap_entropy);
             if (state_ == 0) state_ = 1; // Ensure non-zero state
         }
     }

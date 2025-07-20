@@ -14,10 +14,10 @@ option(ENABLE_RUNTIME_SIMD_DETECTION "Enable runtime SIMD feature detection" ON)
 # Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
-    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -DDEBUG")
     
-    # Aggressive optimization for release builds
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native")
+    # Aggressive optimization for release builds - append to preserve defaults
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -march=native -mtune=native")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -funroll-loops")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer -finline-functions")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffast-math")
@@ -103,6 +103,25 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
     set(CMAKE_CXX_FLAGS_RELEASE "/O2 /DNDEBUG /arch:AVX2")
+    
+    # Add MSVC-specific advanced instruction support
+    if(ENABLE_RUNTIME_SIMD_DETECTION)
+        # MSVC doesn't have individual flags like GCC, but we can define macros
+        add_compile_definitions(HAS_AVX_SUPPORT)
+        add_compile_definitions(HAS_AVX2_SUPPORT)
+        message(STATUS "MSVC: AVX and AVX2 support enabled via /arch:AVX2")
+        
+        # Check for AVX-512 support (requires newer MSVC)
+        if(MSVC_VERSION GREATER_EQUAL 1920)  # Visual Studio 2019+
+            add_compile_definitions(HAS_AVX512_SUPPORT)
+            message(STATUS "MSVC: AVX-512 support definitions enabled")
+        endif()
+        
+        # BMI and LZCNT are included with AVX2 on MSVC
+        add_compile_definitions(HAS_BMI_SUPPORT)
+        add_compile_definitions(HAS_LZCNT_SUPPORT)
+        message(STATUS "MSVC: BMI and LZCNT support enabled with AVX2")
+    endif()
 endif()
 
 # Find required packages

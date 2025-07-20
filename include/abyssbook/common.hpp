@@ -65,13 +65,13 @@ constexpr std::size_t SIMD_WIDTH = 2;      // 2x 64-bit values
 
 #define SIMD_ALIGNED alignas(SIMD_ALIGNMENT)
 
-// Order side enumeration
+// Order side enumeration with explicit underlying type
 enum class OrderSide : std::uint8_t {
     Buy = 0,
     Sell = 1
 };
 
-// Order type enumeration
+// Order type enumeration with explicit underlying type
 enum class OrderType : std::uint8_t {
     Limit = 0,
     Market = 1,
@@ -92,7 +92,10 @@ enum class OrderType : std::uint8_t {
     Conditional = 16    // Executes based on custom conditions
 };
 
-// Peg type for pegged orders
+// Verify OrderType fits in uint8_t (max value 16 requires 5 bits, fits in uint8_t)
+static_assert(static_cast<std::uint8_t>(OrderType::Conditional) <= 255, "OrderType exceeds uint8_t range");
+
+// Peg type for pegged orders with explicit underlying type
 enum class PegType : std::uint8_t {
     BestBid = 0,
     BestAsk = 1,
@@ -100,7 +103,7 @@ enum class PegType : std::uint8_t {
     LastTrade = 3
 };
 
-// Conditional order types
+// Conditional order types with explicit underlying type
 enum class ConditionalType : std::uint8_t {
     Price = 0,
     Time = 1,
@@ -133,11 +136,33 @@ struct OrderFlags {
                    is_conditional(false), padding(0) {}
 };
 
-// High resolution timestamp
+// Verify OrderFlags bit-field layout - ensure consistent packing across compilers
+static_assert(sizeof(OrderFlags) == 2, "OrderFlags must be exactly 2 bytes for optimal packing");
+static_assert(alignof(OrderFlags) <= 2, "OrderFlags alignment must not exceed 2 bytes");
+
+// High resolution timestamp with caching for performance
+namespace {
+    thread_local Timestamp cached_timestamp = 0;
+    thread_local std::uint64_t timestamp_generation = 0;
+    std::atomic<std::uint64_t> global_timestamp_generation{0};
+}
+
+// Optimized timestamp function with caching
 inline Timestamp getCurrentTimestamp() {
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::high_resolution_clock::now().time_since_epoch()
-    ).count();
+    // Check if we need to refresh the cached timestamp
+    const auto current_gen = global_timestamp_generation.load(std::memory_order_relaxed);
+    if (UNLIKELY(timestamp_generation != current_gen)) {
+        cached_timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()
+        ).count();
+        timestamp_generation = current_gen;
+    }
+    return cached_timestamp;
+}
+
+// Force refresh of timestamp cache (call periodically in event loop)
+inline void refreshTimestampCache() {
+    global_timestamp_generation.fetch_add(1, std::memory_order_relaxed);
 }
 
 // Error types

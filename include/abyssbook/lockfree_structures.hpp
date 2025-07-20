@@ -85,7 +85,7 @@ struct CACHE_ALIGNED SkipListNode {
     }
 };
 
-// Lock-free skip list for price levels
+// Lock-free skip list for price levels with cached best prices
 template<int MAX_LEVEL = 16>
 class LockFreeSkipList {
 private:
@@ -95,6 +95,11 @@ private:
     Node* tail_;
     std::atomic<int> current_level_;
     std::atomic<std::size_t> size_;
+    
+    // Cached best prices for O(1) retrieval
+    mutable std::atomic<Price> cached_best_bid_{0};
+    mutable std::atomic<Price> cached_best_ask_{UINT64_MAX};
+    mutable std::atomic<bool> cache_valid_{false};
     
     // Random level generation for skip list
     HOT int randomLevel() const noexcept {
@@ -161,6 +166,8 @@ public:
                 } else if (volume_delta < 0) {
                     successors[0]->level.removeOrder(static_cast<Amount>(-volume_delta));
                 }
+                // Invalidate cache on any update
+                cache_valid_.store(false, std::memory_order_relaxed);
                 return true;
             }
             
@@ -199,6 +206,8 @@ public:
                 
                 if (success) {
                     size_.fetch_add(1, std::memory_order_relaxed);
+                    // Invalidate cache on successful insert
+                    cache_valid_.store(false, std::memory_order_relaxed);
                     return true;
                 } else {
                     delete new_node;
@@ -221,34 +230,45 @@ public:
         return std::nullopt;
     }
     
-    // Get best price (for bid or ask side)
-    HOT std::optional<Price> getBestPrice(bool is_bid) const {
-        Node* current;
-        if (is_bid) {
-            // For bids, find highest price (traverse from tail backwards)
-            current = head_->forward[0].load(std::memory_order_acquire);
-            Price best_price = 0;
-            while (current != tail_) {
-                if (!current->isMarkedForDeletion() && !current->level.isEmpty()) {
-                    Price current_price = current->price.load(std::memory_order_relaxed);
-                    if (current_price > best_price) {
-                        best_price = current_price;
-                    }
-                }
-                current = current->forward[0].load(std::memory_order_acquire);
+    // Update best price cache - called after insert/remove operations
+    HOT FORCE_INLINE void updateBestPriceCache() const noexcept {
+        cache_valid_.store(false, std::memory_order_release);
+        
+        Price best_bid = 0;
+        Price best_ask = UINT64_MAX;
+        
+        // Single traversal to find both best bid and ask
+        Node* current = head_->forward[0].load(std::memory_order_acquire);
+        while (current != tail_) {
+            if (!current->isMarkedForDeletion() && !current->level.isEmpty()) {
+                Price price = current->price.load(std::memory_order_relaxed);
+                if (price > best_bid) best_bid = price;  // Higher price for bid
+                if (price < best_ask) best_ask = price;  // Lower price for ask
             }
-            return best_price > 0 ? std::optional<Price>(best_price) : std::nullopt;
-        } else {
-            // For asks, find lowest price (traverse from head forwards)
-            current = head_->forward[0].load(std::memory_order_acquire);
-            while (current != tail_) {
-                if (!current->isMarkedForDeletion() && !current->level.isEmpty()) {
-                    return current->price.load(std::memory_order_relaxed);
-                }
-                current = current->forward[0].load(std::memory_order_acquire);
-            }
+            current = current->forward[0].load(std::memory_order_acquire);
         }
-        return std::nullopt;
+        
+        cached_best_bid_.store(best_bid, std::memory_order_relaxed);
+        cached_best_ask_.store(best_ask == UINT64_MAX ? 0 : best_ask, std::memory_order_relaxed);
+        cache_valid_.store(true, std::memory_order_release);
+    }
+    
+    // Get best price (for bid or ask side) - O(1) with cache
+    HOT std::optional<Price> getBestPrice(bool is_bid) const {
+        // Fast path: use cache if valid
+        if (cache_valid_.load(std::memory_order_acquire)) {
+            Price cached_price = is_bid ? 
+                cached_best_bid_.load(std::memory_order_relaxed) :
+                cached_best_ask_.load(std::memory_order_relaxed);
+            return cached_price > 0 ? std::optional<Price>(cached_price) : std::nullopt;
+        }
+        
+        // Slow path: refresh cache and retry
+        updateBestPriceCache();
+        Price cached_price = is_bid ? 
+            cached_best_bid_.load(std::memory_order_relaxed) :
+            cached_best_ask_.load(std::memory_order_relaxed);
+        return cached_price > 0 ? std::optional<Price>(cached_price) : std::nullopt;
     }
     
     // Get size

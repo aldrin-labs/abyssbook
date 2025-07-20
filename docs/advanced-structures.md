@@ -212,6 +212,26 @@ This is a research prototype and should NOT be used in production systems.
 
 **Note**: This structure is included for research purposes only and demonstrates novel algorithmic concepts. It should not be used in any production trading system.
 
+## ⚠️ CRITICAL WARNING FOR EXPERIMENTAL STRUCTURES ⚠️
+
+**The QuantumSuperpositionTree and other experimental structures marked with 🧪 are RESEARCH PROTOTYPES ONLY.**
+
+**DO NOT USE IN PRODUCTION:**
+- These structures may exhibit unpredictable behavior
+- No guarantees of correctness or stability
+- Performance characteristics are highly variable
+- Memory usage patterns are not well understood
+- Thread safety is not guaranteed
+- May cause system instability under load
+
+**APPROPRIATE USE CASES:**
+- Academic research and algorithm development
+- Proof-of-concept implementations
+- Educational purposes and learning
+- Theoretical computer science experiments
+
+**If you need production-ready data structures, use only those marked with ✅ Production Ready status.**
+
 ## Memory Management
 
 ### Hazard Pointers

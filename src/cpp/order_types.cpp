@@ -162,55 +162,33 @@ CacheAlignedOrder& CacheAlignedOrder::operator=(CacheAlignedOrder&& other) noexc
 }
 
 void CacheAlignedOrder::updateFlags() {
-    flags = OrderFlags{};
+    // Use static lookup table for optimal performance
+    static const std::array<OrderFlags, 17> ORDER_TYPE_FLAGS = {{
+        OrderFlags{},  // Limit (0) - default initialized
+        OrderFlags{},  // Market (1) - default initialized
+        []() { OrderFlags f{}; f.is_stop = true; return f; }(),  // Stop (2)
+        []() { OrderFlags f{}; f.is_stop = true; return f; }(),  // StopLimit (3)
+        []() { OrderFlags f{}; f.is_ioc = true; return f; }(),   // IOC (4)
+        []() { OrderFlags f{}; f.is_fok = true; return f; }(),   // FOK (5)
+        []() { OrderFlags f{}; f.is_post_only = true; return f; }(),  // PostOnly (6)
+        []() { OrderFlags f{}; f.is_gtd = true; return f; }(),   // GTD (7)
+        []() { OrderFlags f{}; f.is_iceberg = true; return f; }(),    // Iceberg (8)
+        []() { OrderFlags f{}; f.is_oco = true; return f; }(),   // OCO (9)
+        []() { OrderFlags f{}; f.is_twap = true; return f; }(),  // TWAP (10)
+        []() { OrderFlags f{}; f.is_oso = true; return f; }(),   // OSO (11)
+        []() { OrderFlags f{}; f.is_stop = true; f.is_trailing_stop = true; return f; }(),  // TrailingStop (12)
+        []() { OrderFlags f{}; f.is_peg = true; return f; }(),   // Peg (13)
+        []() { OrderFlags f{}; f.is_midpoint_peg = true; return f; }(),  // MidpointPeg (14)
+        []() { OrderFlags f{}; f.is_discretionary = true; return f; }(), // Discretionary (15)
+        []() { OrderFlags f{}; f.is_conditional = true; return f; }()    // Conditional (16)
+    }};
     
-    switch (order_type) {
-        case OrderType::Stop:
-        case OrderType::StopLimit:
-            flags.is_stop = true;
-            break;
-        case OrderType::TrailingStop:
-            flags.is_stop = true;
-            flags.is_trailing_stop = true;
-            break;
-        case OrderType::IOC:
-            flags.is_ioc = true;
-            break;
-        case OrderType::FOK:
-            flags.is_fok = true;
-            break;
-        case OrderType::PostOnly:
-            flags.is_post_only = true;
-            break;
-        case OrderType::GTD:
-            flags.is_gtd = true;
-            break;
-        case OrderType::Iceberg:
-            flags.is_iceberg = true;
-            break;
-        case OrderType::OCO:
-            flags.is_oco = true;
-            break;
-        case OrderType::TWAP:
-            flags.is_twap = true;
-            break;
-        case OrderType::OSO:
-            flags.is_oso = true;
-            break;
-        case OrderType::Peg:
-            flags.is_peg = true;
-            break;
-        case OrderType::MidpointPeg:
-            flags.is_midpoint_peg = true;
-            break;
-        case OrderType::Discretionary:
-            flags.is_discretionary = true;
-            break;
-        case OrderType::Conditional:
-            flags.is_conditional = true;
-            break;
-        default:
-            break;
+    // Bounds check and lookup in constant time
+    const auto order_type_index = static_cast<std::size_t>(order_type);
+    if (LIKELY(order_type_index < ORDER_TYPE_FLAGS.size())) {
+        flags = ORDER_TYPE_FLAGS[order_type_index];
+    } else {
+        flags = OrderFlags{};  // Default fallback
     }
 }
 
@@ -424,6 +402,8 @@ OrderError CacheAlignedOrder::validate() const {
 }
 
 std::string CacheAlignedOrder::toString() const {
+#ifdef DEBUG
+    // Full string representation in debug builds
     std::ostringstream oss;
     oss << "Order{id=" << id 
         << ", side=" << (side == OrderSide::Buy ? "Buy" : "Sell")
@@ -445,6 +425,10 @@ std::string CacheAlignedOrder::toString() const {
     
     oss << "}";
     return oss.str();
+#else
+    // Minimal string representation in release builds for performance
+    return "Order{id=" + std::to_string(id) + "}";
+#endif
 }
 
 // OrderFactory implementation
