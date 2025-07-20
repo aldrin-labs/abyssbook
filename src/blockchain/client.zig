@@ -23,8 +23,7 @@ pub const BlockchainClient = struct {
     /// Connect to the blockchain API
     pub fn connect(self: *BlockchainClient) !void {
         if (self.client == null) {
-            var client = http.Client{ .allocator = self.allocator };
-            self.client = client;
+            self.client = http.Client{ .allocator = self.allocator };
         }
     }
     
@@ -73,12 +72,10 @@ pub const BlockchainClient = struct {
         defer self.allocator.free(body);
         
         // Parse the JSON response
-        var stream = json.TokenStream.init(body);
-        const orderbook = try json.parse(Orderbook, &stream, .{
-            .allocator = self.allocator,
-        });
+        const parsed = try json.parseFromSlice(Orderbook, self.allocator, body, .{});
+        defer parsed.deinit();
         
-        return orderbook;
+        return parsed.value;
     }
     
     /// Place an order on the blockchain
