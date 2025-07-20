@@ -23,7 +23,7 @@ pub const Wallet = struct {
     /// Initialize a new wallet with a randomly generated keypair
     pub fn initRandom(allocator: std.mem.Allocator) !Wallet {
         comptime {
-            if (std.builtin.mode != .Debug) {
+            if (std.builtin.optimize_mode != .Debug) {
                 @compileError("initRandom: Hardcoded test key can only be used in Debug mode.");
             }
         }

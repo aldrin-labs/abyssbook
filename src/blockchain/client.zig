@@ -49,15 +49,17 @@ pub const BlockchainClient = struct {
         
         // Prepare the request
         const uri = try std.Uri.parse(url);
-        var request = try client.request(.GET, uri, .{
-            .allocator = self.allocator,
-        }, .{});
+        var header_buffer: [1024]u8 = undefined;
+        var request = try client.open(.GET, uri, .{
+            .server_header_buffer = &header_buffer,
+        });
+        defer request.deinit();
         
         // Add authorization header
         try request.headers.append("Authorization", self.api_key);
         
         // Send the request
-        try request.start();
+        try request.send();
         try request.finish();
         
         // Get the response

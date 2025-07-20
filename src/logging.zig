@@ -57,7 +57,7 @@ pub const LogEntry = struct {
             try std.json.stringify(ctx, .{}, writer);
         }
         
-        try writer.print("}}\n");
+        try writer.print("}}\n", .{});
     }
 };
 

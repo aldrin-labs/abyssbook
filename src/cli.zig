@@ -26,13 +26,6 @@ pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
     // Add debugging for CLI execution with safety checks
     std.debug.print("CLI execute called with {} args\n", .{args.len});
     
-    // Validate registry is not null
-    if (registry == null) {
-        std.debug.print("Error: Registry is null\n", .{});
-        logging.errorGlobal("cli", "Registry is null in execute function");
-        return error.InvalidRegistry;
-    }
-    
     if (args.len <= 1) {
         // No command provided, show help
         logging.debugGlobal("cli", "No command provided, showing help");
