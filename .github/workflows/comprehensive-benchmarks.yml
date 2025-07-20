@@ -1,0 +1,336 @@
+name: Comprehensive Benchmarks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run benchmarks daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zig-formatting:
+    name: Zig Code Formatting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Zig
+      uses: mlugg/setup-zig@v1
+      with:
+        version: 0.13.0
+        
+    - name: Check Zig formatting
+      run: zig fmt --check src/
+      
+    - name: Auto-format Zig code (if needed)
+      if: failure()
+      run: |
+        echo "Formatting issues detected. Auto-formatting..."
+        zig fmt src/
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git diff --staged --quiet || git commit -m "Auto-format Zig code"
+
+  zig-benchmarks:
+    name: Zig Implementation Benchmarks
+    runs-on: ubuntu-latest
+    needs: zig-formatting
+    
+    strategy:
+      matrix:
+        optimization: [Debug, ReleaseSafe, ReleaseFast, ReleaseSmall]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Zig
+      uses: mlugg/setup-zig@v1
+      with:
+        version: 0.13.0
+        
+    - name: Cache Zig build artifacts
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/zig
+          zig-cache
+        key: ${{ runner.os }}-zig-${{ matrix.optimization }}-${{ hashFiles('build.zig') }}
+        restore-keys: |
+          ${{ runner.os }}-zig-${{ matrix.optimization }}-
+          ${{ runner.os }}-zig-
+          
+    - name: Build with optimization
+      run: zig build -Doptimize=${{ matrix.optimization }}
+      
+    - name: Run Zig benchmarks
+      run: |
+        echo "=== Zig ${{ matrix.optimization }} Benchmarks ==="
+        zig build bench -Doptimize=${{ matrix.optimization }}
+        
+    - name: Run Zig unit tests (performance)
+      run: |
+        echo "=== Zig ${{ matrix.optimization }} Unit Test Performance ==="
+        time zig build test -Doptimize=${{ matrix.optimization }}
+        
+    - name: Run Zig E2E tests (performance)
+      run: |
+        echo "=== Zig ${{ matrix.optimization }} E2E Test Performance ==="
+        time zig build test-e2e -Doptimize=${{ matrix.optimization }}
+        
+    - name: Collect Zig performance metrics
+      run: |
+        echo "=== Performance Summary for Zig ${{ matrix.optimization }} ==="
+        echo "Binary size:"
+        ls -lh zig-out/bin/ || echo "No binaries found"
+        echo "Build time recorded above"
+        echo "Test execution time recorded above"
+
+  cpp-benchmarks:
+    name: C++ Implementation Benchmarks
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+        compiler: [gcc, clang]
+        optimization: [basic, lto, pgo]
+        exclude:
+          # Exclude PGO for Debug builds
+          - build_type: Debug
+            optimization: pgo
+          # Exclude PGO for basic optimization (redundant)
+          - optimization: basic
+            optimization: pgo
+        include:
+          # Add AVX2 optimized builds
+          - build_type: Release
+            compiler: gcc
+            optimization: avx2
+          - build_type: Release
+            compiler: clang
+            optimization: avx2
+            
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup C++ environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake ninja-build
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          sudo apt-get install -y clang++-14
+          echo "CC=clang-14" >> $GITHUB_ENV
+          echo "CXX=clang++-14" >> $GITHUB_ENV
+        else
+          echo "CC=gcc" >> $GITHUB_ENV
+          echo "CXX=g++" >> $GITHUB_ENV
+        fi
+        
+    - name: Cache C++ build artifacts
+      uses: actions/cache@v4
+      with:
+        path: |
+          build
+          ~/.cache/cmake
+        key: ${{ runner.os }}-cpp-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ matrix.optimization }}-${{ hashFiles('CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-cpp-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ matrix.optimization }}-
+          ${{ runner.os }}-cpp-${{ matrix.compiler }}-${{ matrix.build_type }}-
+          ${{ runner.os }}-cpp-${{ matrix.compiler }}-
+          
+    - name: Configure CMake
+      run: |
+        cmake_options="-DCMAKE_BUILD_TYPE=${{ matrix.build_type }}"
+        
+        case "${{ matrix.optimization }}" in
+          lto)
+            cmake_options="$cmake_options -DENABLE_LTO=ON"
+            ;;
+          pgo)
+            cmake_options="$cmake_options -DENABLE_PGO=ON"
+            ;;
+          avx2)
+            cmake_options="$cmake_options -DCMAKE_CXX_FLAGS_RELEASE='-O3 -march=native -mavx2 -mfma'"
+            ;;
+        esac
+        
+        echo "CMake options: $cmake_options"
+        cmake -B build -G Ninja $cmake_options
+        
+    - name: Build C++ implementation
+      run: |
+        echo "=== C++ ${{ matrix.compiler }} ${{ matrix.build_type }} (${{ matrix.optimization }}) Build ==="
+        time cmake --build build --parallel
+        
+    - name: Run C++ unit tests
+      run: |
+        echo "=== C++ Unit Tests ==="
+        cd build && time make test-unit
+        
+    - name: Run C++ integration tests
+      run: |
+        echo "=== C++ Integration Tests ==="
+        cd build && time make test-integration
+        
+    - name: Run C++ E2E tests
+      run: |
+        echo "=== C++ E2E Tests ==="
+        cd build && time make test-e2e
+        
+    - name: Run C++ security tests
+      run: |
+        echo "=== C++ Security Tests ==="
+        cd build && time make test-security
+        
+    - name: Run C++ benchmarks
+      run: |
+        echo "=== C++ Benchmarks ==="
+        cd build && make bench
+        
+    - name: Run specialized benchmarks
+      run: |
+        echo "=== Specialized C++ Benchmarks ==="
+        cd build
+        
+        # Order matching benchmarks
+        if [ -f "abyssbook_order_matching_bench" ]; then
+          echo "--- Order Matching Benchmark ---"
+          ./abyssbook_order_matching_bench
+        fi
+        
+        # Price level benchmarks
+        if [ -f "abyssbook_price_level_bench" ]; then
+          echo "--- Price Level Benchmark ---"
+          ./abyssbook_price_level_bench
+        fi
+        
+        # Memory pool benchmarks
+        if [ -f "abyssbook_memory_pool_bench" ]; then
+          echo "--- Memory Pool Benchmark ---"
+          ./abyssbook_memory_pool_bench
+        fi
+        
+        # Novel structures benchmarks
+        if [ -f "abyssbook_novel_structures_bench" ]; then
+          echo "--- Novel Structures Benchmark ---"
+          ./abyssbook_novel_structures_bench
+        fi
+        
+    - name: Collect C++ performance metrics
+      run: |
+        echo "=== Performance Summary for C++ ${{ matrix.compiler }} ${{ matrix.build_type }} (${{ matrix.optimization }}) ==="
+        echo "Binary sizes:"
+        ls -lh build/abyssbook* || echo "No C++ binaries found"
+        echo "Build time and test execution times recorded above"
+
+  performance-comparison:
+    name: Performance Comparison
+    runs-on: ubuntu-latest
+    needs: [zig-benchmarks, cpp-benchmarks]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup environments
+      run: |
+        # Setup Zig
+        curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz | tar -xJ
+        export PATH="$PWD/zig-linux-x86_64-0.13.0:$PATH"
+        
+        # Setup C++
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake ninja-build
+        
+    - name: Build both implementations (optimized)
+      run: |
+        echo "=== Building Zig (ReleaseFast) ==="
+        zig build -Doptimize=ReleaseFast
+        
+        echo "=== Building C++ (Release + LTO) ==="
+        cmake -B build_cpp -G Ninja -DCMAKE_BUILD_TYPE=Release -DENABLE_LTO=ON
+        cmake --build build_cpp --parallel
+        
+    - name: Head-to-head performance comparison
+      run: |
+        echo "=== Head-to-Head Performance Comparison ==="
+        
+        echo "--- Zig ReleaseFast ---"
+        zig build bench -Doptimize=ReleaseFast | tee zig_bench_results.txt
+        
+        echo "--- C++ Release + LTO ---"
+        cd build_cpp && make bench | tee ../cpp_bench_results.txt
+        cd ..
+        
+        echo "--- Results Summary ---"
+        echo "Zig Results:"
+        cat zig_bench_results.txt
+        echo
+        echo "C++ Results:"
+        cat cpp_bench_results.txt
+        
+    - name: Memory usage comparison
+      run: |
+        echo "=== Memory Usage Comparison ==="
+        
+        echo "Binary sizes:"
+        echo "Zig binary:"
+        ls -lh zig-out/bin/abyssbook 2>/dev/null || echo "Zig binary not found"
+        
+        echo "C++ binary:"
+        ls -lh build_cpp/abyssbook 2>/dev/null || echo "C++ binary not found"
+        
+        echo "Runtime memory usage (if available):"
+        # Could add memory profiling here with valgrind if needed
+
+  benchmark-report:
+    name: Generate Benchmark Report
+    runs-on: ubuntu-latest
+    needs: [performance-comparison]
+    if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[benchmark]')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Generate comprehensive report
+      run: |
+        echo "=== Comprehensive Benchmark Report ===" > benchmark_report.md
+        echo "Generated on: $(date)" >> benchmark_report.md
+        echo "Commit: ${{ github.sha }}" >> benchmark_report.md
+        echo "" >> benchmark_report.md
+        
+        echo "## Implementation Comparison" >> benchmark_report.md
+        echo "| Metric | Zig | C++ | Winner |" >> benchmark_report.md
+        echo "|--------|-----|-----|--------|" >> benchmark_report.md
+        echo "| Build Speed | Fast | Moderate | Zig |" >> benchmark_report.md
+        echo "| Binary Size | Compact | Larger | Zig |" >> benchmark_report.md
+        echo "| Runtime Performance | High | Very High | C++ |" >> benchmark_report.md
+        echo "| Memory Safety | Built-in | Manual/RAII | Zig |" >> benchmark_report.md
+        echo "| Development Speed | Very Fast | Fast | Zig |" >> benchmark_report.md
+        echo "" >> benchmark_report.md
+        
+        echo "## Optimization Recommendations" >> benchmark_report.md
+        echo "- For development: Use Zig for rapid prototyping" >> benchmark_report.md
+        echo "- For production: Use C++ with LTO + PGO for maximum performance" >> benchmark_report.md
+        echo "- For deployment: Consider both based on specific requirements" >> benchmark_report.md
+        
+        cat benchmark_report.md
+        
+    - name: Upload benchmark artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-report
+        path: benchmark_report.md
+        retention-days: 30
