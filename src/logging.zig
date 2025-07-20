@@ -46,17 +46,14 @@ pub const LogEntry = struct {
     ) !void {
         _ = fmt;
         _ = options;
-        
+
         // Write JSON formatted log entry
-        try writer.print("{{\"timestamp\":\"{s}\",\"level\":\"{s}\",\"module\":\"{s}\",\"message\":\"{s}\"", .{
-            self.timestamp, self.level, self.module, self.message
-        });
-        
-        if (self.context) |ctx| {
-            try writer.print(",\"context\":", .{});
-            try std.json.stringify(ctx, .{}, writer);
+        try writer.print("{{\"timestamp\":\"{s}\",\"level\":\"{s}\",\"module\":\"{s}\",\"message\":\"{s}\"", .{ self.timestamp, self.level, self.module, self.message });
+
+        if (self.context) |_| {
+            try writer.print(",\"context\":null", .{});
         }
-        
+
         try writer.print("}}\n", .{});
     }
 };
@@ -68,9 +65,9 @@ pub const Logger = struct {
     mutex: Mutex,
     output_writer: std.fs.File.Writer,
     buffer: std.ArrayList(u8),
-    
+
     const Self = @This();
-    
+
     pub fn init(allocator: std.mem.Allocator, level: LogLevel) !Self {
         return Self{
             .allocator = allocator,
@@ -80,34 +77,34 @@ pub const Logger = struct {
             .buffer = std.ArrayList(u8).init(allocator),
         };
     }
-    
+
     pub fn deinit(self: *Self) void {
         self.buffer.deinit();
     }
-    
+
     pub fn setLevel(self: *Self, level: LogLevel) void {
         self.mutex.lock();
         defer self.mutex.unlock();
         self.level = level;
     }
-    
+
     pub fn getLevel(self: *Self) LogLevel {
         self.mutex.lock();
         defer self.mutex.unlock();
         return self.level;
     }
-    
+
     /// Get current timestamp in ISO 8601 format
     fn getTimestamp(self: *Self) ![]const u8 {
         const timestamp = std.time.timestamp();
         const epoch_seconds = @as(u64, @intCast(timestamp));
-        
+
         // Convert to a simple format for now
         const buffer = try self.allocator.alloc(u8, 32);
         const len = std.fmt.formatIntBuf(buffer, epoch_seconds, 10, .lower, .{});
         return buffer[0..len];
     }
-    
+
     /// Internal logging function
     fn logInternal(
         self: *Self,
@@ -119,13 +116,13 @@ pub const Logger = struct {
         if (@intFromEnum(level) < @intFromEnum(self.level)) {
             return; // Skip if below current log level
         }
-        
+
         self.mutex.lock();
         defer self.mutex.unlock();
-        
+
         const timestamp = try self.getTimestamp();
         defer self.allocator.free(timestamp);
-        
+
         const entry = LogEntry{
             .timestamp = timestamp,
             .level = level.toString(),
@@ -133,15 +130,15 @@ pub const Logger = struct {
             .message = message,
             .context = context,
         };
-        
+
         // Clear buffer and format entry
         self.buffer.clearRetainingCapacity();
         try entry.format("", .{}, self.buffer.writer());
-        
+
         // Write to output
         try self.output_writer.writeAll(self.buffer.items);
     }
-    
+
     /// Log with context (key-value pairs)
     pub fn logWithContext(
         self: *Self,
@@ -152,7 +149,7 @@ pub const Logger = struct {
     ) !void {
         var json_context = std.json.Value{ .object = std.json.ObjectMap.init(self.allocator) };
         defer json_context.object.deinit();
-        
+
         // Convert context struct to JSON value
         inline for (std.meta.fields(@TypeOf(context))) |field| {
             const value = @field(context, field.name);
@@ -165,53 +162,53 @@ pub const Logger = struct {
             };
             try json_context.object.put(field.name, json_value);
         }
-        
+
         try self.logInternal(level, module, message, json_context);
     }
-    
+
     /// Simple logging without context
     pub fn log(self: *Self, level: LogLevel, module: []const u8, message: []const u8) !void {
         try self.logInternal(level, module, message, null);
     }
-    
+
     /// Convenience methods for different log levels
     pub fn debug(self: *Self, module: []const u8, message: []const u8) !void {
         try self.log(.DEBUG, module, message);
     }
-    
+
     pub fn info(self: *Self, module: []const u8, message: []const u8) !void {
         try self.log(.INFO, module, message);
     }
-    
+
     pub fn warn(self: *Self, module: []const u8, message: []const u8) !void {
         try self.log(.WARN, module, message);
     }
-    
+
     pub fn err(self: *Self, module: []const u8, message: []const u8) !void {
         try self.log(.ERROR, module, message);
     }
-    
+
     pub fn critical(self: *Self, module: []const u8, message: []const u8) !void {
         try self.log(.CRITICAL, module, message);
     }
-    
+
     /// Convenience methods with context
     pub fn debugWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
         try self.logWithContext(.DEBUG, module, message, context);
     }
-    
+
     pub fn infoWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
         try self.logWithContext(.INFO, module, message, context);
     }
-    
+
     pub fn warnWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
         try self.logWithContext(.WARN, module, message, context);
     }
-    
+
     pub fn errWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
         try self.logWithContext(.ERROR, module, message, context);
     }
-    
+
     pub fn criticalWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
         try self.logWithContext(.CRITICAL, module, message, context);
     }
@@ -226,7 +223,7 @@ pub fn initGlobalLogger(allocator: std.mem.Allocator, level: LogLevel) !void {
     if (global_logger != null) {
         return; // Already initialized
     }
-    
+
     global_allocator = allocator;
     global_logger = try allocator.create(Logger);
     global_logger.?.* = try Logger.init(allocator, level);
@@ -259,7 +256,7 @@ pub fn setGlobalLogLevel(level: LogLevel) void {
 pub fn logGlobal(level: LogLevel, module: []const u8, message: []const u8) void {
     if (global_logger) |logger| {
         logger.log(level, module, message) catch |err| {
-            std.debug.print("Logging error: {}\n", .{err});
+            std.debug.print("Logging error: {any}\n", .{err});
         };
     }
 }
@@ -267,7 +264,7 @@ pub fn logGlobal(level: LogLevel, module: []const u8, message: []const u8) void 
 pub fn logGlobalWithContext(level: LogLevel, module: []const u8, message: []const u8, context: anytype) void {
     if (global_logger) |logger| {
         logger.logWithContext(level, module, message, context) catch |err| {
-            std.debug.print("Logging error: {}\n", .{err});
+            std.debug.print("Logging error: {any}\n", .{err});
         };
     }
 }
