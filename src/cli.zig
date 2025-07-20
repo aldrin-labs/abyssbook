@@ -23,19 +23,39 @@ pub fn init() CommandRegistry {
 
 /// Parse command line arguments and execute the appropriate command
 pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
-    // Add debugging for CLI execution
+    // Add debugging for CLI execution with safety checks
     std.debug.print("CLI execute called with {} args\n", .{args.len});
+    
+    // Validate registry is not null
+    if (registry == null) {
+        std.debug.print("Error: Registry is null\n", .{});
+        logging.errorGlobal("cli", "Registry is null in execute function");
+        return error.InvalidRegistry;
+    }
     
     if (args.len <= 1) {
         // No command provided, show help
         logging.debugGlobal("cli", "No command provided, showing help");
         std.debug.print("Showing help for empty command\n", .{});
-        try registry.executeCommand("help", &[_][]const u8{});
+        registry.executeCommand("help", &[_][]const u8{}) catch |err| {
+            std.debug.print("Error showing help: {}\n", .{err});
+            logging.errorGlobalWithContext("cli", "Failed to show help", .{
+                .error_name = @errorName(err),
+            });
+            return err;
+        };
         return;
     }
 
     const command_name = args[1];
     const command_args = if (args.len > 2) args[2..] else &[_][]const u8{};
+    
+    // Validate command name is not empty
+    if (command_name.len == 0) {
+        std.debug.print("Error: Empty command name\n", .{});
+        logging.errorGlobal("cli", "Empty command name provided");
+        return error.EmptyCommand;
+    }
     
     std.debug.print("Executing command: {s} with {} args\n", .{ command_name, command_args.len });
     
@@ -51,6 +71,18 @@ pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
             .command = command_name,
             .error_name = @errorName(err),
         });
+        
+        // Provide more detailed error information
+        switch (err) {
+            error.UnknownCommand => {
+                std.debug.print("Command '{s}' not found. Available commands:\n", .{command_name});
+                registry.listCommands() catch {
+                    std.debug.print("Error: Could not list available commands\n", .{});
+                };
+            },
+            else => {},
+        }
+        
         return err;
     };
     

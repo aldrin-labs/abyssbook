@@ -35,7 +35,16 @@ jobs:
           ${{ runner.os }}-zig-
           
     - name: Check formatting
-      run: zig fmt --check src/
+      run: |
+        echo "=== Checking Zig formatting ==="
+        if ! zig fmt --check src/; then
+          echo "❌ Code formatting issues found. Running auto-format..."
+          zig fmt src/
+          echo "✅ Code has been automatically formatted"
+          exit 1
+        else
+          echo "✅ Code formatting is correct"
+        fi
       
     - name: Build project
       run: zig build
