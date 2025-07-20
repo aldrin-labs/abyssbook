@@ -229,7 +229,7 @@ pub fn initGlobalLogger(allocator: std.mem.Allocator, level: LogLevel) !void {
     
     global_allocator = allocator;
     global_logger = try allocator.create(Logger);
-    global_logger.? = try Logger.init(allocator, level);
+    global_logger.?.* = try Logger.init(allocator, level);
 }
 
 /// Deinitialize global logger

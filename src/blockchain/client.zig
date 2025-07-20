@@ -23,7 +23,7 @@ pub const BlockchainClient = struct {
     /// Connect to the blockchain API
     pub fn connect(self: *BlockchainClient) !void {
         if (self.client == null) {
-            var client = try http.Client.init(self.allocator, .{});
+            const client = try http.Client.init(self.allocator, .{});
             self.client = client;
         }
     }

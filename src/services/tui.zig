@@ -25,7 +25,7 @@ pub const TUIService = struct {
     }
     
     /// Calculate the spread between best bid and ask
-    pub fn calculateSpread(self: *TUIService, orderbook: Orderbook) !f64 {
+    pub fn calculateSpread(_: *TUIService, orderbook: Orderbook) !f64 {
         if (orderbook.asks.len == 0 or orderbook.bids.len == 0) {
             return error.InsufficientOrderbookData;
         }
