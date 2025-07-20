@@ -11,7 +11,7 @@ test "Blockchain client - URL validation" {
     // Test with potentially malicious URLs
     const malicious_urls = [_][]const u8{
         "javascript:alert(1)",
-        "file:///etc/passwd",
+        "file:///etc/passwd", 
         "ftp://malicious.com",
         "ldap://malicious.com",
         "data:text/html,<script>alert(1)</script>",
@@ -20,12 +20,17 @@ test "Blockchain client - URL validation" {
     };
     
     for (malicious_urls) |url| {
-        var client = blockchain_client.BlockchainClient.init(allocator, "test-key", url) catch continue;
+        std.debug.print("Testing URL: {s}\n", .{url});
+        var client = blockchain_client.BlockchainClient.init(allocator, "test-key", url) catch |err| {
+            std.debug.print("Client init failed for {s}: {}\n", .{ url, err });
+            continue;
+        };
         defer client.disconnect();
         
         // Should not be able to connect to malicious URLs
         client.connect() catch |err| {
             // Connection should fail for invalid schemes/protocols
+            std.debug.print("Connection failed as expected for {s}: {}\n", .{ url, err });
             try testing.expect(err != error.OutOfMemory);
         };
     }

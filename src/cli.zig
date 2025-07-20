@@ -23,15 +23,21 @@ pub fn init() CommandRegistry {
 
 /// Parse command line arguments and execute the appropriate command
 pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
+    // Add debugging for CLI execution
+    std.debug.print("CLI execute called with {} args\n", .{args.len});
+    
     if (args.len <= 1) {
         // No command provided, show help
         logging.debugGlobal("cli", "No command provided, showing help");
+        std.debug.print("Showing help for empty command\n", .{});
         try registry.executeCommand("help", &[_][]const u8{});
         return;
     }
 
     const command_name = args[1];
     const command_args = if (args.len > 2) args[2..] else &[_][]const u8{};
+    
+    std.debug.print("Executing command: {s} with {} args\n", .{ command_name, command_args.len });
     
     // Log command execution for security monitoring
     logging.infoGlobalWithContext("cli", "CLI command execution", .{
@@ -40,6 +46,7 @@ pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
     });
 
     registry.executeCommand(command_name, command_args) catch |err| {
+        std.debug.print("Command execution failed: {s} -> {}\n", .{ command_name, err });
         logging.errorGlobalWithContext("cli", "Command execution failed", .{
             .command = command_name,
             .error_name = @errorName(err),
@@ -47,6 +54,7 @@ pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
         return err;
     };
     
+    std.debug.print("Command completed successfully: {s}\n", .{command_name});
     logging.debugGlobalWithContext("cli", "Command completed successfully", .{
         .command = command_name,
     });

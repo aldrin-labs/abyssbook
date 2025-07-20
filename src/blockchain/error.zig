@@ -98,9 +98,15 @@ pub const ErrorHandler = struct {
     }
     
     /// Convert HTTP status code to appropriate blockchain error
+    /// Note: This function should only be called with error status codes (400+)
+    /// Success codes (200-299) will return UnknownError to avoid panics
     pub fn httpStatusToError(status_code: u16) BlockchainError {
         return switch (status_code) {
-            200...299 => unreachable, // Success codes shouldn't be converted to errors
+            200...299 => {
+                // Log warning for unexpected success code conversion
+                std.debug.print("Warning: httpStatusToError called with success code {}\n", .{status_code});
+                return BlockchainError.UnknownError;
+            },
             400 => BlockchainError.InvalidOrderParameters,
             401 => BlockchainError.AuthenticationFailed,
             403 => BlockchainError.AuthenticationFailed,

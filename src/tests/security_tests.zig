@@ -10,10 +10,13 @@ test "CLI security - malformed arguments" {
     var registry = cli.init();
     defer registry.deinit();
     
-    // Test with empty arguments
+    // Test with empty arguments - should show help and succeed
     {
         const args = &[_][]const u8{};
+        // Empty arguments should show help and not throw an error
         cli.execute(&registry, args) catch |err| {
+            // If an error is thrown, it should be UnknownCommand
+            std.debug.print("Unexpected error with empty args: {}\n", .{err});
             try testing.expect(err == error.UnknownCommand);
         };
     }
@@ -26,6 +29,7 @@ test "CLI security - malformed arguments" {
         
         cli.execute(&registry, args) catch |err| {
             // Should handle gracefully, not crash
+            std.debug.print("Long argument test error (expected): {}\n", .{err});
             try testing.expect(err == error.UnknownCommand);
         };
     }
