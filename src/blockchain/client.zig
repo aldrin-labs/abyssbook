@@ -48,7 +48,8 @@ pub const BlockchainClient = struct {
         });
         
         // Prepare the request
-        var request = try client.request(.GET, try std.Uri.parse(url), .{
+        const uri = try std.Uri.parse(url);
+        var request = try client.request(.GET, uri, .{
             .allocator = self.allocator,
         }, .{});
         
