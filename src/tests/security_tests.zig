@@ -2,9 +2,9 @@ const std = @import("std");
 const cli = @import("../cli.zig");
 const testing = std.testing;
 
-/// Security-focused tests for CLI argument parsing
-/// These tests ensure that the CLI handles edge cases and potential
-/// security vulnerabilities safely.
+// Security-focused tests for CLI argument parsing
+// These tests ensure that the CLI handles edge cases and potential
+// security vulnerabilities safely.
 
 test "CLI security - malformed arguments" {
     var registry = cli.init();

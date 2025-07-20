@@ -2,8 +2,8 @@ const std = @import("std");
 const blockchain_client = @import("../blockchain/client.zig");
 const testing = std.testing;
 
-/// Security tests for blockchain client functionality
-/// Ensures secure handling of network operations and data validation
+// Security tests for blockchain client functionality
+// Ensures secure handling of network operations and data validation
 
 test "Blockchain client - URL validation" {
     const allocator = testing.allocator;
