@@ -47,19 +47,53 @@ jobs:
         fi
       
     - name: Build project
-      run: zig build
+      run: |
+        echo "=== Building Zig project ==="
+        zig build --verbose 2>&1 || {
+          echo "❌ Build failed. Checking for common issues..."
+          echo "Zig version:"
+          zig version
+          echo "Build configuration:"
+          cat build.zig | head -20
+          exit 1
+        }
+        echo "✅ Build completed successfully"
       
     - name: Run unit tests
-      run: zig build test
+      run: |
+        echo "=== Running unit tests ==="
+        zig build test --verbose 2>&1 || {
+          echo "❌ Unit tests failed"
+          exit 1
+        }
+        echo "✅ Unit tests passed"
       
     - name: Run E2E tests
-      run: zig build test-e2e
+      run: |
+        echo "=== Running E2E tests ==="
+        zig build test-e2e --verbose 2>&1 || {
+          echo "❌ E2E tests failed"
+          exit 1
+        }
+        echo "✅ E2E tests passed"
       
     - name: Run all tests
-      run: zig build test-all
+      run: |
+        echo "=== Running all tests ==="
+        zig build test-all --verbose 2>&1 || {
+          echo "❌ All tests failed"
+          exit 1
+        }
+        echo "✅ All tests passed"
       
     - name: Build benchmark
-      run: zig build bench
+      run: |
+        echo "=== Building benchmark ==="
+        zig build bench --verbose 2>&1 || {
+          echo "❌ Benchmark build failed"
+          exit 1
+        }
+        echo "✅ Benchmark built successfully"
 
   security-validation:
     name: Security Validation
