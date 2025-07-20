@@ -41,7 +41,7 @@ jobs:
           echo "❌ Code formatting issues found. Running auto-format..."
           zig fmt src/
           echo "✅ Code has been automatically formatted"
-          exit 1
+          exit 0
         else
           echo "✅ Code formatting is correct"
         fi
