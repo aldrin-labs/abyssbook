@@ -131,7 +131,8 @@ private:
     }
     
 public:
-    LockFreeSkipList() : current_level_(1), size_(0) {
+    LockFreeSkipList() : current_level_(1), size_(0), 
+                        cached_best_bid_(0), cached_best_ask_(UINT64_MAX), cache_valid_(false) {
         // Create sentinel nodes
         head_ = new Node(0, 0, 0, MAX_LEVEL);
         tail_ = new Node(UINT64_MAX, 0, 0, MAX_LEVEL);
