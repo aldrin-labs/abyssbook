@@ -59,7 +59,7 @@ pub const EnhancedBlockchainClient = struct {
         }.call;
         
         // Execute with retry logic
-        var orderbook = try self.error_handler.executeWithRetry(Orderbook, context, fetchOrderbook);
+        const orderbook = try self.error_handler.executeWithRetry(Orderbook, context, fetchOrderbook);
         
         // Cache the result
         try self.cache.put(market, orderbook);

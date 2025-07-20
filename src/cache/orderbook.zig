@@ -89,7 +89,7 @@ pub const OrderbookCache = struct {
         errdefer self.allocator.free(market_address_copy);
         
         // Clone bids
-        var bids_copy = try self.allocator.alloc(Order, orderbook.bids.len);
+        const bids_copy = try self.allocator.alloc(Order, orderbook.bids.len);
         errdefer self.allocator.free(bids_copy);
         
         for (orderbook.bids, 0..) |bid, i| {
@@ -103,7 +103,7 @@ pub const OrderbookCache = struct {
         }
         
         // Clone asks
-        var asks_copy = try self.allocator.alloc(Order, orderbook.asks.len);
+        const asks_copy = try self.allocator.alloc(Order, orderbook.asks.len);
         errdefer self.allocator.free(asks_copy);
         
         for (orderbook.asks, 0..) |ask, i| {
