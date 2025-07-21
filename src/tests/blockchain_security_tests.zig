@@ -1,5 +1,5 @@
 const std = @import("std");
-const blockchain_client = @import("../blockchain/client.zig");
+const blockchain_client = @import("blockchain_client");
 const testing = std.testing;
 
 // Security tests for blockchain client functionality

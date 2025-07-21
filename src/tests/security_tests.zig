@@ -1,5 +1,5 @@
 const std = @import("std");
-const cli = @import("../cli.zig");
+const cli = @import("cli");
 const testing = std.testing;
 
 // Security-focused tests for CLI argument parsing
