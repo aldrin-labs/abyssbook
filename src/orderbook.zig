@@ -627,7 +627,11 @@ pub const ShardedOrderbook = struct {
         order.twap_params = twap_params;
         order.flags.is_twap = true;
 
-        try self.placeOrderWithType(order);
+        self.placeOrderWithType(order) catch |err| {
+            // Clean up memory if placement fails
+            self.allocator.destroy(twap_params);
+            return err;
+        };
     }
 
     pub fn placeOSOOrder(self: *ShardedOrderbook, primary_order: CacheAlignedOrder, child_order: CacheAlignedOrder) !void {
@@ -737,7 +741,11 @@ pub const ShardedOrderbook = struct {
             self.current_order_flags = .{};
         }
 
-        try self.placeOrderWithType(order);
+        self.placeOrderWithType(order) catch |err| {
+            // Clean up memory if placement fails
+            self.allocator.destroy(disc_params);
+            return err;
+        };
     }
 
     pub fn placeConditionalOrder(self: *ShardedOrderbook, side: OrderSide, price: u64, amount: u64, id: u64, condition_type: ConditionalType, target_value: u64) OrderError!void {
@@ -1165,6 +1173,10 @@ pub const ShardedOrderbook = struct {
 
         if (matched_amount == order_entry.order.amount) {
             try self.updatePriceLevel(levels, execution_price, -@as(i64, @intCast(matched_amount)), -1);
+            
+            // Clean up order memory before removing
+            var order_to_remove = order_entry.order;
+            order_to_remove.deinit(self.allocator);
             _ = self.shards[shard_index].swapRemove(order_entry.key);
 
             if (order_entry.order.flags.is_iceberg) {
