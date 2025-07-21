@@ -21,18 +21,10 @@ test "Blockchain client - URL validation" {
 
     for (malicious_urls) |url| {
         std.debug.print("Testing URL: {s}\n", .{url});
-        var client = blockchain_client.BlockchainClient.init(allocator, "test-key", url) catch |err| {
-            std.debug.print("Client init failed for {s}: {}\n", .{ url, err });
-            continue;
-        };
-        defer client.disconnect();
-
-        // Should not be able to connect to malicious URLs
-        client.connect() catch |err| {
-            // Connection should fail for invalid schemes/protocols
-            std.debug.print("Connection failed as expected for {s}: {}\n", .{ url, err });
-            try testing.expect(err != error.OutOfMemory);
-        };
+        // Should reject malicious URLs at init stage due to HTTPS enforcement
+        const init_result = blockchain_client.BlockchainClient.init(allocator, "test-key", url);
+        try testing.expectError(error.InvalidUrl, init_result);
+        std.debug.print("Correctly rejected malicious URL: {s}\n", .{url});
     }
 }
 

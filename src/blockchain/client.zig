@@ -12,6 +12,16 @@ pub const BlockchainClient = struct {
 
     /// Initialize a new blockchain client
     pub fn init(allocator: std.mem.Allocator, api_key: []const u8, base_url: []const u8) !BlockchainClient {
+        // Enforce HTTPS-only URLs for security
+        if (!std.mem.startsWith(u8, base_url, "https://")) {
+            return error.InvalidUrl;
+        }
+        
+        // Check for path traversal attempts
+        if (std.mem.indexOf(u8, base_url, "../") != null) {
+            return error.InvalidUrl;
+        }
+        
         return BlockchainClient{
             .allocator = allocator,
             .api_key = api_key,
