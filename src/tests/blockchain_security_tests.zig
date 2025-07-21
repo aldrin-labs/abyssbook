@@ -74,7 +74,7 @@ test "Blockchain client - input sanitization" {
 
     for (injection_attempts) |market| {
         // Should handle injection attempts safely
-        client.getOrderbook(market) catch |err| {
+        _ = client.getOrderbook(market) catch |err| {
             // Expected to fail, but not crash
             try testing.expect(err != error.OutOfMemory);
         };
@@ -132,7 +132,7 @@ test "Blockchain client - rate limiting protection" {
     var request_count: u32 = 0;
 
     while (request_count < rapid_requests) : (request_count += 1) {
-        client.getOrderbook("test-market") catch |err| {
+        _ = client.getOrderbook("test-market") catch |err| {
             // Rate limiting or connection errors are expected
             try testing.expect(err != error.OutOfMemory);
         };
