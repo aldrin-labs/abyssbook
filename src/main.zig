@@ -7,25 +7,25 @@ pub fn main() !u8 {
     // Initialize logging system first
     try logging.initGlobalLogger(std.heap.page_allocator, .INFO);
     defer logging.deinitGlobalLogger();
-    
+
     logging.infoGlobal("main", "Abyssbook application starting");
-    
+
     // Get command line arguments with error handling
     const args = std.process.args();
-    
+
     // Initialize CLI with error handling
     var registry = cli.init();
     defer registry.deinit();
-    
+
     // Convert args iterator to slice for easier handling with error handling
     var arg_list = std.ArrayList([]const u8).init(std.heap.page_allocator);
     defer arg_list.deinit();
-    
+
     var args_iter = args;
     var arg_count: usize = 0;
     while (args_iter.next()) |arg| {
         arg_list.append(arg) catch |err| {
-            std.debug.print("Error: Failed to process command line arguments: {}\n", .{err});
+            std.debug.print("Error: Failed to process command line arguments: {any}\n", .{err});
             logging.errorGlobalWithContext("main", "Failed to process arguments", .{
                 .error_name = @errorName(err),
                 .arg_count = arg_count,
@@ -34,7 +34,7 @@ pub fn main() !u8 {
         };
         arg_count += 1;
     }
-    
+
     // Log command execution for security monitoring with safety checks
     if (arg_list.items.len > 1) {
         const command = if (arg_list.items.len > 1) arg_list.items[1] else "none";
@@ -45,19 +45,19 @@ pub fn main() !u8 {
     } else {
         logging.infoGlobal("main", "No command provided, showing help");
     }
-    
+
     // Execute the CLI with the provided arguments with comprehensive error handling
     cli.execute(&registry, arg_list.items) catch |err| {
         // Enhanced error reporting to prevent silent failures
         const error_name = @errorName(err);
-        std.debug.print("Error executing command: {} ({})\n", .{ err, error_name });
-        
+        std.debug.print("Error executing command: {any} ({s})\n", .{ err, error_name });
+
         logging.errorGlobalWithContext("main", "CLI execution failed", .{
             .error_name = error_name,
             .command = if (arg_list.items.len > 1) arg_list.items[1] else "none",
             .total_args = arg_list.items.len,
         });
-        
+
         // Provide specific error messages for common issues
         switch (err) {
             error.UnknownCommand => {
@@ -73,12 +73,12 @@ pub fn main() !u8 {
                 return 1;
             },
             else => {
-                std.debug.print("Unexpected error occurred: {}\n", .{err});
+                std.debug.print("Unexpected error occurred: {any}\n", .{err});
                 return 1;
             },
         }
     };
-    
+
     logging.infoGlobal("main", "Abyssbook application completed successfully");
     return 0;
 }

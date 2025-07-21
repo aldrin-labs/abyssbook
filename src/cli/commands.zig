@@ -45,7 +45,7 @@ pub const CommandRegistry = struct {
 
     pub fn register(self: *CommandRegistry, command: Command) void {
         self.commands.put(command.name, command) catch |err| {
-            std.debug.print("Failed to register command: {s}, error: {}\n", .{ command.name, err });
+            std.debug.print("Failed to register command: {s}, error: {any}\n", .{ command.name, err });
         };
     }
 
@@ -75,11 +75,11 @@ fn executeHelp(cmd_args: []const []const u8) !void {
         std.debug.print("Error: Command registry not initialized\n", .{});
         return;
     };
-    
+
     std.debug.print("Abyssbook Node Management CLI\n\n", .{});
     std.debug.print("Usage: abyssbook <command> [options]\n\n", .{});
     std.debug.print("Available commands:\n", .{});
-    
+
     // If a specific command was requested, show its usage
     if (cmd_args.len > 0) {
         const command_name = cmd_args[0];
@@ -91,7 +91,7 @@ fn executeHelp(cmd_args: []const []const u8) !void {
             std.debug.print("Unknown command: {s}\n\n", .{command_name});
         }
     }
-    
+
     // List all commands with descriptions using the registry
     try registry.listCommands();
 }

@@ -10,8 +10,22 @@ src/orderbook/svm/.zig-cache
 
 # Zig build dependencies
 deps.zig
+deps/
+dependencies/
+vendor/
 
-# Generated files
+# C/C++ build artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+compile_commands.json
+abyssbook
+abyssbook_bench
+abyssbook_test
+
+# Generated files and binaries
 *.o
 *.obj
 *.exe
@@ -21,7 +35,17 @@ deps.zig
 *.so
 *.dylib
 *.dll
+*.wasm
+*.bin
+*.out
 *.sublime-workspace
+
+# Package manager dependencies
+node_modules/
+.npm/
+yarn.lock
+package-lock.json
+.pnpm-store/
 
 # IDE specific files
 .vscode/
@@ -29,8 +53,43 @@ deps.zig
 *.swp
 *.swo
 .DS_Store
+*.iml
+.project
+.classpath
+.settings/
 
 # Project specific
 bench_results/
 perf_data/
 *.log
+*.tmp
+*.temp
+
+# OS specific
+Thumbs.db
+.Trashes
+*.lnk
+.directory
+
+# Temporary and cache files
+*~
+.cache/
+tmp/
+temp/
+*.pid
+*.seed
+*.pid.lock
+.nyc_output/
+coverage/
+
+# Test artifacts
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.ruff_cache/
+
+# Local development tools
+zig-linux-*/
+*.tar.xz
+*.tar.gz
