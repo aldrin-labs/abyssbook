@@ -287,11 +287,13 @@ pub const OrderSnapshot = struct {
 };
 
 pub const BookSnapshot = struct {
-    orders: []OrderSnapshot,
+    bids: std.ArrayList(OrderSnapshot),
+    asks: std.ArrayList(OrderSnapshot),
     allocator: std.mem.Allocator,
 
     pub fn deinit(self: *const BookSnapshot) void {
-        self.allocator.free(self.orders);
+        self.bids.deinit();
+        self.asks.deinit();
     }
 };
 
@@ -1372,22 +1374,27 @@ pub const ShardedOrderbook = struct {
 
     // Snapshot and persistence functions
     pub fn takeSnapshot(self: *const ShardedOrderbook) !BookSnapshot {
-        var orders = std.ArrayList(OrderSnapshot).init(self.allocator);
-        defer orders.deinit();
-
+        var bids = std.ArrayList(OrderSnapshot).init(self.allocator);
+        var asks = std.ArrayList(OrderSnapshot).init(self.allocator);
+        
         // Collect regular orders
         for (self.shards) |shard| {
             var it = shard.iterator();
             while (it.next()) |entry| {
                 const order = entry.value_ptr.*;
-                try orders.append(.{
+                const order_snapshot = OrderSnapshot{
                     .price = order.price,
                     .amount = order.amount,
                     .id = order.id,
                     .side = order.side,
                     .order_type = order.order_type,
                     .stop_price = order.stop_price,
-                });
+                };
+                
+                switch (order.side) {
+                    .Buy => try bids.append(order_snapshot),
+                    .Sell => try asks.append(order_snapshot),
+                }
             }
         }
 
@@ -1396,19 +1403,39 @@ pub const ShardedOrderbook = struct {
             var it = shard.iterator();
             while (it.next()) |entry| {
                 const order = entry.value_ptr.*;
-                try orders.append(.{
+                const order_snapshot = OrderSnapshot{
                     .price = order.price,
                     .amount = order.amount,
                     .id = order.id,
                     .side = order.side,
                     .order_type = order.order_type,
                     .stop_price = order.stop_price,
-                });
+                };
+                
+                switch (order.side) {
+                    .Buy => try bids.append(order_snapshot),
+                    .Sell => try asks.append(order_snapshot),
+                }
             }
         }
 
+        // Sort bids by price descending (highest first)
+        std.mem.sort(OrderSnapshot, bids.items, {}, struct {
+            fn lessThan(_: void, a: OrderSnapshot, b: OrderSnapshot) bool {
+                return a.price > b.price;
+            }
+        }.lessThan);
+
+        // Sort asks by price ascending (lowest first)
+        std.mem.sort(OrderSnapshot, asks.items, {}, struct {
+            fn lessThan(_: void, a: OrderSnapshot, b: OrderSnapshot) bool {
+                return a.price < b.price;
+            }
+        }.lessThan);
+
         return BookSnapshot{
-            .orders = try orders.toOwnedSlice(),
+            .bids = bids,
+            .asks = asks,
             .allocator = self.allocator,
         };
     }
@@ -1422,8 +1449,20 @@ pub const ShardedOrderbook = struct {
             self.stop_orders[i].clearRetainingCapacity();
         }
 
-        // Restore orders
-        for (snapshot.orders) |order| {
+        // Restore orders from both bids and asks
+        for (snapshot.bids.items) |order| {
+            const cache_aligned = CacheAlignedOrder.init(
+                order.price,
+                order.amount,
+                order.id,
+                order.side,
+                order.order_type,
+                order.stop_price,
+            );
+            try self.placeOrderWithType(cache_aligned);
+        }
+        
+        for (snapshot.asks.items) |order| {
             const cache_aligned = CacheAlignedOrder.init(
                 order.price,
                 order.amount,
@@ -1446,10 +1485,24 @@ pub const ShardedOrderbook = struct {
         var writer = file.writer();
 
         // Write header
-        try writer.writeInt(u64, snapshot.orders.len, .little);
+        try writer.writeInt(u64, snapshot.bids.items.len, .little);
+        try writer.writeInt(u64, snapshot.asks.items.len, .little);
 
-        // Write orders
-        for (snapshot.orders) |order| {
+        // Write bids
+        for (snapshot.bids.items) |order| {
+            try writer.writeInt(u64, order.price, .little);
+            try writer.writeInt(u64, order.amount, .little);
+            try writer.writeInt(u64, order.id, .little);
+            try writer.writeInt(u8, @intFromEnum(order.side), .little);
+            try writer.writeInt(u8, @intFromEnum(order.order_type), .little);
+            try writer.writeByte(if (order.stop_price != null) 1 else 0);
+            if (order.stop_price) |stop_price| {
+                try writer.writeInt(u64, stop_price, .little);
+            }
+        }
+
+        // Write asks
+        for (snapshot.asks.items) |order| {
             try writer.writeInt(u64, order.price, .little);
             try writer.writeInt(u64, order.amount, .little);
             try writer.writeInt(u64, order.id, .little);
@@ -1469,14 +1522,13 @@ pub const ShardedOrderbook = struct {
         var reader = file.reader();
 
         // Read header
-        const order_count = try reader.readInt(u64, .little);
+        const bid_count = try reader.readInt(u64, .little);
+        const ask_count = try reader.readInt(u64, .little);
 
-        // Read orders
-        var orders = try std.ArrayList(OrderSnapshot).initCapacity(self.allocator, order_count);
-        defer orders.deinit();
-
+        // Read bids
+        var bids = std.ArrayList(OrderSnapshot).init(self.allocator);
         var i: usize = 0;
-        while (i < order_count) : (i += 1) {
+        while (i < bid_count) : (i += 1) {
             const price = try reader.readInt(u64, .little);
             const amount = try reader.readInt(u64, .little);
             const id = try reader.readInt(u64, .little);
@@ -1488,7 +1540,32 @@ pub const ShardedOrderbook = struct {
             else
                 null;
 
-            try orders.append(.{
+            try bids.append(.{
+                .price = price,
+                .amount = amount,
+                .id = id,
+                .side = side,
+                .order_type = order_type,
+                .stop_price = stop_price,
+            });
+        }
+
+        // Read asks
+        var asks = std.ArrayList(OrderSnapshot).init(self.allocator);
+        i = 0;
+        while (i < ask_count) : (i += 1) {
+            const price = try reader.readInt(u64, .little);
+            const amount = try reader.readInt(u64, .little);
+            const id = try reader.readInt(u64, .little);
+            const side = @as(OrderSide, @enumFromInt(try reader.readInt(u8, .little)));
+            const order_type = @as(OrderType, @enumFromInt(try reader.readInt(u8, .little)));
+            const has_stop_price = try reader.readByte() == 1;
+            const stop_price = if (has_stop_price)
+                try reader.readInt(u64, .little)
+            else
+                null;
+
+            try asks.append(.{
                 .price = price,
                 .amount = amount,
                 .id = id,
@@ -1500,7 +1577,8 @@ pub const ShardedOrderbook = struct {
 
         // Create snapshot and restore
         const snapshot = BookSnapshot{
-            .orders = try orders.toOwnedSlice(),
+            .bids = bids,
+            .asks = asks,
             .allocator = self.allocator,
         };
         defer snapshot.deinit();

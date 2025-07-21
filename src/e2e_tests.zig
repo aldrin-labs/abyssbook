@@ -300,7 +300,7 @@ test "E2E - Market Data Snapshots" {
     try testing.expectEqual(@as(usize, 2), snapshot.asks.items.len);
 
     // 6. Take a new snapshot and verify changes
-    var new_snapshot = try book.createSnapshot(allocator);
+    var new_snapshot = try book.takeSnapshot();
     defer new_snapshot.deinit();
 
     try testing.expectEqual(@as(usize, 3), new_snapshot.bids.items.len);

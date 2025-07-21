@@ -32,13 +32,13 @@ pub const FeeStructure = struct {
         const lp_discount_tiers = try allocator.dupe(LpDiscountTier, lp_tiers);
 
         // Sort tiers by thresholds
-        std.sort.sort(FeeLevel, fee_tiers, {}, struct {
+        std.mem.sort(FeeLevel, fee_tiers, {}, struct {
             fn lessThan(_: void, a: FeeLevel, b: FeeLevel) bool {
                 return a.volume_threshold < b.volume_threshold;
             }
         }.lessThan);
 
-        std.sort.sort(LpDiscountTier, lp_discount_tiers, {}, struct {
+        std.mem.sort(LpDiscountTier, lp_discount_tiers, {}, struct {
             fn lessThan(_: void, a: LpDiscountTier, b: LpDiscountTier) bool {
                 return a.lp_amount_threshold < b.lp_amount_threshold;
             }
@@ -117,3 +117,16 @@ pub const FeeStructure = struct {
         return if (discount_bps >= base_bps) 0 else base_bps - discount_bps;
     }
 };
+
+// Simple module-level fee calculation functions for testing and basic usage
+pub fn calculateMakerFee(trade_value: u64) u64 {
+    // Standard maker fee: 0.1% (10 basis points)
+    const maker_fee_bps: u16 = 10;
+    return (trade_value * maker_fee_bps) / 10000;
+}
+
+pub fn calculateTakerFee(trade_value: u64) u64 {
+    // Standard taker fee: 0.2% (20 basis points)
+    const taker_fee_bps: u16 = 20;
+    return (trade_value * taker_fee_bps) / 10000;
+}
