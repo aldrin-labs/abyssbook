@@ -274,7 +274,7 @@ test "E2E - Market Data Snapshots" {
     try book.placeOrder(.Sell, 102, 25, 4);
 
     // 2. Take a snapshot of the orderbook
-    var snapshot = try book.createSnapshot(allocator);
+    var snapshot = try book.takeSnapshot();
     defer snapshot.deinit();
 
     // 3. Verify snapshot data

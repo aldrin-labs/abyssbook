@@ -28,8 +28,8 @@ pub const FeeStructure = struct {
         nft_config: NftStakingConfig,
         lp_tiers: []const LpDiscountTier,
     ) !FeeStructure {
-        var fee_tiers = try allocator.dupe(FeeLevel, volume_tiers);
-        var lp_discount_tiers = try allocator.dupe(LpDiscountTier, lp_tiers);
+        const fee_tiers = try allocator.dupe(FeeLevel, volume_tiers);
+        const lp_discount_tiers = try allocator.dupe(LpDiscountTier, lp_tiers);
 
         // Sort tiers by thresholds
         std.sort.sort(FeeLevel, fee_tiers, {}, struct {
@@ -113,7 +113,7 @@ pub const FeeStructure = struct {
         return discount;
     }
 
-    fn applyDiscount(self: *const FeeStructure, base_bps: u16, discount_bps: u16) u16 {
+    fn applyDiscount(_: *const FeeStructure, base_bps: u16, discount_bps: u16) u16 {
         return if (discount_bps >= base_bps) 0 else base_bps - discount_bps;
     }
 };
