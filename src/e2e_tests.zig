@@ -5,12 +5,22 @@ const market = @import("market.zig");
 const fees = @import("fees.zig");
 const OrderSide = orderbook.OrderSide;
 
+// Helper function to check if running in CI environment
+fn isCI(allocator: std.mem.Allocator) bool {
+    if (std.process.getEnvVarOwned(allocator, "CI")) |ci_value| {
+        defer allocator.free(ci_value);
+        return true;
+    } else |_| {
+        return false;
+    }
+}
+
 // E2E test for a complete trading scenario with multiple order types
 test "E2E - Complete Trading Scenario" {
     const allocator = testing.allocator;
     // Use fewer shards for CI to reduce memory usage
     var shard_count: u64 = 8;
-    if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) shard_count = 4;
+    if (isCI(allocator)) shard_count = 4;
     var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
@@ -96,7 +106,7 @@ test "E2E - High Frequency Trading" {
     const allocator = testing.allocator;
     // Use fewer shards for CI to reduce memory usage
     var shard_count: u64 = 32;
-    if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) shard_count = 8;
+    if (isCI(allocator)) shard_count = 8;
     var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
@@ -105,7 +115,8 @@ test "E2E - High Frequency Trading" {
     try book.placeOrder(.Sell, 1001, 100, 2);
 
     // 2. Rapid fire orders - simulate HFT activity (reduced for CI)
-    const max_iterations = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 23 else 103;
+    var max_iterations: u64 = 103;
+    if (isCI(allocator)) max_iterations = 23;
     var i: u64 = 3;
     while (i < max_iterations) : (i += 1) {
         // Place and cancel orders rapidly
@@ -121,8 +132,10 @@ test "E2E - High Frequency Trading" {
     var orders = std.ArrayList(orderbook.CacheAlignedOrder).init(allocator);
     defer orders.deinit();
 
-    const order_start = if (max_iterations < 50) 200 else 200;
-    const order_end = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) order_start + 20 else 300;
+    var order_start: u64 = 200;
+    if (max_iterations < 50) order_start = 200;
+    var order_end: u64 = 300;
+    if (isCI(allocator)) order_end = order_start + 20;
     i = order_start;
     while (i < order_end) : (i += 1) {
         try orders.append(orderbook.CacheAlignedOrder.init(1000, 1, i, .Buy, .Limit, null));
@@ -131,7 +144,8 @@ test "E2E - High Frequency Trading" {
     try book.bulkInsertOrders(.Buy, 1000, orders.items);
 
     // 4. Verify final state after HFT activity (adjusted for reduced orders)
-    const expected_volume = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 20 else 100;
+    var expected_volume: u64 = 100;
+    if (isCI(allocator)) expected_volume = 20;
     try testing.expectEqual(@as(u64, expected_volume), try book.getVolume(.Buy, 1000));
 }
 
@@ -139,12 +153,13 @@ test "E2E - High Frequency Trading" {
 test "E2E - Market Stress" {
     const allocator = testing.allocator;
     var shard_count: u64 = 16;
-    if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) shard_count = 4;
+    if (isCI(allocator)) shard_count = 4;
     var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // 1. Setup wide range of price levels (reduced for CI)
-    const max_levels = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 25 else 100;
+    var max_levels: u64 = 100;
+    if (isCI(allocator)) max_levels = 25;
     var i: u64 = 0;
     while (i < max_levels) : (i += 1) {
         try book.placeOrder(.Buy, 900 + i, 10, i + 1);
@@ -152,7 +167,8 @@ test "E2E - Market Stress" {
     }
 
     // 2. Execute large market orders (reduced sizes for CI)
-    const market_size = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 125 else 500;
+    var market_size: u64 = 500;
+    if (isCI(allocator)) market_size = 125;
     const buy_result = try book.executeMarketOrder(.Buy, market_size);
     try testing.expectEqual(@as(u64, market_size), buy_result.filled_amount);
 
@@ -160,7 +176,8 @@ test "E2E - Market Stress" {
     try testing.expectEqual(@as(u64, market_size), sell_result.filled_amount);
 
     // 3. Cancel many orders (some may have been consumed by market orders) - reduced for CI
-    const cancel_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 12 else 50;
+    var cancel_count: u64 = 50;
+    if (isCI(allocator)) cancel_count = 12;
     i = 0;
     while (i < cancel_count) : (i += 1) {
         book.cancelOrder(i + 1) catch |err| {
