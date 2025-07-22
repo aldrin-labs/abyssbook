@@ -341,13 +341,13 @@ pub const ShardedOrderbook = struct {
             while (order_it.next()) |entry| {
                 entry.value_ptr.deinit(self.allocator);
             }
-            
-            // Clean up stop orders and their allocated memory  
+
+            // Clean up stop orders and their allocated memory
             var stop_it = self.stop_orders[i].iterator();
             while (stop_it.next()) |entry| {
                 entry.value_ptr.deinit(self.allocator);
             }
-            
+
             self.shards[i].deinit();
             self.bid_levels[i].deinit();
             self.ask_levels[i].deinit();
@@ -482,7 +482,7 @@ pub const ShardedOrderbook = struct {
         if (amount == 0) {
             return OrderError.InvalidAmount;
         }
-        
+
         // Check for duplicate order ID across all shards
         const key = OrderKey{ .price = price, .id = id };
         for (0..self.shard_count) |i| {
@@ -497,7 +497,7 @@ pub const ShardedOrderbook = struct {
                 }
             }
         }
-        
+
         const order = CacheAlignedOrder.init(price, amount, id, side, .Limit, null);
         const shard_index = self.priceToShard(price);
 
@@ -539,11 +539,11 @@ pub const ShardedOrderbook = struct {
         // Only match certain order types immediately
         const should_match = switch (order.order_type) {
             .Stop, .StopLimit => true, // Stop orders should trigger matching
-            .Limit => true,            // Regular limit orders should match
-            .TWAP, .Iceberg => false,  // TWAP and Iceberg orders shouldn't match immediately
+            .Limit => true, // Regular limit orders should match
+            .TWAP, .Iceberg => false, // TWAP and Iceberg orders shouldn't match immediately
             else => true,
         };
-        
+
         if (should_match) {
             _ = try self.matchOrder(order.side, order.price, order.amount);
         }
@@ -874,7 +874,7 @@ pub const ShardedOrderbook = struct {
 
                     // Clean up order memory
                     order.deinit(self.allocator);
-                    
+
                     // Remove order
                     _ = self.shards[i].swapRemove(entry.key_ptr.*);
                     return;
@@ -1173,7 +1173,7 @@ pub const ShardedOrderbook = struct {
 
         if (matched_amount == order_entry.order.amount) {
             try self.updatePriceLevel(levels, execution_price, -@as(i64, @intCast(matched_amount)), -1);
-            
+
             // Clean up order memory before removing
             var order_to_remove = order_entry.order;
             order_to_remove.deinit(self.allocator);
@@ -1439,7 +1439,7 @@ pub const ShardedOrderbook = struct {
     pub fn takeSnapshot(self: *const ShardedOrderbook) !BookSnapshot {
         var bids = std.ArrayList(OrderSnapshot).init(self.allocator);
         var asks = std.ArrayList(OrderSnapshot).init(self.allocator);
-        
+
         // Collect regular orders
         for (self.shards) |shard| {
             var it = shard.iterator();
@@ -1453,7 +1453,7 @@ pub const ShardedOrderbook = struct {
                     .order_type = order.order_type,
                     .stop_price = order.stop_price,
                 };
-                
+
                 switch (order.side) {
                     .Buy => try bids.append(order_snapshot),
                     .Sell => try asks.append(order_snapshot),
@@ -1474,7 +1474,7 @@ pub const ShardedOrderbook = struct {
                     .order_type = order.order_type,
                     .stop_price = order.stop_price,
                 };
-                
+
                 switch (order.side) {
                     .Buy => try bids.append(order_snapshot),
                     .Sell => try asks.append(order_snapshot),
@@ -1524,7 +1524,7 @@ pub const ShardedOrderbook = struct {
             );
             try self.placeOrderWithType(cache_aligned);
         }
-        
+
         for (snapshot.asks.items) |order| {
             const cache_aligned = CacheAlignedOrder.init(
                 order.price,
@@ -1731,13 +1731,13 @@ pub const ShardedOrderbook = struct {
         if (elapsed_intervals <= twap_params.intervals_executed) return false;
         if (elapsed_intervals >= twap_params.num_intervals) return true;
 
-        // Execute the current interval by placing the order  
+        // Execute the current interval by placing the order
         const shard_index = self.priceToShard(order_data.price);
         const levels = if (order_data.side == .Buy) &self.bid_levels[shard_index] else &self.ask_levels[shard_index];
-        
+
         // Update price level with the executed amount
         try self.updatePriceLevel(levels, order_data.price, @as(i64, @intCast(twap_params.amount_per_interval)), 1);
-        
+
         // Execute the matching
         const result = try self.matchOrder(
             order_data.side,

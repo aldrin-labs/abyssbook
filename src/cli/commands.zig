@@ -67,7 +67,7 @@ pub const CommandRegistry = struct {
     pub fn listCommands(self: *CommandRegistry) !void {
         // Check if the registry has any commands before iterating
         const count = self.commands.count();
-        
+
         if (count == 0) {
             std.debug.print("No commands registered.\n", .{});
             return;

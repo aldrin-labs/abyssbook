@@ -22,7 +22,7 @@ test "Basic Order Placement" {
 
 test "Order Cancellation" {
     const allocator = testing.allocator;
-    // Use fewer shards for CI to reduce memory usage  
+    // Use fewer shards for CI to reduce memory usage
     const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
     var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();

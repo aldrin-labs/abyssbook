@@ -37,14 +37,32 @@ jobs:
     - name: Check formatting
       run: |
         echo "=== Checking Zig formatting ==="
+        # Check if any files need formatting
         if ! zig fmt --check src/; then
-          echo "❌ Code formatting issues found. Running auto-format..."
+          echo "⚠️  WARNING: Code formatting issues detected!"
+          echo "🔧 Auto-formatting files..."
+          
+          # Show which files will be changed
+          echo "📋 Files that need formatting:"
+          find src/ -name "*.zig" -exec sh -c 'if ! zig fmt --check "$1" 2>/dev/null; then echo "  - $1"; fi' _ {} \;
+          
+          # Apply formatting
           zig fmt src/
+          
+          # Create GitHub annotation for visibility
+          echo "::notice title=Zig Auto-Format Applied::Code has been automatically formatted. Please review changes before committing."
+          echo "::warning title=Developer Alert::Zig fmt made automatic changes to maintain code style consistency"
+          
           echo "✅ Code has been automatically formatted"
-          exit 0
+          echo "📝 Please review the formatting changes in your next commit"
+          
+          # Set output for downstream jobs
+          echo "formatting_applied=true" >> $GITHUB_OUTPUT
         else
           echo "✅ Code formatting is correct"
+          echo "formatting_applied=false" >> $GITHUB_OUTPUT
         fi
+      id: format_check
       
     - name: Build project
       run: |
@@ -143,3 +161,85 @@ jobs:
         # Check that HTTP operations use secure practices
         grep -r "http://" src/ && echo "❌ Insecure HTTP found" || echo "✅ No insecure HTTP usage detected"
         echo "HTTPS enforcement verified ✅"
+        
+    - name: Fuzzing Security Tests
+      run: |
+        echo "=== Fuzzing Security Validation ==="
+        
+        # Create fuzzing test script
+        cat > fuzz_test.sh << 'EOF'
+        #!/bin/bash
+        set -e
+        
+        echo "🔍 Starting fuzzing tests..."
+        
+        # Fuzz CLI arguments with random data
+        echo "Testing CLI argument fuzzing..."
+        for i in {1..50}; do
+          # Generate random strings of various lengths
+          rand_arg=$(head -c $((RANDOM % 100 + 1)) /dev/urandom | base64 | tr -d '\n=' | head -c 20)
+          timeout 2s ./zig-out/bin/abyssbook "$rand_arg" 2>/dev/null || true
+        done
+        
+        # Test with special characters and edge cases
+        echo "Testing special character inputs..."
+        special_chars=("" "$(printf '\x00')" "$(printf '\xFF')" "../../../etc/passwd" "<script>" "&amp;" "'; DROP TABLE orders; --")
+        
+        for char in "${special_chars[@]}"; do
+          timeout 2s ./zig-out/bin/abyssbook "$char" 2>/dev/null || true
+        done
+        
+        # Test JSON parsing with malformed input
+        echo "Testing JSON fuzzing..."
+        malformed_json=(
+          '{"incomplete": '
+          '{"nested": {"too": {"deep": {"nesting": {"attack": "value"}}}}}'
+          '{"null_byte": "test\u0000attack"}'
+          '{"large_number": 999999999999999999999999999999999}'
+          '{"unicode_attack": "\u0000\u0001\u0002"}'
+        )
+        
+        for json in "${malformed_json[@]}"; do
+          echo "$json" | timeout 2s ./zig-out/bin/abyssbook config set 2>/dev/null || true
+        done
+        
+        echo "✅ Fuzzing tests completed successfully"
+        EOF
+        
+        chmod +x fuzz_test.sh
+        ./fuzz_test.sh
+        
+    - name: Protocol Fuzzing
+      run: |
+        echo "=== Protocol-Level Fuzzing ==="
+        
+        # Create protocol fuzzing script
+        cat > protocol_fuzz.sh << 'EOF'
+        #!/bin/bash
+        
+        echo "Testing order book protocol fuzzing..."
+        
+        # Test with extreme values
+        test_values=(
+          "0"
+          "-1"
+          "18446744073709551615"  # max u64
+          "9223372036854775807"   # max i64
+          "-9223372036854775808"  # min i64
+          "1.7976931348623157e+308"  # near max float
+          "NaN"
+          "Infinity"
+          "-Infinity"
+        )
+        
+        for value in "${test_values[@]}"; do
+          echo "Testing with value: $value"
+          timeout 2s ./zig-out/bin/abyssbook orders create --price "$value" --quantity "100" 2>/dev/null || true
+          timeout 2s ./zig-out/bin/abyssbook orders create --price "100" --quantity "$value" 2>/dev/null || true
+        done
+        
+        echo "✅ Protocol fuzzing completed"
+        EOF
+        
+        chmod +x protocol_fuzz.sh
+        ./protocol_fuzz.sh

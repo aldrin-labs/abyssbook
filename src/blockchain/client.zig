@@ -16,12 +16,12 @@ pub const BlockchainClient = struct {
         if (!std.mem.startsWith(u8, base_url, "https://")) {
             return error.InvalidUrl;
         }
-        
+
         // Check for path traversal attempts
         if (std.mem.indexOf(u8, base_url, "../") != null) {
             return error.InvalidUrl;
         }
-        
+
         return BlockchainClient{
             .allocator = allocator,
             .api_key = api_key,

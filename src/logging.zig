@@ -58,13 +58,25 @@ pub const LogEntry = struct {
     }
 };
 
-/// Thread-safe structured logger
+/// Performance monitoring thresholds for dynamic log level adjustment
+pub const PerformanceThresholds = struct {
+    high_latency_us: u64 = 1000, // 1ms
+    high_memory_mb: u64 = 100, // 100MB
+    high_cpu_percent: f64 = 80.0, // 80%
+    adjust_interval_ms: u64 = 5000, // 5 seconds
+};
+
+/// Thread-safe structured logger with dynamic verbosity
 pub const Logger = struct {
     allocator: std.mem.Allocator,
     level: LogLevel,
+    original_level: LogLevel, // Store original level for restoration
     mutex: Mutex,
     output_writer: std.fs.File.Writer,
     buffer: std.ArrayList(u8),
+    performance_mode: bool = false,
+    last_adjustment: i64 = 0,
+    thresholds: PerformanceThresholds,
 
     const Self = @This();
 
@@ -72,10 +84,52 @@ pub const Logger = struct {
         return Self{
             .allocator = allocator,
             .level = level,
+            .original_level = level,
             .mutex = Mutex{},
             .output_writer = std.io.getStdErr().writer(),
             .buffer = std.ArrayList(u8).init(allocator),
+            .performance_mode = false,
+            .last_adjustment = std.time.milliTimestamp(),
+            .thresholds = PerformanceThresholds{},
         };
+    }
+
+    /// Dynamically adjust log level based on performance metrics
+    pub fn adjustLogLevel(self: *Self, latency_us: u64, memory_mb: u64, cpu_percent: f64) void {
+        const now = std.time.milliTimestamp();
+
+        // Only adjust if enough time has passed
+        if (now - self.last_adjustment < self.thresholds.adjust_interval_ms) {
+            return;
+        }
+
+        self.mutex.lock();
+        defer self.mutex.unlock();
+
+        const high_perf_load = latency_us > self.thresholds.high_latency_us or
+            memory_mb > self.thresholds.high_memory_mb or
+            cpu_percent > self.thresholds.high_cpu_percent;
+
+        if (high_perf_load and !self.performance_mode) {
+            // Switch to performance mode: reduce logging verbosity
+            self.performance_mode = true;
+            self.level = .ERROR; // Only log errors in high-load scenarios
+            self.last_adjustment = now;
+            self.logImmediate(.WARN, "performance", "High performance load detected - reducing log verbosity", null);
+        } else if (!high_perf_load and self.performance_mode) {
+            // Return to normal mode
+            self.performance_mode = false;
+            self.level = self.original_level;
+            self.last_adjustment = now;
+            self.logImmediate(.INFO, "performance", "Performance load normalized - restoring log verbosity", null);
+        }
+    }
+
+    /// Set performance thresholds for dynamic adjustment
+    pub fn setPerformanceThresholds(self: *Self, thresholds: PerformanceThresholds) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.thresholds = thresholds;
     }
 
     pub fn deinit(self: *Self) void {
@@ -137,6 +191,37 @@ pub const Logger = struct {
 
         // Write to output
         try self.output_writer.writeAll(self.buffer.items);
+    }
+
+    /// Log immediately without level check (for internal performance notifications)
+    fn logImmediate(
+        self: *Self,
+        level: LogLevel,
+        module: []const u8,
+        message: []const u8,
+        context: ?std.json.Value,
+    ) void {
+        // Acquire mutex but ignore level check
+        self.mutex.lock();
+        defer self.mutex.unlock();
+
+        const timestamp = self.getTimestamp() catch return;
+        defer self.allocator.free(timestamp);
+
+        const entry = LogEntry{
+            .timestamp = timestamp,
+            .level = level.toString(),
+            .module = module,
+            .message = message,
+            .context = context,
+        };
+
+        // Clear buffer and format entry
+        self.buffer.clearRetainingCapacity();
+        entry.format("", .{}, self.buffer.writer()) catch return;
+
+        // Write to output
+        self.output_writer.writeAll(self.buffer.items) catch return;
     }
 
     /// Log with context (key-value pairs)

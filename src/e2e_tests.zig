@@ -91,13 +91,13 @@ test "E2E - Complete Trading Scenario" {
     try testing.expectEqual(@as(u64, 5), try book.getVolume(.Sell, 90));
 }
 
-// E2E test for high-frequency trading scenario  
+// E2E test for high-frequency trading scenario
 test "E2E - High Frequency Trading" {
     const allocator = testing.allocator;
     // Use fewer shards for CI to reduce memory usage
     var shard_count: u64 = 32;
     if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) shard_count = 8;
-    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count); 
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // 1. Setup initial tight spread

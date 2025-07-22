@@ -25,13 +25,13 @@ const BenchmarkConfig = struct {
     // CI-optimized configuration with reduced memory usage
     fn forCI() BenchmarkConfig {
         return BenchmarkConfig{
-            .num_shards = 4,           // Reduced from 32
-            .iterations = 1_000,       // Reduced from 100_000  
-            .order_count = 1_000,      // Reduced from 10_000
-            .price_range = 100,        // Reduced from 1000
-            .amount_range = 50,        // Reduced from 100
-            .burst_size = 100,         // Reduced from 1000
-            .num_price_levels = 20,    // Reduced from 100
+            .num_shards = 4, // Reduced from 32
+            .iterations = 1_000, // Reduced from 100_000
+            .order_count = 1_000, // Reduced from 10_000
+            .price_range = 100, // Reduced from 1000
+            .amount_range = 50, // Reduced from 100
+            .burst_size = 100, // Reduced from 1000
+            .num_price_levels = 20, // Reduced from 100
         };
     }
 
@@ -39,14 +39,14 @@ const BenchmarkConfig = struct {
         // Check if running in CI environment
         const ci_env = std.process.getEnvVarOwned(std.heap.page_allocator, "CI") catch null;
         defer if (ci_env) |env| std.heap.page_allocator.free(env);
-        
+
         const github_actions = std.process.getEnvVarOwned(std.heap.page_allocator, "GITHUB_ACTIONS") catch null;
         defer if (github_actions) |env| std.heap.page_allocator.free(env);
-        
+
         if (ci_env != null or github_actions != null) {
             return BenchmarkConfig.forCI();
         }
-        
+
         return BenchmarkConfig{};
     }
 };
@@ -68,7 +68,7 @@ fn runBenchmark(
     // For large iteration counts, sample only a subset for percentile calculation
     const sample_size = @min(iterations, 10_000);
     const sample_interval = @max(1, iterations / sample_size);
-    
+
     var latencies = std.ArrayList(u64).init(allocator);
     try latencies.ensureTotalCapacity(sample_size);
 
@@ -80,7 +80,7 @@ fn runBenchmark(
         timer.reset();
         try @call(.auto, func, args);
         const elapsed = timer.read();
-        
+
         // Only collect latency samples at intervals to reduce memory usage
         if (i % sample_interval == 0) {
             try latencies.append(elapsed);
@@ -418,7 +418,7 @@ pub fn runBenchmarks() !void {
         // Use clearRetainingCapacity to preserve allocated memory while clearing data
         for (0..book.shards.len) |i| {
             book.shards[i].clearRetainingCapacity();
-            book.bid_levels[i].clearRetainingCapacity(); 
+            book.bid_levels[i].clearRetainingCapacity();
             book.ask_levels[i].clearRetainingCapacity();
             book.stop_orders[i].clearRetainingCapacity();
         }
