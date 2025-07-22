@@ -21,6 +21,34 @@ const BenchmarkConfig = struct {
     amount_range: u64 = 100,
     burst_size: usize = 1000,
     num_price_levels: usize = 100,
+
+    // CI-optimized configuration with reduced memory usage
+    fn forCI() BenchmarkConfig {
+        return BenchmarkConfig{
+            .num_shards = 4,           // Reduced from 32
+            .iterations = 1_000,       // Reduced from 100_000  
+            .order_count = 1_000,      // Reduced from 10_000
+            .price_range = 100,        // Reduced from 1000
+            .amount_range = 50,        // Reduced from 100
+            .burst_size = 100,         // Reduced from 1000
+            .num_price_levels = 20,    // Reduced from 100
+        };
+    }
+
+    fn getConfig() BenchmarkConfig {
+        // Check if running in CI environment
+        const ci_env = std.process.getEnvVarOwned(std.heap.page_allocator, "CI") catch null;
+        defer if (ci_env) |env| std.heap.page_allocator.free(env);
+        
+        const github_actions = std.process.getEnvVarOwned(std.heap.page_allocator, "GITHUB_ACTIONS") catch null;
+        defer if (github_actions) |env| std.heap.page_allocator.free(env);
+        
+        if (ci_env != null or github_actions != null) {
+            return BenchmarkConfig.forCI();
+        }
+        
+        return BenchmarkConfig{};
+    }
 };
 
 // Global order ID counter to ensure uniqueness across all benchmarks
@@ -32,9 +60,17 @@ fn runBenchmark(
     func: anytype,
     args: anytype,
 ) !BenchmarkResult {
-    var latencies = std.ArrayList(u64).init(std.heap.page_allocator);
-    defer latencies.deinit();
-    try latencies.ensureTotalCapacity(iterations);
+    // Use arena allocator for temporary memory management
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    // For large iteration counts, sample only a subset for percentile calculation
+    const sample_size = @min(iterations, 10_000);
+    const sample_interval = @max(1, iterations / sample_size);
+    
+    var latencies = std.ArrayList(u64).init(allocator);
+    try latencies.ensureTotalCapacity(sample_size);
 
     var total_time: u64 = 0;
     var timer = try std.time.Timer.start();
@@ -44,7 +80,11 @@ fn runBenchmark(
         timer.reset();
         try @call(.auto, func, args);
         const elapsed = timer.read();
-        try latencies.append(elapsed);
+        
+        // Only collect latency samples at intervals to reduce memory usage
+        if (i % sample_interval == 0) {
+            try latencies.append(elapsed);
+        }
         total_time += elapsed;
     }
 
@@ -54,15 +94,16 @@ fn runBenchmark(
     const avg_time = total_time / iterations;
     const throughput = @as(f64, @floatFromInt(iterations)) / (@as(f64, @floatFromInt(total_time)) / 1_000_000_000.0);
 
+    const sample_count = latencies.items.len;
     return BenchmarkResult{
         .operation = operation,
         .iterations = iterations,
         .total_time_ns = total_time,
         .avg_time_ns = avg_time,
         .throughput = throughput,
-        .latency_p50 = latencies.items[iterations * 50 / 100],
-        .latency_p95 = latencies.items[iterations * 95 / 100],
-        .latency_p99 = latencies.items[iterations * 99 / 100],
+        .latency_p50 = if (sample_count > 0) latencies.items[sample_count * 50 / 100] else 0,
+        .latency_p95 = if (sample_count > 0) latencies.items[sample_count * 95 / 100] else 0,
+        .latency_p99 = if (sample_count > 0) latencies.items[sample_count * 99 / 100] else 0,
     };
 }
 
@@ -93,15 +134,19 @@ fn benchBurstOrders(book: *orderbook.ShardedOrderbook, config: BenchmarkConfig) 
     var prng = std.rand.DefaultPrng.init(0);
     const rng = prng.random();
 
-    // Create array of orders at same price level
-    var orders = try std.ArrayList(orderbook.CacheAlignedOrder).initCapacity(std.heap.page_allocator, config.burst_size);
-    defer orders.deinit();
+    // Use arena for temporary allocations
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    // Create smaller array of orders at same price level
+    var orders = try std.ArrayList(orderbook.CacheAlignedOrder).initCapacity(allocator, config.burst_size);
 
     const price = rng.uintAtMost(u64, config.price_range - 1) + 1;
     var i: usize = 0;
     while (i < config.burst_size) : (i += 1) {
         const amount = rng.uintAtMost(u64, config.amount_range - 1) + 1;
-        const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
+        const id = global_order_id.fetchAdd(1, .seq_cst);
         const order_data = orderbook.CacheAlignedOrder.init(
             price,
             amount,
@@ -256,16 +301,20 @@ fn benchHFTBurstPattern(book: *orderbook.ShardedOrderbook, config: BenchmarkConf
     var prng = std.rand.DefaultPrng.init(0);
     const rng = prng.random();
 
-    // Create array of orders at same price level with tight spreads
-    var orders = try std.ArrayList(orderbook.CacheAlignedOrder).initCapacity(std.heap.page_allocator, config.burst_size);
-    defer orders.deinit();
+    // Use arena for temporary allocations
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    // Create smaller array of orders at same price level with tight spreads
+    var orders = try std.ArrayList(orderbook.CacheAlignedOrder).initCapacity(allocator, config.burst_size);
 
     const base_price = rng.uintAtMost(u64, config.price_range - 1) + 1;
     var i: usize = 0;
     while (i < config.burst_size) : (i += 1) {
         const price = base_price + rng.uintAtMost(u64, 5); // Tight spread
         const amount = rng.uintAtMost(u64, config.amount_range - 1) + 1;
-        const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
+        const id = global_order_id.fetchAdd(1, .seq_cst);
         const order_data = orderbook.CacheAlignedOrder.init(
             price,
             amount,
@@ -318,12 +367,12 @@ pub fn main() !void {
 }
 
 pub fn runBenchmarks() !void {
-    const config = BenchmarkConfig{};
+    const config = BenchmarkConfig.getConfig(); // Use CI-optimized config when detected
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    // Initialize orderbook
+    // Initialize orderbook with reduced shards for CI
     var book = try orderbook.ShardedOrderbook.init(allocator, config.num_shards);
     defer book.deinit();
 
@@ -352,8 +401,9 @@ pub fn runBenchmarks() !void {
         .{ .name = "ICE Pattern", .func = benchICEPattern },
     };
 
-    // Print header
-    std.debug.print("\nOrderbook Benchmark Results:\n", .{});
+    // Print header with CI status
+    const ci_detected = config.num_shards < 32;
+    std.debug.print("\nOrderbook Benchmark Results{s}:\n", .{if (ci_detected) " (CI Optimized)" else ""});
     std.debug.print("Configuration:\n", .{});
     std.debug.print("  Shards: {d}\n", .{config.num_shards});
     std.debug.print("  Iterations: {d}\n", .{config.iterations});
@@ -362,8 +412,20 @@ pub fn runBenchmarks() !void {
     std.debug.print("  Price Levels: {d}\n", .{config.num_price_levels});
     std.debug.print("\n{s:<25} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12}\n", .{ "Operation", "Avg (µs)", "P50 (µs)", "P95 (µs)", "P99 (µs)", "Ops/sec", "Total (ms)" });
 
-    // Run and print results
+    // Run and print results with memory cleanup between benchmarks
     inline for (benchmarks) |bench| {
+        // Reset orderbook state before each benchmark to limit memory growth
+        // Use clearRetainingCapacity to preserve allocated memory while clearing data
+        for (0..book.shards.len) |i| {
+            book.shards[i].clearRetainingCapacity();
+            book.bid_levels[i].clearRetainingCapacity(); 
+            book.ask_levels[i].clearRetainingCapacity();
+            book.stop_orders[i].clearRetainingCapacity();
+        }
+        book.best_bid = null;
+        book.best_ask = null;
+        global_order_id.store(1, .seq_cst);
+
         const result = try runBenchmark(
             bench.name,
             config.iterations,

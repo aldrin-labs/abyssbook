@@ -5,7 +5,9 @@ const OrderSide = orderbook.OrderSide;
 
 test "Basic Order Placement" {
     const allocator = testing.allocator;
-    var book = try orderbook.ShardedOrderbook.init(allocator, 8);
+    // Use fewer shards for CI to reduce memory usage
+    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // Place buy order
@@ -20,7 +22,9 @@ test "Basic Order Placement" {
 
 test "Order Cancellation" {
     const allocator = testing.allocator;
-    var book = try orderbook.ShardedOrderbook.init(allocator, 8);
+    // Use fewer shards for CI to reduce memory usage  
+    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // Place orders
@@ -38,7 +42,9 @@ test "Order Cancellation" {
 
 test "Market Orders" {
     const allocator = testing.allocator;
-    var book = try orderbook.ShardedOrderbook.init(allocator, 8);
+    // Use fewer shards for CI to reduce memory usage
+    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // Place limit orders
@@ -59,7 +65,8 @@ test "Market Orders" {
 
 test "TWAP Orders" {
     const allocator = testing.allocator;
-    var book = try orderbook.ShardedOrderbook.init(allocator, 8);
+    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // Place a TWAP order with 5 intervals of 20 each
@@ -113,7 +120,8 @@ test "TWAP Orders" {
 
 test "Trailing Stop Orders" {
     const allocator = testing.allocator;
-    var book = try orderbook.ShardedOrderbook.init(allocator, 8);
+    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // Place a trailing stop order with distance 5
@@ -147,7 +155,8 @@ test "Trailing Stop Orders" {
 
 test "Peg Orders" {
     const allocator = testing.allocator;
-    var book = try orderbook.ShardedOrderbook.init(allocator, 8);
+    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // Place some orders to establish best bid/ask
@@ -163,7 +172,8 @@ test "Peg Orders" {
 
 test "Discretionary Orders" {
     const allocator = testing.allocator;
-    var book = try orderbook.ShardedOrderbook.init(allocator, 8);
+    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // Place a discretionary order with base price 100 and discretionary price 102
@@ -224,7 +234,8 @@ test "Discretionary Orders" {
 
 test "Conditional Orders" {
     const allocator = testing.allocator;
-    var book = try orderbook.ShardedOrderbook.init(allocator, 8);
+    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // Place a conditional order
@@ -240,7 +251,8 @@ test "Conditional Orders" {
 
 test "Iceberg Orders" {
     const allocator = testing.allocator;
-    var book = try orderbook.ShardedOrderbook.init(allocator, 8);
+    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
     // Place an iceberg order

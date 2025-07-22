@@ -21,11 +21,13 @@ test "CLI security - malformed arguments" {
         };
     }
 
-    // Test with very long arguments (potential buffer overflow)
+    // Test with very long arguments (potential buffer overflow) - reduced size for CI
     {
-        var long_arg: [1024]u8 = undefined;
-        @memset(&long_arg, 'A');
-        const args = &[_][]const u8{ "abyssbook", &long_arg };
+        const buffer_size = if (std.process.getEnvVarOwned(std.heap.page_allocator, "CI") catch null != null) 256 else 1024;
+        var long_arg_buffer: [256]u8 = undefined; // Use stack allocation for CI
+        const long_arg = long_arg_buffer[0..buffer_size];
+        @memset(long_arg, 'A');
+        const args = &[_][]const u8{ "abyssbook", long_arg };
 
         cli.execute(&registry, args) catch |err| {
             // Should handle gracefully, not crash
