@@ -9,7 +9,8 @@ const OrderSide = orderbook.OrderSide;
 test "E2E - Complete Trading Scenario" {
     const allocator = testing.allocator;
     // Use fewer shards for CI to reduce memory usage
-    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 8;
+    var shard_count: u64 = 8;
+    if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) shard_count = 4;
     var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
@@ -94,7 +95,8 @@ test "E2E - Complete Trading Scenario" {
 test "E2E - High Frequency Trading" {
     const allocator = testing.allocator;
     // Use fewer shards for CI to reduce memory usage
-    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 8 else 32;
+    var shard_count: u64 = 32;
+    if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) shard_count = 8;
     var book = try orderbook.ShardedOrderbook.init(allocator, shard_count); 
     defer book.deinit();
 
@@ -136,7 +138,8 @@ test "E2E - High Frequency Trading" {
 // E2E test for market stress scenario
 test "E2E - Market Stress" {
     const allocator = testing.allocator;
-    const shard_count = if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) 4 else 16;
+    var shard_count: u64 = 16;
+    if (std.process.getEnvVarOwned(allocator, "CI") catch null != null) shard_count = 4;
     var book = try orderbook.ShardedOrderbook.init(allocator, shard_count);
     defer book.deinit();
 
