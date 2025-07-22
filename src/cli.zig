@@ -30,6 +30,7 @@ pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
         // No command provided, show help
         logging.debugGlobal("cli", "No command provided, showing help");
         std.debug.print("Showing help for empty command\n", .{});
+        // Call help directly using executeCommand to avoid recursion issues
         registry.executeCommand("help", &[_][]const u8{}) catch |err| {
             std.debug.print("Error showing help: {any}\n", .{err});
             logging.errorGlobalWithContext("cli", "Failed to show help", .{

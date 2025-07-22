@@ -12,6 +12,9 @@ var registry_ref: ?*CommandRegistry = null;
 /// Function type for command execution
 pub const CommandFn = *const fn (cmd_args: []const []const u8) anyerror!void;
 
+/// Function type for command execution with registry access
+pub const CommandFnWithRegistry = *const fn (registry: *CommandRegistry, cmd_args: []const []const u8) anyerror!void;
+
 /// Command structure representing a CLI command
 pub const Command = struct {
     name: []const u8,
@@ -46,6 +49,7 @@ pub const CommandRegistry = struct {
     pub fn register(self: *CommandRegistry, command: Command) void {
         self.commands.put(command.name, command) catch |err| {
             std.debug.print("Failed to register command: {s}, error: {any}\n", .{ command.name, err });
+            return;
         };
     }
 
@@ -54,12 +58,21 @@ pub const CommandRegistry = struct {
             try command.execute(cmd_args);
         } else {
             std.debug.print("Unknown command: {s}\n", .{name});
-            try self.executeCommand("help", &[_][]const u8{});
+            // For help command, call it directly to avoid infinite recursion
+            try executeHelpWithRegistry(self, &[_][]const u8{});
             return error.UnknownCommand;
         }
     }
 
     pub fn listCommands(self: *CommandRegistry) !void {
+        // Check if the registry has any commands before iterating
+        const count = self.commands.count();
+        
+        if (count == 0) {
+            std.debug.print("No commands registered.\n", .{});
+            return;
+        }
+
         var it = self.commands.iterator();
         while (it.next()) |entry| {
             const cmd = entry.value_ptr.*;
@@ -68,14 +81,8 @@ pub const CommandRegistry = struct {
     }
 };
 
-/// Help command implementation with registry access
-fn executeHelp(cmd_args: []const []const u8) !void {
-    // Store registry reference in thread-local storage for access
-    const registry = registry_ref orelse {
-        std.debug.print("Error: Command registry not initialized\n", .{});
-        return;
-    };
-
+/// Help command implementation with direct registry access
+fn executeHelpWithRegistry(registry: *CommandRegistry, cmd_args: []const []const u8) !void {
     std.debug.print("Abyssbook Node Management CLI\n\n", .{});
     std.debug.print("Usage: abyssbook <command> [options]\n\n", .{});
     std.debug.print("Available commands:\n", .{});
@@ -93,7 +100,21 @@ fn executeHelp(cmd_args: []const []const u8) !void {
     }
 
     // List all commands with descriptions using the registry
-    try registry.listCommands();
+    registry.listCommands() catch |err| {
+        std.debug.print("Error listing commands: {any}\n", .{err});
+        std.debug.print("Command registry may be corrupted.\n", .{});
+    };
+}
+
+/// Help command implementation with registry access (legacy for registered commands)
+fn executeHelp(cmd_args: []const []const u8) !void {
+    // Store registry reference in thread-local storage for access
+    const registry = registry_ref orelse {
+        std.debug.print("Error: Command registry not initialized\n", .{});
+        return;
+    };
+
+    return executeHelpWithRegistry(registry, cmd_args);
 }
 
 /// TUI command implementation
