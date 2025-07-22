@@ -310,6 +310,10 @@ fn benchICEPattern(book: *orderbook.ShardedOrderbook, config: BenchmarkConfig) !
     try book.placeIcebergOrder(.Buy, price, total_amount, display_amount, id);
 }
 
+pub fn main() !void {
+    try runBenchmarks();
+}
+
 pub fn runBenchmarks() !void {
     const config = BenchmarkConfig{};
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
