@@ -270,7 +270,7 @@ pub const InputSanitizer = struct {
                 '\n' => try escaped.appendSlice("\\n"),
                 '\r' => try escaped.appendSlice("\\r"),
                 '\t' => try escaped.appendSlice("\\t"),
-                0...31, 127...255 => {
+                0...8, 11...12, 14...31, 127...255 => {
                     try escaped.writer().print("\\x{X:0>2}", .{char});
                 },
                 else => try escaped.append(char),
