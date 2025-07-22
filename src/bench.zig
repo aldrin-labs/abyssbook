@@ -24,7 +24,7 @@ const BenchmarkConfig = struct {
 };
 
 // Global order ID counter to ensure uniqueness across all benchmarks
-var global_order_id: std.atomic.Atomic(u64) = std.atomic.Atomic(u64).init(1);
+var global_order_id: std.atomic.Value(u64) = std.atomic.Value(u64).init(1);
 
 fn runBenchmark(
     comptime operation: []const u8,
@@ -69,7 +69,7 @@ fn runBenchmark(
 fn generateRandomOrder(rng: std.rand.Random, config: BenchmarkConfig, side: orderbook.OrderSide) orderbook.CacheAlignedOrder {
     const price = rng.uintAtMost(u64, config.price_range - 1) + 1;
     const amount = rng.uintAtMost(u64, config.amount_range - 1) + 1;
-    const id = global_order_id.fetchAdd(1, .Monotonic); // Ensure unique IDs
+    const id = global_order_id.fetchAdd(1, .seq_cst); // Ensure unique IDs
 
     return orderbook.CacheAlignedOrder.init(
         price,
@@ -101,7 +101,7 @@ fn benchBurstOrders(book: *orderbook.ShardedOrderbook, config: BenchmarkConfig) 
     var i: usize = 0;
     while (i < config.burst_size) : (i += 1) {
         const amount = rng.uintAtMost(u64, config.amount_range - 1) + 1;
-        const id = global_order_id.fetchAdd(1, .Monotonic); // Use global counter
+        const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
         const order_data = orderbook.CacheAlignedOrder.init(
             price,
             amount,
@@ -209,7 +209,7 @@ fn benchTWAPOrders(book: *orderbook.ShardedOrderbook, config: BenchmarkConfig) !
     const total_amount = rng.uintAtMost(u64, config.amount_range * 10);
     const num_intervals = 5;
     const interval_seconds = 1;
-    const id = global_order_id.fetchAdd(1, .Monotonic); // Use global counter
+    const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
 
     try book.placeTWAPOrder(.Buy, config.price_range / 2, total_amount, id, num_intervals, interval_seconds);
 }
@@ -221,7 +221,7 @@ fn benchStopOrders(book: *orderbook.ShardedOrderbook, config: BenchmarkConfig) !
     // Place a stop order
     const price = rng.uintAtMost(u64, config.price_range - 1) + 1;
     const amount = rng.uintAtMost(u64, config.amount_range - 1) + 1;
-    const id = global_order_id.fetchAdd(1, .Monotonic); // Use global counter
+    const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
     const stop_price = price + rng.uintAtMost(u64, 100);
 
     try book.placeStopOrder(.Buy, price, amount, id, stop_price);
@@ -234,7 +234,7 @@ fn benchTrailingStopOrders(book: *orderbook.ShardedOrderbook, config: BenchmarkC
     // Place a trailing stop order
     const price = rng.uintAtMost(u64, config.price_range - 1) + 1;
     const amount = rng.uintAtMost(u64, config.amount_range - 1) + 1;
-    const id = global_order_id.fetchAdd(1, .Monotonic); // Use global counter
+    const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
     const distance = rng.uintAtMost(u64, 50);
 
     try book.placeTrailingStopOrder(.Buy, price, amount, id, distance);
@@ -246,7 +246,7 @@ fn benchPegOrders(book: *orderbook.ShardedOrderbook, config: BenchmarkConfig) !v
 
     // Place a peg order
     const amount = rng.uintAtMost(u64, config.amount_range - 1) + 1;
-    const id = global_order_id.fetchAdd(1, .Monotonic); // Use global counter
+    const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
     const offset: i64 = @intCast(rng.uintAtMost(u64, 10));
 
     try book.placePegOrder(.Buy, amount, .BestBid, offset, null, id);
@@ -265,7 +265,7 @@ fn benchHFTBurstPattern(book: *orderbook.ShardedOrderbook, config: BenchmarkConf
     while (i < config.burst_size) : (i += 1) {
         const price = base_price + rng.uintAtMost(u64, 5); // Tight spread
         const amount = rng.uintAtMost(u64, config.amount_range - 1) + 1;
-        const id = global_order_id.fetchAdd(1, .Monotonic); // Use global counter
+        const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
         const order_data = orderbook.CacheAlignedOrder.init(
             price,
             amount,
@@ -291,7 +291,7 @@ fn benchHFTSpreadPattern(book: *orderbook.ShardedOrderbook, config: BenchmarkCon
     while (i < 10) : (i += 1) {
         const price = base_price + i;
         const amount = rng.uintAtMost(u64, config.amount_range - 1) + 1;
-        const id = global_order_id.fetchAdd(1, .Monotonic); // Use global counter
+        const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
         try book.placeOrder(.Buy, price, amount, id);
     }
 
@@ -308,7 +308,7 @@ fn benchICEPattern(book: *orderbook.ShardedOrderbook, config: BenchmarkConfig) !
     const price = rng.uintAtMost(u64, config.price_range - 1) + 1;
     const total_amount = rng.uintAtMost(u64, config.amount_range * 10);
     const display_amount = total_amount / 10;
-    const id = global_order_id.fetchAdd(1, .Monotonic); // Use global counter
+    const id = global_order_id.fetchAdd(1, .seq_cst); // Use global counter
 
     try book.placeIcebergOrder(.Buy, price, total_amount, display_amount, id);
 }
@@ -328,7 +328,7 @@ pub fn runBenchmarks() !void {
     defer book.deinit();
 
     // Reset global order ID counter for consistent benchmarking
-    global_order_id.store(1, .Monotonic);
+    global_order_id.store(1, .seq_cst);
 
     // Run benchmarks
     const benchmarks = comptime [_]struct {
