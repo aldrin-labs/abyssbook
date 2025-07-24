@@ -23,10 +23,12 @@ test "CLI security - malformed arguments" {
 
     // Test with very long arguments (potential buffer overflow) - reduced size for CI
     {
-        const buffer_size = if (std.process.getEnvVarOwned(std.heap.page_allocator, "CI") catch null != null) 256 else 1024;
-        var long_arg_buffer: [256]u8 = undefined; // Use stack allocation for CI
+        const is_ci = std.process.getEnvVarOwned(std.heap.page_allocator, "CI") catch null != null;
+        const buffer_size: usize = if (is_ci) 256 else 1024;
+        var long_arg_buffer = try std.heap.page_allocator.alloc(u8, buffer_size);
+        defer std.heap.page_allocator.free(long_arg_buffer);
+        @memset(long_arg_buffer, 'A');
         const long_arg = long_arg_buffer[0..buffer_size];
-        @memset(long_arg, 'A');
         const args = &[_][]const u8{ "abyssbook", long_arg };
 
         cli.execute(&registry, args) catch |err| {
@@ -40,7 +42,7 @@ test "CLI security - malformed arguments" {
     {
         const args = &[_][]const u8{ "abyssbook", "test\x00injection" };
         cli.execute(&registry, args) catch |err| {
-            try testing.expect(err == error.UnknownCommand);
+            try testing.expect(err == error.SecurityViolation);
         };
     }
 }
@@ -64,7 +66,8 @@ test "CLI security - command injection attempts" {
         const args = &[_][]const u8{ "abyssbook", injection };
         cli.execute(&registry, args) catch |err| {
             // All should fail safely without executing injection
-            try testing.expect(err == error.UnknownCommand);
+            // Some may be blocked by security filter, others may be unknown commands
+            try testing.expect(err == error.UnknownCommand or err == error.SecurityViolation);
         };
     }
 }
@@ -88,7 +91,8 @@ test "CLI security - special characters handling" {
     for (special_chars) |special| {
         const args = &[_][]const u8{ "abyssbook", special };
         cli.execute(&registry, args) catch |err| {
-            try testing.expect(err == error.UnknownCommand);
+            // Special chars may be blocked by security filter or be unknown commands
+            try testing.expect(err == error.UnknownCommand or err == error.SecurityViolation);
         };
     }
 }
@@ -106,7 +110,7 @@ test "CLI security - memory boundary tests" {
 
     cli.execute(&registry, &args_array) catch |err| {
         // Should handle gracefully
-        try testing.expect(err == error.UnknownCommand);
+        try testing.expect(err == error.UnknownCommand or err == error.SecurityViolation);
     };
 }
 
@@ -126,7 +130,8 @@ test "CLI security - unicode and encoding tests" {
     for (unicode_tests) |unicode| {
         const args = &[_][]const u8{ "abyssbook", unicode };
         cli.execute(&registry, args) catch |err| {
-            try testing.expect(err == error.UnknownCommand);
+            // Unicode may be blocked by security filter or be unknown commands
+            try testing.expect(err == error.UnknownCommand or err == error.SecurityViolation);
         };
     }
 }

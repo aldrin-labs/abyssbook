@@ -63,7 +63,7 @@ fn setLogLevel(level: []const u8) !void {
     if (log_level) |new_level| {
         logging.setGlobalLogLevel(new_level);
         logging.infoGlobalWithContext("cli.debug", "Log level changed", .{
-            .old_level = if (logging.getGlobalLogger()) |logger| logger.getLevel().toString() else "unknown",
+            .old_level = "unknown", // We can't get the old level easily
             .new_level = new_level.toString(),
         });
         std.debug.print("Setting log level to: {s}\n", .{level});

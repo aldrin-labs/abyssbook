@@ -361,6 +361,11 @@ pub const InputSanitizer = struct {
             }
         }
 
+        // Check if command is empty
+        if (command.len == 0) {
+            return .BLOCKED;
+        }
+
         // Commands should start with a letter
         if (!std.ascii.isAlphabetic(command[0])) {
             return .BLOCKED;
@@ -634,6 +639,7 @@ pub const InputSanitizer = struct {
 
     /// Calculate Shannon entropy for input analysis
     fn calculateEntropy(self: *Self, input: []const u8) f64 {
+        _ = self;
         if (input.len == 0) return 0.0;
 
         var char_freq: [256]f64 = [_]f64{0.0} ** 256;

@@ -125,7 +125,7 @@ pub const Logger = struct {
         // Simple JSON-like formatting
         var buffer: [1024]u8 = undefined;
         const formatted = if (context) |_|
-            std.fmt.bufPrint(&buffer, "{{\"timestamp\":\"{s}\",\"level\":\"{s}\",\"module\":\"{s}\",\"message\":\"{s}\",\"context\":{{}}}\n", .{ timestamp, level.toString(), module, message })
+            std.fmt.bufPrint(&buffer, "{{\"timestamp\":\"{s}\",\"level\":\"{s}\",\"module\":\"{s}\",\"message\":\"{s}\",\"context\":{{}}}}\n", .{ timestamp, level.toString(), module, message })
         else
             std.fmt.bufPrint(&buffer, "{{\"timestamp\":\"{s}\",\"level\":\"{s}\",\"module\":\"{s}\",\"message\":\"{s}\"}}\n", .{ timestamp, level.toString(), module, message });
 
@@ -222,6 +222,7 @@ pub fn logGlobal(level: LogLevel, module: []const u8, message: []const u8) void 
 }
 
 pub fn logGlobalWithContext(level: LogLevel, module: []const u8, message: []const u8, context: anytype) void {
+    _ = context;
     global_logger_mutex.lock();
     defer global_logger_mutex.unlock();
     
@@ -238,6 +239,10 @@ pub fn debugGlobal(module: []const u8, message: []const u8) void {
     logGlobal(.DEBUG, module, message);
 }
 
+pub fn debugGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
+    logGlobalWithContext(.DEBUG, module, message, context);
+}
+
 pub fn infoGlobal(module: []const u8, message: []const u8) void {
     logGlobal(.INFO, module, message);
 }
@@ -250,10 +255,37 @@ pub fn warnGlobal(module: []const u8, message: []const u8) void {
     logGlobal(.WARN, module, message);
 }
 
+pub fn warnGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
+    logGlobalWithContext(.WARN, module, message, context);
+}
+
 pub fn errorGlobal(module: []const u8, message: []const u8) void {
     logGlobal(.ERROR, module, message);
 }
 
+pub fn errorGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
+    logGlobalWithContext(.ERROR, module, message, context);
+}
+
 pub fn criticalGlobal(module: []const u8, message: []const u8) void {
     logGlobal(.CRITICAL, module, message);
+}
+
+pub fn setGlobalLogLevel(new_level: LogLevel) void {
+    global_logger_mutex.lock();
+    defer global_logger_mutex.unlock();
+    
+    if (global_logger) |*logger| {
+        logger.level = new_level;
+    }
+}
+
+pub fn getGlobalLogger() ?*Logger {
+    global_logger_mutex.lock();
+    defer global_logger_mutex.unlock();
+    
+    if (global_logger) |*logger| {
+        return logger;
+    }
+    return null;
 }
