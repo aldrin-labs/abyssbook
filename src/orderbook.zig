@@ -1140,7 +1140,13 @@ pub const ShardedOrderbook = struct {
                     order_entry.order.price >= price;
 
                 if (should_match) {
-                    const matched = @min(remaining_amount, order_entry.order.amount);
+                    // For iceberg orders, limit matching to the display amount
+                    const available_amount = if (order_entry.order.flags.is_iceberg)
+                        @min(order_entry.order.amount, order_entry.order.display_amount.?)
+                    else
+                        order_entry.order.amount;
+                    
+                    const matched = @min(remaining_amount, available_amount);
                     if (matched > 0) {
                         try self.updateMatchedOrder(order_entry, matched, current_best_price.?, shard_index);
                         executed_amount += matched;
@@ -1171,25 +1177,43 @@ pub const ShardedOrderbook = struct {
         else
             &self.ask_levels[shard_index];
 
-        if (matched_amount == order_entry.order.amount) {
+        // For iceberg orders, check if the display amount is fully matched
+        const is_fully_matched = if (order_entry.order.flags.is_iceberg)
+            matched_amount == @min(order_entry.order.amount, order_entry.order.display_amount.?)
+        else
+            matched_amount == order_entry.order.amount;
+            
+        if (is_fully_matched) {
             try self.updatePriceLevel(levels, execution_price, -@as(i64, @intCast(matched_amount)), -1);
 
-            // Clean up order memory before removing
-            var order_to_remove = order_entry.order;
-            order_to_remove.deinit(self.allocator);
-            _ = self.shards[shard_index].swapRemove(order_entry.key);
-
+            // Handle iceberg replenishment BEFORE removing the order
             if (order_entry.order.flags.is_iceberg) {
-                if (self.shards[shard_index].getPtr(order_entry.key)) |original_order| {
-                    const remaining_total = original_order.amount - matched_amount;
-                    if (remaining_total > 0) {
-                        var updated_order = original_order.*;
-                        updated_order.amount = remaining_total;
-                        updated_order.display_amount = @min(remaining_total, order_entry.order.display_amount.?);
-                        try self.shards[shard_index].put(order_entry.key, updated_order);
-                        try self.updatePriceLevel(levels, execution_price, @as(i64, @intCast(updated_order.display_amount.?)), 1);
-                    }
+                // For iceberg orders, matched_amount represents the display amount that was matched
+                // The order.amount contains the total remaining amount (including hidden reserves)
+                const remaining_total = order_entry.order.amount - matched_amount;
+                
+                if (remaining_total > 0) {
+                    // Replenish the iceberg with a new display portion
+                    var replenished_order = order_entry.order;
+                    replenished_order.amount = remaining_total;
+                    const new_display_amount = @min(remaining_total, order_entry.order.display_amount.?);
+                    replenished_order.display_amount = new_display_amount;
+                    
+                    // Replace the order in the shard (no need to remove first)
+                    try self.shards[shard_index].put(order_entry.key, replenished_order);
+                    // Add the new display amount back to the price level
+                    try self.updatePriceLevel(levels, execution_price, @as(i64, @intCast(new_display_amount)), 1);
+                } else {
+                    // No remaining amount, remove the order completely
+                    var order_to_remove = order_entry.order;
+                    order_to_remove.deinit(self.allocator);
+                    _ = self.shards[shard_index].swapRemove(order_entry.key);
                 }
+            } else {
+                // Regular order - remove it completely
+                var order_to_remove = order_entry.order;
+                order_to_remove.deinit(self.allocator);
+                _ = self.shards[shard_index].swapRemove(order_entry.key);
             }
         } else {
             try self.updatePriceLevel(levels, execution_price, -@as(i64, @intCast(matched_amount)), 0);
