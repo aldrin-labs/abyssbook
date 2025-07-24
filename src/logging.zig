@@ -280,6 +280,27 @@ pub fn setGlobalLogLevel(new_level: LogLevel) void {
     }
 }
 
+pub fn initGlobalLogger(allocator: std.mem.Allocator, level: LogLevel) !void {
+    global_logger_mutex.lock();
+    defer global_logger_mutex.unlock();
+    
+    if (global_logger != null) {
+        return; // Already initialized
+    }
+    
+    global_logger = try Logger.init(allocator, level);
+}
+
+pub fn deinitGlobalLogger() void {
+    global_logger_mutex.lock();
+    defer global_logger_mutex.unlock();
+    
+    if (global_logger) |*logger| {
+        logger.deinit();
+        global_logger = null;
+    }
+}
+
 pub fn getGlobalLogger() ?*Logger {
     global_logger_mutex.lock();
     defer global_logger_mutex.unlock();

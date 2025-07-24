@@ -6,6 +6,8 @@ pub const InputSanitizer = struct {
     allocator: std.mem.Allocator,
     max_input_length: usize,
     strict_mode: bool,
+    dev_mode: bool,
+    unicode_normalizer: ?UnicodeNormalizer,
 
     const Self = @This();
 
@@ -17,6 +19,105 @@ pub const InputSanitizer = struct {
         filter_sql_injection: bool = true,
         filter_path_traversal: bool = true,
         filter_script_injection: bool = true,
+        dev_mode: bool = false,
+        unicode_normalization: UnicodeNormalizationMode = .NFC,
+    };
+
+    pub const UnicodeNormalizationMode = enum {
+        NONE,
+        NFC,   // Canonical Decomposition followed by Canonical Composition
+        NFD,   // Canonical Decomposition
+        NFKC,  // Compatibility Decomposition followed by Canonical Composition
+        NFKD,  // Compatibility Decomposition
+    };
+
+    /// Unicode normalizer for consistent character handling
+    const UnicodeNormalizer = struct {
+        mode: UnicodeNormalizationMode,
+        allocator: std.mem.Allocator,
+
+        pub fn init(allocator: std.mem.Allocator, mode: UnicodeNormalizationMode) UnicodeNormalizer {
+            return UnicodeNormalizer{
+                .mode = mode,
+                .allocator = allocator,
+            };
+        }
+
+        /// Normalize Unicode input based on specified mode
+        pub fn normalize(self: *const UnicodeNormalizer, input: []const u8) ![]u8 {
+            if (self.mode == .NONE) {
+                return try self.allocator.dupe(u8, input);
+            }
+
+            // Basic Unicode normalization (simplified for demo)
+            var normalized = std.ArrayList(u8).init(self.allocator);
+            defer normalized.deinit();
+
+            var i: usize = 0;
+            while (i < input.len) {
+                const byte = input[i];
+                
+                // Handle basic ASCII - no normalization needed
+                if (byte < 128) {
+                    try normalized.append(byte);
+                    i += 1;
+                    continue;
+                }
+
+                // Handle multi-byte UTF-8 sequences
+                const utf8_len = std.unicode.utf8ByteSequenceLength(byte) catch {
+                    // Invalid UTF-8, skip byte
+                    i += 1;
+                    continue;
+                };
+
+                if (i + utf8_len > input.len) break;
+
+                const codepoint = std.unicode.utf8Decode(input[i..i + utf8_len]) catch {
+                    // Invalid UTF-8 sequence, skip
+                    i += utf8_len;
+                    continue;
+                };
+
+                // Apply normalization rules based on mode
+                const normalized_codepoint = self.normalizeCodepoint(codepoint);
+                
+                // Convert back to UTF-8
+                var utf8_bytes: [4]u8 = undefined;
+                const written = std.unicode.utf8Encode(normalized_codepoint, &utf8_bytes) catch {
+                    // Skip if can't encode
+                    i += utf8_len;
+                    continue;
+                };
+                
+                try normalized.appendSlice(utf8_bytes[0..written]);
+                i += utf8_len;
+            }
+
+            return normalized.toOwnedSlice();
+        }
+
+        /// Apply normalization rules to individual codepoints
+        fn normalizeCodepoint(self: *const UnicodeNormalizer, codepoint: u21) u21 {
+            return switch (self.mode) {
+                .NONE => codepoint,
+                .NFC, .NFKC => switch (codepoint) {
+                    // Normalize common diacritical variants (simplified)
+                    0x00E0...0x00E6 => 'a', // à-æ -> a
+                    0x00E8...0x00EB => 'e', // è-ë -> e
+                    0x00EC...0x00EF => 'i', // ì-ï -> i
+                    0x00F2...0x00F6 => 'o', // ò-ö -> o
+                    0x00F9...0x00FC => 'u', // ù-ü -> u
+                    0x00C0...0x00C6 => 'A', // À-Æ -> A
+                    0x00C8...0x00CB => 'E', // È-Ë -> E
+                    0x00CC...0x00CF => 'I', // Ì-Ï -> I
+                    0x00D2...0x00D6 => 'O', // Ò-Ö -> O
+                    0x00D9...0x00DC => 'U', // Ù-Ü -> U
+                    else => codepoint,
+                },
+                .NFD, .NFKD => codepoint, // Simplified - no decomposition
+            };
+        }
     };
 
     pub const SanitizationResult = struct {
@@ -217,10 +318,17 @@ pub const InputSanitizer = struct {
     };
 
     pub fn init(allocator: std.mem.Allocator, config: SanitizationConfig) Self {
+        const unicode_normalizer = if (config.unicode_normalization != .NONE)
+            UnicodeNormalizer.init(allocator, config.unicode_normalization)
+        else
+            null;
+            
         return Self{
             .allocator = allocator,
             .max_input_length = config.max_length,
             .strict_mode = config.strict_commands,
+            .dev_mode = config.dev_mode,
+            .unicode_normalizer = unicode_normalizer,
         };
     }
 
@@ -233,24 +341,40 @@ pub const InputSanitizer = struct {
             .security_level = .SAFE,
         };
 
-        // Stage 1: Length validation
-        if (input.len > config.max_length) {
-            try result.blocked_patterns.append(try std.fmt.allocPrint(self.allocator, "Input too long: {d} > {d}", .{ input.len, config.max_length }));
+        // Stage 0: Dev mode bypass for testing
+        if (self.dev_mode and config.dev_mode) {
+            try result.warnings.append(try self.allocator.dupe(u8, "Dev mode: Relaxed security filtering"));
+            result.cleaned_input = try self.allocator.dupe(u8, input);
+            return result;
+        }
+
+        // Stage 1: Unicode normalization (if enabled)
+        var normalized_input: []u8 = undefined;
+        if (self.unicode_normalizer) |normalizer| {
+            normalized_input = try normalizer.normalize(input);
+        } else {
+            normalized_input = try self.allocator.dupe(u8, input);
+        }
+        defer if (self.unicode_normalizer != null) self.allocator.free(normalized_input);
+
+        // Stage 2: Length validation
+        if (normalized_input.len > config.max_length) {
+            try result.blocked_patterns.append(try std.fmt.allocPrint(self.allocator, "Input too long: {d} > {d}", .{ normalized_input.len, config.max_length }));
             result.security_level = .BLOCKED;
             result.cleaned_input = try self.allocator.dupe(u8, "");
             return result;
         }
 
-        // Stage 2: Null byte and control character detection
-        if (std.mem.indexOf(u8, input, "\x00")) |_| {
+        // Stage 3: Null byte and control character detection
+        if (std.mem.indexOf(u8, normalized_input, "\x00")) |_| {
             try result.blocked_patterns.append(try self.allocator.dupe(u8, "Null byte detected"));
             result.security_level = .BLOCKED;
             result.cleaned_input = try self.allocator.dupe(u8, "");
             return result;
         }
 
-        // Stage 3: Advanced pattern matching with ML-inspired heuristics
-        const pattern_result = try self.detectAdvancedPatterns(input, &result);
+        // Stage 4: Advanced pattern matching with ML-inspired heuristics
+        const pattern_result = try self.detectAdvancedPatterns(normalized_input, &result);
         if (pattern_result == .BLOCKED) {
             result.security_level = .BLOCKED;
             result.cleaned_input = try self.allocator.dupe(u8, "");
@@ -660,5 +784,52 @@ pub const InputSanitizer = struct {
         }
 
         return entropy;
+    }
+
+    /// Benchmark sanitizer performance with various input patterns
+    pub fn benchmark(self: *Self, allocator: std.mem.Allocator) !void {
+        const test_inputs = [_][]const u8{
+            "simple_command",
+            "command_with_args --flag value",
+            "unicode_测试_🚀_command",
+            "; rm -rf / || echo 'malicious'",
+            "SELECT * FROM users WHERE id='1' OR '1'='1'",
+            "../../../../etc/passwd",
+            "normal" ** 100, // Long input
+        };
+
+        const config = SanitizationConfig{
+            .dev_mode = false,
+            .unicode_normalization = .NFC,
+        };
+
+        var total_time: u64 = 0;
+        const iterations = 1000;
+
+        std.debug.print("=== InputSanitizer Benchmark ===\n");
+        
+        for (test_inputs) |input| {
+            const start_time = std.time.nanoTimestamp();
+            
+            for (0..iterations) |_| {
+                var result = try self.sanitize(input, config);
+                result.deinit(allocator);
+            }
+            
+            const end_time = std.time.nanoTimestamp();
+            const elapsed = @as(u64, @intCast(end_time - start_time));
+            total_time += elapsed;
+            
+            const avg_ns = elapsed / iterations;
+            const throughput = @as(f64, @floatFromInt(iterations * input.len * 1_000_000_000)) / @as(f64, @floatFromInt(elapsed));
+            
+            std.debug.print("Input: '{s}' ({d} chars)\n", .{ input[0..@min(input.len, 30)], input.len });
+            std.debug.print("  Average: {d}ns per operation\n", .{avg_ns});
+            std.debug.print("  Throughput: {d:.2} chars/sec\n\n", .{throughput});
+        }
+        
+        const overall_avg = total_time / (iterations * test_inputs.len);
+        std.debug.print("Overall average: {d}ns per sanitization\n", .{overall_avg});
+        std.debug.print("Benchmark completed successfully.\n");
     }
 };
