@@ -132,7 +132,6 @@ pub fn cancelOrder(self: *core.ShardedOrderbook, id: u64) types.OrderError!void 
         self.best_ask_cache = null;
     }
 }
-}
 
 pub fn checkStopOrders(self: *core.ShardedOrderbook, price: u64) types.OrderError!void {
     // Check all shards for stop orders that should be triggered

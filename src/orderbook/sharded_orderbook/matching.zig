@@ -438,353 +438,353 @@ const MatchCandidate = struct {
 
 // LEGACY IMPLEMENTATION - Kept for reference and gradual migration
 // TODO: Remove after full migration to modular architecture
-/*
-fn matchOrderOptimized(self: *core.ShardedOrderbook, side: types.OrderSide, price: u64, amount: u64) !types.MatchResult {
-    var monitor = perf.MatchingMonitor.init();
-    defer monitor.deinit();
-
-    var remaining_amount: u64 = amount;
-    var total_filled: u64 = 0;
-    var last_price: u64 = 0;
-
-    // Initialize SIMD-optimized batch processing
-    var level_batch = PriceLevelBatch.init();
-    var price_cache: [PRICE_LEVEL_CACHE_SIZE]u64 align(CACHE_LINE_SIZE) = undefined;
-    var cache_size: usize = 0;
-
-    // Process each shard with SIMD operations
-    for (0..self.shard_count) |shard_index| {
-        const levels = if (side == .Buy)
-            &self.ask_levels[shard_index]
-        else
-            &self.bid_levels[shard_index];
-
-        var it = levels.iterator();
-        while (it.next()) |entry| {
-            const should_match = if (side == .Buy)
-                entry.key_ptr.* <= price
-            else
-                entry.key_ptr.* >= price;
-
-            if (!should_match) continue;
-
-            // Prefetch next entries
-            if (cache_size < PRICE_LEVEL_CACHE_SIZE) {
-                @prefetch(entry.value_ptr, .{ .locality = 3, .cache_type = .data });
-                price_cache[cache_size] = entry.key_ptr.*;
-                cache_size += 1;
-            }
-
-            // Add to SIMD batch
-            if (level_batch.count < MAX_ORDERS_PER_BATCH) {
-                level_batch.prices[level_batch.count] = entry.key_ptr.*;
-                level_batch.volumes[level_batch.count] = entry.value_ptr.total_volume;
-                level_batch.shard_indices[level_batch.count] = shard_index;
-                level_batch.count += 1;
-
-                // Process batch when full
-                if (level_batch.count == MAX_ORDERS_PER_BATCH) {
-                    try processLevelBatchSIMD(self, &level_batch, &remaining_amount, &total_filled, &last_price, side, &monitor);
-                    level_batch.count = 0;
-                }
-            }
-        }
-    }
-
-    // Process remaining levels
-    if (level_batch.count > 0) {
-        try processLevelBatchSIMD(self, &level_batch, &remaining_amount, &total_filled, &last_price, side, &monitor);
-    }
-
-    return types.MatchResult{
-        .filled_amount = total_filled,
-        .remaining_amount = remaining_amount,
-        .last_price = if (total_filled > 0) last_price else 0,
-    };
-}
-
-// SIMD-optimized price level batch processing
-fn processLevelBatchSIMD(
-    self: *core.ShardedOrderbook,
-    batch: *PriceLevelBatch,
-    remaining_amount: *u64,
-    total_filled: *u64,
-    last_price: *u64,
-    side: types.OrderSide,
-    monitor: *perf.MatchingMonitor,
-) !void {
-    const vector_size = VECTOR_WIDTH;
-    var i: usize = 0;
-
-    // Process in SIMD vectors
-    while (i + vector_size <= batch.count) : (i += vector_size) {
-        var matched_amounts: [vector_size]u64 align(32) = undefined;
-
-        // SIMD comparison and volume calculation
-        inline for (0..vector_size) |j| {
-            const should_match = if (side == .Buy)
-                batch.prices[i + j] <= remaining_amount.*
-            else
-                batch.prices[i + j] >= remaining_amount.*;
-
-            matched_amounts[j] = if (should_match)
-                @min(remaining_amount.*, batch.volumes[i + j])
-            else
-                0;
-        }
-
-        // Update volumes and counts
-        inline for (0..vector_size) |j| {
-            if (matched_amounts[j] > 0) {
-                const shard_index = batch.shard_indices[i + j];
-                const levels = if (side == .Buy)
-                    &self.ask_levels[shard_index]
-                else
-                    &self.bid_levels[shard_index];
-
-                try price_level.updatePriceLevel(levels, batch.prices[i + j], -@as(i64, @intCast(matched_amounts[j])), 0);
-                remaining_amount.* -= matched_amounts[j];
-                total_filled.* += matched_amounts[j];
-                last_price.* = batch.prices[i + j];
-            }
-        }
-        monitor.simd_metrics.vector_operations += 1;
-    }
-
-    // Handle remaining entries
-    while (i < batch.count) : (i += 1) {
-        const should_match = if (side == .Buy)
-            batch.prices[i] <= remaining_amount.*
-        else
-            batch.prices[i] >= remaining_amount.*;
-
-        if (should_match) {
-            const matched_amount = @min(remaining_amount.*, batch.volumes[i]);
-            if (matched_amount > 0) {
-                const shard_index = batch.shard_indices[i];
-                const levels = if (side == .Buy)
-                    &self.ask_levels[shard_index]
-                else
-                    &self.bid_levels[shard_index];
-
-                try price_level.updatePriceLevel(levels, batch.prices[i], -@as(i64, @intCast(matched_amount)), 0);
-                remaining_amount.* -= matched_amount;
-                total_filled.* += matched_amount;
-                last_price.* = batch.prices[i];
-            }
-        }
-        monitor.simd_metrics.scalar_operations += 1;
-    }
-}
-
-fn processFilledOrder(
-    self: *core.ShardedOrderbook,
-    order_data: *order.CacheAlignedOrder,
-    levels: *maps.PriceLevelMap,
-    price: u64,
-) types.OrderError!void {
-    try price_level.updatePriceLevel(levels, price, 0, -1);
-    _ = self.shards[self.priceToShard(price)].swapRemove(.{ .price = price, .id = order_data.id });
-
-    if (order_data.flags.is_oso and !order_data.oso_params.?.is_child_placed) {
-        order_data.oso_params.?.is_child_placed = true;
-        self.placeOrder(order_data.oso_params.?.child_order) catch |err| {
-            order_data.oso_params.?.is_child_placed = false;
-            return err;
-        };
-    }
-
-    if (order_data.flags.is_oco and !order_data.oco_params.?.is_cancelled) {
-        order_data.oco_params.?.is_cancelled = true;
-        self.cancelOrder(order_data.oco_params.?.linked_order.id) catch |err| {
-            order_data.oco_params.?.is_cancelled = false;
-            return err;
-        };
-    }
-}
-
-pub fn matchDiscretionaryOrder(self: *core.ShardedOrderbook, order_data: *const order.CacheAlignedOrder) !types.MatchResult {
-    const discretionary_params = order_data.discretionary_params.?;
-
-    // Try to match at base price first
-    const result = try matchOrder(self, order_data.side, order_data.price, order_data.amount);
-    if (result.remaining_amount == 0) return result;
-
-    // If base price didn't fully match, try discretionary price
-    const discretionary_result = try matchOrder(
-        self,
-        order_data.side,
-        discretionary_params.discretionary_price,
-        result.remaining_amount,
-    );
-
-    return .{
-        .filled_amount = result.filled_amount + discretionary_result.filled_amount,
-        .remaining_amount = discretionary_result.remaining_amount,
-        .execution_price = discretionary_result.execution_price,
-    };
-}
-
-pub fn matchPegOrder(self: *core.ShardedOrderbook, order_data: *const order.CacheAlignedOrder) !types.MatchResult {
-    const peg_params = order_data.peg_params.?;
-
-    // Calculate current peg price
-    const base_price = switch (peg_params.peg_type) {
-        .BestBid => self.getBestBid() orelse return error.NoBestBid,
-        .BestAsk => self.getBestAsk() orelse return error.NoBestAsk,
-        .Midpoint => blk: {
-            const bid = self.getBestBid() orelse return error.NoBestBid;
-            const ask = self.getBestAsk() orelse return error.NoBestAsk;
-            break :blk (bid + ask) / 2;
-        },
-        .LastTrade => return error.LastTradeNotImplemented,
-    };
-
-    // Apply offset
-    const adjusted_price = if (peg_params.offset >= 0)
-        base_price + @as(u64, @intCast(peg_params.offset))
-    else if (@as(u64, @intCast(-peg_params.offset)) > base_price)
-        0
-    else
-        base_price - @as(u64, @intCast(-peg_params.offset));
-
-    // Check limit price if specified
-    const final_price = if (peg_params.limit_price) |limit|
-        if (order_data.side == .Buy)
-            @min(adjusted_price, limit)
-        else
-            @max(adjusted_price, limit)
-    else
-        adjusted_price;
-
-    return matchOrder(self, order_data.side, final_price, order_data.amount);
-}
-
-pub fn executeTWAPInterval(self: *core.ShardedOrderbook, order_data: *order.CacheAlignedOrder) !bool {
-    const twap_params = order_data.twap_params.?;
-    const current_time = std.time.timestamp();
-    const elapsed_intervals = @divFloor(
-        @as(u64, @intCast(current_time - twap_params.start_time)),
-        twap_params.interval_seconds,
-    );
-
-    if (elapsed_intervals <= twap_params.intervals_executed) return false;
-    if (elapsed_intervals >= twap_params.num_intervals) return true;
-
-    // Execute the current interval
-    const result = try matchOrder(
-        self,
-        order_data.side,
-        order_data.price,
-        twap_params.amount_per_interval,
-    );
-
-    // Update TWAP parameters
-    twap_params.intervals_executed = elapsed_intervals;
-
-    // Check if we need to place a new order for remaining amount
-    if (result.remaining_amount > 0) {
-        var new_order = order_data.*;
-        new_order.amount = result.remaining_amount;
-        try self.placeOrder(new_order);
-    }
-
-    return false;
-}
-
-pub fn executeConditionalOrder(self: *core.ShardedOrderbook, order_data: *const order.CacheAlignedOrder) !types.MatchResult {
-    const cond_params = order_data.conditional_params.?;
-
-    // Check if conditions are met
-    const condition_met = switch (cond_params.condition_type) {
-        .PriceAbove => if (order_data.side == .Buy)
-            self.getBestAsk() orelse std.math.maxInt(u64) <= cond_params.target_value
-        else
-            self.getBestBid() orelse 0 >= cond_params.target_value,
-        .PriceBelow => if (order_data.side == .Buy)
-            self.getBestAsk() orelse std.math.maxInt(u64) >= cond_params.target_value
-        else
-            self.getBestBid() orelse 0 <= cond_params.target_value,
-        .SpreadWidth => if (self.getBestAsk()) |ask| {
-            if (self.getBestBid()) |bid| {
-                ask - bid <= cond_params.target_value;
-            } else false;
-        } else false,
-        .VolumeThreshold => false, // Not implemented yet
-    };
-
-    if (!condition_met) {
-        return types.MatchResult{
-            .filled_amount = 0,
-            .remaining_amount = order_data.amount,
-            .execution_price = order_data.price,
-        };
-    }
-
-    return matchOrder(self, order_data.side, order_data.price, order_data.amount);
-}
-
-pub fn executeTrailingStopOrder(self: *core.ShardedOrderbook, order_data: *order.CacheAlignedOrder) !void {
-    const trailing_params = order_data.trailing_params.?;
-    const current_market_price = if (order_data.side == .Buy)
-        self.getBestAsk() orelse order_data.price
-    else
-        self.getBestBid() orelse order_data.price;
-
-    var should_update = false;
-    var new_stop_price = order_data.stop_price.?;
-
-    if (order_data.side == .Buy) {
-        if (current_market_price < trailing_params.last_trigger_price) {
-            trailing_params.last_trigger_price = current_market_price;
-            new_stop_price = current_market_price + trailing_params.distance;
-            should_update = true;
-        }
-    } else {
-        if (current_market_price > trailing_params.last_trigger_price) {
-            trailing_params.last_trigger_price = current_market_price;
-            new_stop_price = current_market_price - trailing_params.distance;
-            should_update = true;
-        }
-    }
-
-    if (should_update) {
-        // Remove old order
-        const shard_index = self.priceToShard(order_data.price);
-        const key = types.OrderKey{ .price = order_data.price, .id = order_data.id };
-        _ = self.stop_orders[shard_index].remove(key);
-
-        // Create new order with updated stop price
-        var new_order = order.CacheAlignedOrder.init(
-            order_data.price,
-            order_data.amount,
-            order_data.id,
-            order_data.side,
-            .TrailingStop,
-            new_stop_price,
-        );
-        new_order.trailing_params = trailing_params;
-        new_order.flags.is_trailing_stop = true;
-
-        // Add new order
-        try self.stop_orders[shard_index].put(key, new_order);
-    }
-}
-
-pub fn executeIcebergOrder(self: *core.ShardedOrderbook, order_data: *const order.CacheAlignedOrder) !types.MatchResult {
-    const display_amount = order_data.display_amount orelse order_data.amount;
-    const result = try matchOrder(self, order_data.side, order_data.price, display_amount);
-
-    // If the visible portion is fully filled and there's still hidden amount
-    if (result.remaining_amount == 0 and result.filled_amount < order_data.amount) {
-        var new_order = order_data.*;
-        new_order.amount = order_data.amount - result.filled_amount;
-        new_order.display_amount = @min(display_amount, new_order.amount);
-        try self.placeOrder(new_order);
-    }
-
-    return result;
-}
-*/
+//
+// fn matchOrderOptimized(self: *core.ShardedOrderbook, side: types.OrderSide, price: u64, amount: u64) !types.MatchResult {
+//     var monitor = perf.MatchingMonitor.init();
+//     defer monitor.deinit();
+// 
+//     var remaining_amount: u64 = amount;
+//     var total_filled: u64 = 0;
+//     var last_price: u64 = 0;
+// 
+//     // Initialize SIMD-optimized batch processing
+//     var level_batch = PriceLevelBatch.init();
+//     var price_cache: [PRICE_LEVEL_CACHE_SIZE]u64 align(CACHE_LINE_SIZE) = undefined;
+//     var cache_size: usize = 0;
+// 
+//     // Process each shard with SIMD operations
+//     for (0..self.shard_count) |shard_index| {
+//         const levels = if (side == .Buy)
+//             &self.ask_levels[shard_index]
+//         else
+//             &self.bid_levels[shard_index];
+// 
+//         var it = levels.iterator();
+//         while (it.next()) |entry| {
+//             const should_match = if (side == .Buy)
+//                 entry.key_ptr.* <= price
+//             else
+//                 entry.key_ptr.* >= price;
+// 
+//             if (!should_match) continue;
+// 
+//             // Prefetch next entries
+//             if (cache_size < PRICE_LEVEL_CACHE_SIZE) {
+//                 @prefetch(entry.value_ptr, .{ .locality = 3, .cache_type = .data });
+//                 price_cache[cache_size] = entry.key_ptr.*;
+//                 cache_size += 1;
+//             }
+// 
+//             // Add to SIMD batch
+//             if (level_batch.count < MAX_ORDERS_PER_BATCH) {
+//                 level_batch.prices[level_batch.count] = entry.key_ptr.*;
+//                 level_batch.volumes[level_batch.count] = entry.value_ptr.total_volume;
+//                 level_batch.shard_indices[level_batch.count] = shard_index;
+//                 level_batch.count += 1;
+// 
+//                 // Process batch when full
+//                 if (level_batch.count == MAX_ORDERS_PER_BATCH) {
+//                     try processLevelBatchSIMD(self, &level_batch, &remaining_amount, &total_filled, &last_price, side, &monitor);
+//                     level_batch.count = 0;
+//                 }
+//             }
+//         }
+//     }
+// 
+//     // Process remaining levels
+//     if (level_batch.count > 0) {
+//         try processLevelBatchSIMD(self, &level_batch, &remaining_amount, &total_filled, &last_price, side, &monitor);
+//     }
+// 
+//     return types.MatchResult{
+//         .filled_amount = total_filled,
+//         .remaining_amount = remaining_amount,
+//         .last_price = if (total_filled > 0) last_price else 0,
+//     };
+// }
+// 
+// // SIMD-optimized price level batch processing
+// fn processLevelBatchSIMD(
+//     self: *core.ShardedOrderbook,
+//     batch: *PriceLevelBatch,
+//     remaining_amount: *u64,
+//     total_filled: *u64,
+//     last_price: *u64,
+//     side: types.OrderSide,
+//     monitor: *perf.MatchingMonitor,
+// ) !void {
+//     const vector_size = VECTOR_WIDTH;
+//     var i: usize = 0;
+// 
+//     // Process in SIMD vectors
+//     while (i + vector_size <= batch.count) : (i += vector_size) {
+//         var matched_amounts: [vector_size]u64 align(32) = undefined;
+// 
+//         // SIMD comparison and volume calculation
+//         inline for (0..vector_size) |j| {
+//             const should_match = if (side == .Buy)
+//                 batch.prices[i + j] <= remaining_amount.*
+//             else
+//                 batch.prices[i + j] >= remaining_amount.*;
+// 
+//             matched_amounts[j] = if (should_match)
+//                 @min(remaining_amount.*, batch.volumes[i + j])
+//             else
+//                 0;
+//         }
+// 
+//         // Update volumes and counts
+//         inline for (0..vector_size) |j| {
+//             if (matched_amounts[j] > 0) {
+//                 const shard_index = batch.shard_indices[i + j];
+//                 const levels = if (side == .Buy)
+//                     &self.ask_levels[shard_index]
+//                 else
+//                     &self.bid_levels[shard_index];
+// 
+//                 try price_level.updatePriceLevel(levels, batch.prices[i + j], -@as(i64, @intCast(matched_amounts[j])), 0);
+//                 remaining_amount.* -= matched_amounts[j];
+//                 total_filled.* += matched_amounts[j];
+//                 last_price.* = batch.prices[i + j];
+//             }
+//         }
+//         monitor.simd_metrics.vector_operations += 1;
+//     }
+// 
+//     // Handle remaining entries
+//     while (i < batch.count) : (i += 1) {
+//         const should_match = if (side == .Buy)
+//             batch.prices[i] <= remaining_amount.*
+//         else
+//             batch.prices[i] >= remaining_amount.*;
+// 
+//         if (should_match) {
+//             const matched_amount = @min(remaining_amount.*, batch.volumes[i]);
+//             if (matched_amount > 0) {
+//                 const shard_index = batch.shard_indices[i];
+//                 const levels = if (side == .Buy)
+//                     &self.ask_levels[shard_index]
+//                 else
+//                     &self.bid_levels[shard_index];
+// 
+//                 try price_level.updatePriceLevel(levels, batch.prices[i], -@as(i64, @intCast(matched_amount)), 0);
+//                 remaining_amount.* -= matched_amount;
+//                 total_filled.* += matched_amount;
+//                 last_price.* = batch.prices[i];
+//             }
+//         }
+//         monitor.simd_metrics.scalar_operations += 1;
+//     }
+// }
+// 
+// fn processFilledOrder(
+//     self: *core.ShardedOrderbook,
+//     order_data: *order.CacheAlignedOrder,
+//     levels: *maps.PriceLevelMap,
+//     price: u64,
+// ) types.OrderError!void {
+//     try price_level.updatePriceLevel(levels, price, 0, -1);
+//     _ = self.shards[self.priceToShard(price)].swapRemove(.{ .price = price, .id = order_data.id });
+// 
+//     if (order_data.flags.is_oso and !order_data.oso_params.?.is_child_placed) {
+//         order_data.oso_params.?.is_child_placed = true;
+//         self.placeOrder(order_data.oso_params.?.child_order) catch |err| {
+//             order_data.oso_params.?.is_child_placed = false;
+//             return err;
+//         };
+//     }
+// 
+//     if (order_data.flags.is_oco and !order_data.oco_params.?.is_cancelled) {
+//         order_data.oco_params.?.is_cancelled = true;
+//         self.cancelOrder(order_data.oco_params.?.linked_order.id) catch |err| {
+//             order_data.oco_params.?.is_cancelled = false;
+//             return err;
+//         };
+//     }
+// }
+// 
+// pub fn matchDiscretionaryOrder(self: *core.ShardedOrderbook, order_data: *const order.CacheAlignedOrder) !types.MatchResult {
+//     const discretionary_params = order_data.discretionary_params.?;
+// 
+//     // Try to match at base price first
+//     const result = try matchOrder(self, order_data.side, order_data.price, order_data.amount);
+//     if (result.remaining_amount == 0) return result;
+// 
+//     // If base price didn't fully match, try discretionary price
+//     const discretionary_result = try matchOrder(
+//         self,
+//         order_data.side,
+//         discretionary_params.discretionary_price,
+//         result.remaining_amount,
+//     );
+// 
+//     return .{
+//         .filled_amount = result.filled_amount + discretionary_result.filled_amount,
+//         .remaining_amount = discretionary_result.remaining_amount,
+//         .execution_price = discretionary_result.execution_price,
+//     };
+// }
+// 
+// pub fn matchPegOrder(self: *core.ShardedOrderbook, order_data: *const order.CacheAlignedOrder) !types.MatchResult {
+//     const peg_params = order_data.peg_params.?;
+// 
+//     // Calculate current peg price
+//     const base_price = switch (peg_params.peg_type) {
+//         .BestBid => self.getBestBid() orelse return error.NoBestBid,
+//         .BestAsk => self.getBestAsk() orelse return error.NoBestAsk,
+//         .Midpoint => blk: {
+//             const bid = self.getBestBid() orelse return error.NoBestBid;
+//             const ask = self.getBestAsk() orelse return error.NoBestAsk;
+//             break :blk (bid + ask) / 2;
+//         },
+//         .LastTrade => return error.LastTradeNotImplemented,
+//     };
+// 
+//     // Apply offset
+//     const adjusted_price = if (peg_params.offset >= 0)
+//         base_price + @as(u64, @intCast(peg_params.offset))
+//     else if (@as(u64, @intCast(-peg_params.offset)) > base_price)
+//         0
+//     else
+//         base_price - @as(u64, @intCast(-peg_params.offset));
+// 
+//     // Check limit price if specified
+//     const final_price = if (peg_params.limit_price) |limit|
+//         if (order_data.side == .Buy)
+//             @min(adjusted_price, limit)
+//         else
+//             @max(adjusted_price, limit)
+//     else
+//         adjusted_price;
+// 
+//     return matchOrder(self, order_data.side, final_price, order_data.amount);
+// }
+// 
+// pub fn executeTWAPInterval(self: *core.ShardedOrderbook, order_data: *order.CacheAlignedOrder) !bool {
+//     const twap_params = order_data.twap_params.?;
+//     const current_time = std.time.timestamp();
+//     const elapsed_intervals = @divFloor(
+//         @as(u64, @intCast(current_time - twap_params.start_time)),
+//         twap_params.interval_seconds,
+//     );
+// 
+//     if (elapsed_intervals <= twap_params.intervals_executed) return false;
+//     if (elapsed_intervals >= twap_params.num_intervals) return true;
+// 
+//     // Execute the current interval
+//     const result = try matchOrder(
+//         self,
+//         order_data.side,
+//         order_data.price,
+//         twap_params.amount_per_interval,
+//     );
+// 
+//     // Update TWAP parameters
+//     twap_params.intervals_executed = elapsed_intervals;
+// 
+//     // Check if we need to place a new order for remaining amount
+//     if (result.remaining_amount > 0) {
+//         var new_order = order_data.*;
+//         new_order.amount = result.remaining_amount;
+//         try self.placeOrder(new_order);
+//     }
+// 
+//     return false;
+// }
+// 
+// pub fn executeConditionalOrder(self: *core.ShardedOrderbook, order_data: *const order.CacheAlignedOrder) !types.MatchResult {
+//     const cond_params = order_data.conditional_params.?;
+// 
+//     // Check if conditions are met
+//     const condition_met = switch (cond_params.condition_type) {
+//         .PriceAbove => if (order_data.side == .Buy)
+//             self.getBestAsk() orelse std.math.maxInt(u64) <= cond_params.target_value
+//         else
+//             self.getBestBid() orelse 0 >= cond_params.target_value,
+//         .PriceBelow => if (order_data.side == .Buy)
+//             self.getBestAsk() orelse std.math.maxInt(u64) >= cond_params.target_value
+//         else
+//             self.getBestBid() orelse 0 <= cond_params.target_value,
+//         .SpreadWidth => if (self.getBestAsk()) |ask| {
+//             if (self.getBestBid()) |bid| {
+//                 ask - bid <= cond_params.target_value;
+//             } else false;
+//         } else false,
+//         .VolumeThreshold => false, // Not implemented yet
+//     };
+// 
+//     if (!condition_met) {
+//         return types.MatchResult{
+//             .filled_amount = 0,
+//             .remaining_amount = order_data.amount,
+//             .execution_price = order_data.price,
+//         };
+//     }
+// 
+//     return matchOrder(self, order_data.side, order_data.price, order_data.amount);
+// }
+// 
+// pub fn executeTrailingStopOrder(self: *core.ShardedOrderbook, order_data: *order.CacheAlignedOrder) !void {
+//     const trailing_params = order_data.trailing_params.?;
+//     const current_market_price = if (order_data.side == .Buy)
+//         self.getBestAsk() orelse order_data.price
+//     else
+//         self.getBestBid() orelse order_data.price;
+// 
+//     var should_update = false;
+//     var new_stop_price = order_data.stop_price.?;
+// 
+//     if (order_data.side == .Buy) {
+//         if (current_market_price < trailing_params.last_trigger_price) {
+//             trailing_params.last_trigger_price = current_market_price;
+//             new_stop_price = current_market_price + trailing_params.distance;
+//             should_update = true;
+//         }
+//     } else {
+//         if (current_market_price > trailing_params.last_trigger_price) {
+//             trailing_params.last_trigger_price = current_market_price;
+//             new_stop_price = current_market_price - trailing_params.distance;
+//             should_update = true;
+//         }
+//     }
+// 
+//     if (should_update) {
+//         // Remove old order
+//         const shard_index = self.priceToShard(order_data.price);
+//         const key = types.OrderKey{ .price = order_data.price, .id = order_data.id };
+//         _ = self.stop_orders[shard_index].remove(key);
+// 
+//         // Create new order with updated stop price
+//         var new_order = order.CacheAlignedOrder.init(
+//             order_data.price,
+//             order_data.amount,
+//             order_data.id,
+//             order_data.side,
+//             .TrailingStop,
+//             new_stop_price,
+//         );
+//         new_order.trailing_params = trailing_params;
+//         new_order.flags.is_trailing_stop = true;
+// 
+//         // Add new order
+//         try self.stop_orders[shard_index].put(key, new_order);
+//     }
+// }
+// 
+// pub fn executeIcebergOrder(self: *core.ShardedOrderbook, order_data: *const order.CacheAlignedOrder) !types.MatchResult {
+//     const display_amount = order_data.display_amount orelse order_data.amount;
+//     const result = try matchOrder(self, order_data.side, order_data.price, display_amount);
+// 
+//     // If the visible portion is fully filled and there's still hidden amount
+//     if (result.remaining_amount == 0 and result.filled_amount < order_data.amount) {
+//         var new_order = order_data.*;
+//         new_order.amount = order_data.amount - result.filled_amount;
+//         new_order.display_amount = @min(display_amount, new_order.amount);
+//         try self.placeOrder(new_order);
+//     }
+// 
+//     return result;
+// }
+//
 
 // End of legacy implementation - new modular architecture above
