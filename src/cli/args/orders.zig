@@ -1,5 +1,5 @@
 const std = @import("std");
-const parser = @import("args/parser.zig");
+const parser = @import("parser.zig");
 
 /// Command argument definitions for orders commands
 pub const OrdersCommandArgs = struct {

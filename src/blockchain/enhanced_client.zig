@@ -10,13 +10,13 @@ pub const EnhancedBlockchainClient = struct {
     client: BlockchainClient,
     cache: OrderbookCache,
     error_handler: ErrorHandler,
-    
+
     /// Initialize a new enhanced blockchain client
     pub fn init(allocator: std.mem.Allocator, api_key: []const u8, base_url: []const u8) !EnhancedBlockchainClient {
         const client = try BlockchainClient.init(allocator, api_key, base_url);
         const cache = try OrderbookCache.init(allocator, 5000); // 5 second TTL
         const error_handler = ErrorHandler.init(3, 500); // 3 retries, 500ms base delay
-        
+
         return EnhancedBlockchainClient{
             .allocator = allocator,
             .client = client,
@@ -24,7 +24,7 @@ pub const EnhancedBlockchainClient = struct {
             .error_handler = error_handler,
         };
     }
-    
+
     /// Get orderbook data with caching and error handling
     pub fn getOrderbook(self: *EnhancedBlockchainClient, market: []const u8) !Orderbook {
         // Check cache first
@@ -32,18 +32,18 @@ pub const EnhancedBlockchainClient = struct {
             std.debug.print("Using cached orderbook data for market {s}\n", .{market});
             return cached_orderbook;
         }
-        
+
         // Cache miss, fetch from blockchain with retry logic
         const Context = struct {
             client: *BlockchainClient,
             market: []const u8,
         };
-        
+
         const context = Context{
             .client = &self.client,
             .market = market,
         };
-        
+
         const fetchOrderbook = struct {
             fn call(ctx: Context) BlockchainError!Orderbook {
                 return ctx.client.getOrderbook(ctx.market) catch |err| {
@@ -57,16 +57,16 @@ pub const EnhancedBlockchainClient = struct {
                 };
             }
         }.call;
-        
+
         // Execute with retry logic
-        var orderbook = try self.error_handler.executeWithRetry(Orderbook, context, fetchOrderbook);
-        
+        const orderbook = try self.error_handler.executeWithRetry(Orderbook, context, fetchOrderbook);
+
         // Cache the result
         try self.cache.put(market, orderbook);
-        
+
         return orderbook;
     }
-    
+
     /// Deinitialize the client and free resources
     pub fn deinit(self: *EnhancedBlockchainClient) void {
         self.client.deinit();

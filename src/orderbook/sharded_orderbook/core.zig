@@ -13,12 +13,20 @@ pub const ShardedOrderbook = struct {
     bid_levels: []maps.PriceLevelMap,
     ask_levels: []maps.PriceLevelMap,
     stop_orders: []maps.StopOrderMap,
+    // Global order ID index for fast duplicate detection
+    global_order_index: std.HashMap(u64, ShardLocationInfo, std.hash_map.DefaultHashContext, std.hash_map.default_max_load_percentage),
     shard_count: usize,
     allocator: std.mem.Allocator,
     current_order: ?*const order.CacheAlignedOrder = null,
     current_order_flags: types.OrderFlags = .{},
     best_bid_cache: ?u64 = null,
     best_ask_cache: ?u64 = null,
+
+    const ShardLocationInfo = struct {
+        shard_index: usize,
+        price: u64,
+        side: types.OrderSide,
+    };
 
     pub fn init(allocator: std.mem.Allocator, shard_count: usize) !ShardedOrderbook {
         const shards = try allocator.alloc(maps.OrderMap, shard_count);
@@ -38,6 +46,7 @@ pub const ShardedOrderbook = struct {
             .bid_levels = bid_levels,
             .ask_levels = ask_levels,
             .stop_orders = stop_orders,
+            .global_order_index = std.HashMap(u64, ShardLocationInfo, std.hash_map.DefaultHashContext, std.hash_map.default_max_load_percentage).init(allocator),
             .shard_count = shard_count,
             .allocator = allocator,
         };
@@ -50,6 +59,7 @@ pub const ShardedOrderbook = struct {
             self.ask_levels[i].deinit();
             self.stop_orders[i].deinit();
         }
+        self.global_order_index.deinit();
         self.allocator.free(self.shards);
         self.allocator.free(self.bid_levels);
         self.allocator.free(self.ask_levels);
@@ -230,5 +240,29 @@ pub const ShardedOrderbook = struct {
                 self.best_ask = price;
             }
         }
+    }
+
+    /// Fast duplicate order ID check using global index
+    pub fn isDuplicateOrderId(self: *const ShardedOrderbook, order_id: u64) bool {
+        return self.global_order_index.contains(order_id);
+    }
+
+    /// Register order ID in global index for duplicate prevention
+    pub fn registerOrderId(self: *ShardedOrderbook, order_id: u64, shard_index: usize, price: u64, side: types.OrderSide) !void {
+        try self.global_order_index.put(order_id, ShardLocationInfo{
+            .shard_index = shard_index,
+            .price = price,
+            .side = side,
+        });
+    }
+
+    /// Remove order ID from global index when order is removed
+    pub fn unregisterOrderId(self: *ShardedOrderbook, order_id: u64) void {
+        _ = self.global_order_index.remove(order_id);
+    }
+
+    /// Get order location information from global index
+    pub fn getOrderLocation(self: *const ShardedOrderbook, order_id: u64) ?ShardLocationInfo {
+        return self.global_order_index.get(order_id);
     }
 };

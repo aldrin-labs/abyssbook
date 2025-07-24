@@ -63,7 +63,7 @@ fn setLogLevel(level: []const u8) !void {
     if (log_level) |new_level| {
         logging.setGlobalLogLevel(new_level);
         logging.infoGlobalWithContext("cli.debug", "Log level changed", .{
-            .old_level = if (logging.getGlobalLogger()) |logger| logger.getLevel().toString() else "unknown",
+            .old_level = "unknown", // We can't get the old level easily
             .new_level = new_level.toString(),
         });
         std.debug.print("Setting log level to: {s}\n", .{level});
@@ -113,9 +113,9 @@ fn runPerfTest(args: []const []const u8) !void {
     logging.infoGlobalWithContext("cli.debug", "Performance test initiated", .{
         .test_count = args.len,
     });
-    
+
     std.debug.print("Running performance tests...\n", .{});
-    
+
     if (args.len > 0) {
         const test_name = args[0];
         logging.debugGlobalWithContext("cli.debug", "Running specific performance test", .{
@@ -126,12 +126,12 @@ fn runPerfTest(args: []const []const u8) !void {
         logging.debugGlobal("cli.debug", "Running all performance tests");
         std.debug.print("Running all performance tests\n", .{});
     }
-    
+
     // Simulate running tests
     std.debug.print("\nTest results:\n", .{});
     std.debug.print("  Order insertion: 100,000 ops/sec\n", .{});
     std.debug.print("  Order matching: 50,000 ops/sec\n", .{});
     std.debug.print("  Order cancellation: 120,000 ops/sec\n", .{});
-    
+
     logging.infoGlobal("cli.debug", "Performance test completed");
 }

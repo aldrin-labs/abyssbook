@@ -2,9 +2,9 @@ name: Security and Dependency Audit
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ '*' ]  # Run on all branches  
   pull_request:
-    branches: [ main, develop ]
+    branches: [ '*' ]  # Run on all PRs targeting any branch
   schedule:
     # Run weekly dependency audit on Sundays at 2 AM UTC
     - cron: '0 2 * * 0'

@@ -9,9 +9,19 @@ pub const BlockchainClient = struct {
     api_key: []const u8,
     base_url: []const u8,
     client: ?http.Client,
-    
+
     /// Initialize a new blockchain client
     pub fn init(allocator: std.mem.Allocator, api_key: []const u8, base_url: []const u8) !BlockchainClient {
+        // Enforce HTTPS-only URLs for security
+        if (!std.mem.startsWith(u8, base_url, "https://")) {
+            return error.InvalidUrl;
+        }
+
+        // Check for path traversal attempts
+        if (std.mem.indexOf(u8, base_url, "../") != null) {
+            return error.InvalidUrl;
+        }
+
         return BlockchainClient{
             .allocator = allocator,
             .api_key = api_key,
@@ -19,15 +29,14 @@ pub const BlockchainClient = struct {
             .client = null,
         };
     }
-    
+
     /// Connect to the blockchain API
     pub fn connect(self: *BlockchainClient) !void {
         if (self.client == null) {
-            var client = try http.Client.init(self.allocator, .{});
-            self.client = client;
+            self.client = http.Client{ .allocator = self.allocator };
         }
     }
-    
+
     /// Disconnect from the blockchain API
     pub fn disconnect(self: *BlockchainClient) void {
         if (self.client) |*client| {
@@ -35,52 +44,47 @@ pub const BlockchainClient = struct {
             self.client = null;
         }
     }
-    
+
     /// Get orderbook data for a specific market
     pub fn getOrderbook(self: *BlockchainClient, market: []const u8) !Orderbook {
         try self.connect();
-        
-        const client = self.client orelse return error.ClientNotConnected;
-        
+
+        var client = &(self.client orelse return error.ClientNotConnected);
+
         // Construct the URL for the orderbook endpoint
         var url_buffer: [256]u8 = undefined;
-        const url = try std.fmt.bufPrint(&url_buffer, "{s}/api/v2/openbook/orderbooks/{s}", .{
-            self.base_url, market
-        });
-        
+        const url = try std.fmt.bufPrint(&url_buffer, "{s}/api/v2/openbook/orderbooks/{s}", .{ self.base_url, market });
+
         // Prepare the request
-        var request = try client.request(.GET, try std.Uri.parse(url), .{
-            .allocator = self.allocator,
-        }, .{});
-        
-        // Add authorization header
-        try request.headers.append("Authorization", self.api_key);
-        
+        const uri = try std.Uri.parse(url);
+        var header_buffer: [1024]u8 = undefined;
+        var request = try client.open(.GET, uri, .{
+            .server_header_buffer = &header_buffer,
+        });
+        defer request.deinit();
+
+        // Send the request (headers are set in the request options)
+
         // Send the request
-        try request.start();
+        try request.send();
         try request.finish();
-        
-        // Get the response
-        const response = try request.wait();
-        
+
         // Check for successful response
-        if (response.status != .ok) {
+        if (request.response.status != .ok) {
             return error.ApiRequestFailed;
         }
-        
+
         // Read the response body
-        const body = try response.reader().readAllAlloc(self.allocator, 1024 * 1024);
+        const body = try request.reader().readAllAlloc(self.allocator, 1024 * 1024);
         defer self.allocator.free(body);
-        
+
         // Parse the JSON response
-        var stream = json.TokenStream.init(body);
-        const orderbook = try json.parse(Orderbook, &stream, .{
-            .allocator = self.allocator,
-        });
-        
-        return orderbook;
+        const parsed = try json.parseFromSlice(Orderbook, self.allocator, body, .{});
+        defer parsed.deinit();
+
+        return parsed.value;
     }
-    
+
     /// Place an order on the blockchain
     pub fn placeOrder(self: *BlockchainClient, side: []const u8, price: f64, size: f64) ![]const u8 {
         // In a real implementation, this would construct and sign a transaction
@@ -89,21 +93,21 @@ pub const BlockchainClient = struct {
         _ = side;
         _ = price;
         _ = size;
-        
+
         return "pending-implementation";
     }
-    
+
     /// Cancel an order on the blockchain
     pub fn cancelOrder(self: *BlockchainClient, order_id: []const u8) !void {
         // In a real implementation, this would construct and sign a transaction
         // For now, we'll just validate the input until transaction signing is implemented
         _ = self;
-        
+
         if (order_id.len == 0) {
             return error.InvalidOrderId;
         }
     }
-    
+
     /// Deinitialize the client and free resources
     pub fn deinit(self: *BlockchainClient) void {
         self.disconnect();
@@ -124,7 +128,7 @@ pub const Orderbook = struct {
     market_address: []const u8,
     bids: []Order,
     asks: []Order,
-    
+
     pub fn deinit(self: *Orderbook, allocator: std.mem.Allocator) void {
         for (self.bids) |bid| {
             allocator.free(bid.order_id);

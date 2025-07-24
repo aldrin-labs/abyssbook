@@ -62,12 +62,18 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    
+    // Add the src directory to the import path for security tests
+    security_tests.root_module.addAnonymousImport("cli", .{ .root_source_file = .{ .cwd_relative = "src/cli.zig" } });
 
     const blockchain_security_tests = b.addTest(.{
         .root_source_file = .{ .cwd_relative = "src/tests/blockchain_security_tests.zig" },
         .target = target,
         .optimize = optimize,
     });
+    
+    // Add the src directory to the import path for blockchain security tests 
+    blockchain_security_tests.root_module.addAnonymousImport("blockchain_client", .{ .root_source_file = .{ .cwd_relative = "src/blockchain/client.zig" } });
 
     const run_security_tests = b.addRunArtifact(security_tests);
     const run_blockchain_security_tests = b.addRunArtifact(blockchain_security_tests);
