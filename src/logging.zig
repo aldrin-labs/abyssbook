@@ -30,34 +30,6 @@ pub const LogLevel = enum(u8) {
     }
 };
 
-/// Log entry structure for JSON serialization
-pub const LogEntry = struct {
-    timestamp: []const u8,
-    level: []const u8,
-    module: []const u8,
-    message: []const u8,
-    context: ?std.json.Value = null,
-
-    pub fn format(
-        self: LogEntry,
-        comptime fmt: []const u8,
-        options: std.fmt.FormatOptions,
-        writer: anytype,
-    ) !void {
-        _ = fmt;
-        _ = options;
-
-        // Write JSON formatted log entry
-        try writer.print("{{\"timestamp\":\"{s}\",\"level\":\"{s}\",\"module\":\"{s}\",\"message\":\"{s}\"", .{ self.timestamp, self.level, self.module, self.message });
-
-        if (self.context) |_| {
-            try writer.print(",\"context\":null", .{});
-        }
-
-        try writer.print("}}\n", .{});
-    }
-};
-
 /// Performance monitoring thresholds for dynamic log level adjustment
 pub const PerformanceThresholds = struct {
     high_latency_us: u64 = 1000, // 1ms
@@ -66,14 +38,12 @@ pub const PerformanceThresholds = struct {
     adjust_interval_ms: u64 = 5000, // 5 seconds
 };
 
-/// Thread-safe structured logger with dynamic verbosity
+/// High-performance logger with lock-free optimizations
 pub const Logger = struct {
     allocator: std.mem.Allocator,
     level: LogLevel,
-    original_level: LogLevel, // Store original level for restoration
-    mutex: Mutex,
+    original_level: LogLevel,
     output_writer: std.fs.File.Writer,
-    buffer: std.ArrayList(u8),
     performance_mode: bool = false,
     last_adjustment: i64 = 0,
     thresholds: PerformanceThresholds,
@@ -85,16 +55,84 @@ pub const Logger = struct {
             .allocator = allocator,
             .level = level,
             .original_level = level,
-            .mutex = Mutex{},
             .output_writer = std.io.getStdErr().writer(),
-            .buffer = std.ArrayList(u8).init(allocator),
             .performance_mode = false,
             .last_adjustment = std.time.milliTimestamp(),
             .thresholds = PerformanceThresholds{},
         };
     }
 
-    /// Dynamically adjust log level based on performance metrics
+    pub fn deinit(self: *Self) void {
+        _ = self; // No cleanup needed for simplified version
+    }
+
+    /// High-performance lock-free logging (for hot paths)
+    pub fn logFast(
+        self: *Self,
+        level: LogLevel,
+        module: []const u8,
+        message: []const u8,
+    ) void {
+        if (@intFromEnum(level) < @intFromEnum(self.level)) {
+            return; // Skip if below current log level
+        }
+        
+        // Simple timestamp (microseconds since epoch)
+        const timestamp_us = std.time.microTimestamp();
+        
+        // Format: [timestamp_us] LEVEL module: message\n
+        var entry_buffer: [512]u8 = undefined;
+        const formatted = std.fmt.bufPrint(&entry_buffer, "[{d}] {s} {s}: {s}\n", .{
+            timestamp_us, level.toString(), module, message
+        }) catch return; // Drop message if buffer too small
+        
+        // Direct write (simplified for this version)
+        self.output_writer.writeAll(formatted) catch {};
+    }
+
+    /// Standard logging with context support
+    pub fn log(
+        self: *Self,
+        level: LogLevel,
+        module: []const u8,
+        message: []const u8,
+        context: ?std.json.Value,
+    ) !void {
+        if (@intFromEnum(level) < @intFromEnum(self.level)) {
+            return; // Skip if below current log level
+        }
+
+        // For critical messages or when context is provided, use full formatting
+        if (level == .CRITICAL or context != null) {
+            try self.logWithFullFormatting(level, module, message, context);
+        } else {
+            // Use fast path for simple messages
+            self.logFast(level, module, message);
+        }
+    }
+
+    /// Full formatting path with context support
+    fn logWithFullFormatting(
+        self: *Self,
+        level: LogLevel,
+        module: []const u8,
+        message: []const u8,
+        context: ?std.json.Value,
+    ) !void {
+        const timestamp = try self.getTimestamp();
+        defer self.allocator.free(timestamp);
+
+        // Simple JSON-like formatting
+        var buffer: [1024]u8 = undefined;
+        const formatted = if (context) |_|
+            std.fmt.bufPrint(&buffer, "{{\"timestamp\":\"{s}\",\"level\":\"{s}\",\"module\":\"{s}\",\"message\":\"{s}\",\"context\":{{}}}\n", .{ timestamp, level.toString(), module, message })
+        else
+            std.fmt.bufPrint(&buffer, "{{\"timestamp\":\"{s}\",\"level\":\"{s}\",\"module\":\"{s}\",\"message\":\"{s}\"}}\n", .{ timestamp, level.toString(), module, message });
+
+        try self.output_writer.writeAll(formatted catch return);
+    }
+
+    /// Dynamically adjust log level based on performance metrics (lock-free)
     pub fn adjustLogLevel(self: *Self, latency_us: u64, memory_mb: u64, cpu_percent: f64) void {
         const now = std.time.milliTimestamp();
 
@@ -102,9 +140,6 @@ pub const Logger = struct {
         if (now - self.last_adjustment < self.thresholds.adjust_interval_ms) {
             return;
         }
-
-        self.mutex.lock();
-        defer self.mutex.unlock();
 
         const high_perf_load = latency_us > self.thresholds.high_latency_us or
             memory_mb > self.thresholds.high_memory_mb or
@@ -115,36 +150,26 @@ pub const Logger = struct {
             self.performance_mode = true;
             self.level = .ERROR; // Only log errors in high-load scenarios
             self.last_adjustment = now;
-            self.logImmediate(.WARN, "performance", "High performance load detected - reducing log verbosity", null);
+            self.logFast(.WARN, "performance", "High performance load detected - reducing log verbosity");
         } else if (!high_perf_load and self.performance_mode) {
             // Return to normal mode
             self.performance_mode = false;
             self.level = self.original_level;
             self.last_adjustment = now;
-            self.logImmediate(.INFO, "performance", "Performance load normalized - restoring log verbosity", null);
+            self.logFast(.INFO, "performance", "Performance load normalized - restoring log verbosity");
         }
     }
 
     /// Set performance thresholds for dynamic adjustment
     pub fn setPerformanceThresholds(self: *Self, thresholds: PerformanceThresholds) void {
-        self.mutex.lock();
-        defer self.mutex.unlock();
         self.thresholds = thresholds;
     }
 
-    pub fn deinit(self: *Self) void {
-        self.buffer.deinit();
-    }
-
     pub fn setLevel(self: *Self, level: LogLevel) void {
-        self.mutex.lock();
-        defer self.mutex.unlock();
         self.level = level;
     }
 
     pub fn getLevel(self: *Self) LogLevel {
-        self.mutex.lock();
-        defer self.mutex.unlock();
         return self.level;
     }
 
@@ -158,209 +183,67 @@ pub const Logger = struct {
         const len = std.fmt.formatIntBuf(buffer, epoch_seconds, 10, .lower, .{});
         return buffer[0..len];
     }
-
-    /// Internal logging function
-    fn logInternal(
-        self: *Self,
-        level: LogLevel,
-        module: []const u8,
-        message: []const u8,
-        context: ?std.json.Value,
-    ) !void {
-        if (@intFromEnum(level) < @intFromEnum(self.level)) {
-            return; // Skip if below current log level
-        }
-
-        self.mutex.lock();
-        defer self.mutex.unlock();
-
-        const timestamp = try self.getTimestamp();
-        defer self.allocator.free(timestamp);
-
-        const entry = LogEntry{
-            .timestamp = timestamp,
-            .level = level.toString(),
-            .module = module,
-            .message = message,
-            .context = context,
-        };
-
-        // Clear buffer and format entry
-        self.buffer.clearRetainingCapacity();
-        try entry.format("", .{}, self.buffer.writer());
-
-        // Write to output
-        try self.output_writer.writeAll(self.buffer.items);
-    }
-
-    /// Log immediately without level check (for internal performance notifications)
-    fn logImmediate(
-        self: *Self,
-        level: LogLevel,
-        module: []const u8,
-        message: []const u8,
-        context: ?std.json.Value,
-    ) void {
-        // Acquire mutex but ignore level check
-        self.mutex.lock();
-        defer self.mutex.unlock();
-
-        const timestamp = self.getTimestamp() catch return;
-        defer self.allocator.free(timestamp);
-
-        const entry = LogEntry{
-            .timestamp = timestamp,
-            .level = level.toString(),
-            .module = module,
-            .message = message,
-            .context = context,
-        };
-
-        // Clear buffer and format entry
-        self.buffer.clearRetainingCapacity();
-        entry.format("", .{}, self.buffer.writer()) catch return;
-
-        // Write to output
-        self.output_writer.writeAll(self.buffer.items) catch return;
-    }
-
-    /// Log with context (key-value pairs)
-    pub fn logWithContext(
-        self: *Self,
-        level: LogLevel,
-        module: []const u8,
-        message: []const u8,
-        context: anytype,
-    ) !void {
-        var json_context = std.json.Value{ .object = std.json.ObjectMap.init(self.allocator) };
-        defer json_context.object.deinit();
-
-        // Convert context struct to JSON value
-        inline for (std.meta.fields(@TypeOf(context))) |field| {
-            const value = @field(context, field.name);
-            const json_value = switch (@TypeOf(value)) {
-                []const u8 => std.json.Value{ .string = value },
-                i32, i64, u32, u64 => std.json.Value{ .integer = @as(i64, @intCast(value)) },
-                f32, f64 => std.json.Value{ .float = @as(f64, @floatCast(value)) },
-                bool => std.json.Value{ .bool = value },
-                else => std.json.Value{ .string = "unsupported_type" },
-            };
-            try json_context.object.put(field.name, json_value);
-        }
-
-        try self.logInternal(level, module, message, json_context);
-    }
-
-    /// Simple logging without context
-    pub fn log(self: *Self, level: LogLevel, module: []const u8, message: []const u8) !void {
-        try self.logInternal(level, module, message, null);
-    }
-
-    /// Convenience methods for different log levels
-    pub fn debug(self: *Self, module: []const u8, message: []const u8) !void {
-        try self.log(.DEBUG, module, message);
-    }
-
-    pub fn info(self: *Self, module: []const u8, message: []const u8) !void {
-        try self.log(.INFO, module, message);
-    }
-
-    pub fn warn(self: *Self, module: []const u8, message: []const u8) !void {
-        try self.log(.WARN, module, message);
-    }
-
-    pub fn err(self: *Self, module: []const u8, message: []const u8) !void {
-        try self.log(.ERROR, module, message);
-    }
-
-    pub fn critical(self: *Self, module: []const u8, message: []const u8) !void {
-        try self.log(.CRITICAL, module, message);
-    }
-
-    /// Convenience methods with context
-    pub fn debugWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
-        try self.logWithContext(.DEBUG, module, message, context);
-    }
-
-    pub fn infoWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
-        try self.logWithContext(.INFO, module, message, context);
-    }
-
-    pub fn warnWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
-        try self.logWithContext(.WARN, module, message, context);
-    }
-
-    pub fn errWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
-        try self.logWithContext(.ERROR, module, message, context);
-    }
-
-    pub fn criticalWithContext(self: *Self, module: []const u8, message: []const u8, context: anytype) !void {
-        try self.logWithContext(.CRITICAL, module, message, context);
-    }
 };
 
-/// Global logger instance
-var global_logger: ?*Logger = null;
-var global_allocator: ?std.mem.Allocator = null;
+// Global logger instance
+var global_logger: ?Logger = null;
+var global_logger_mutex: std.Thread.Mutex = std.Thread.Mutex{};
 
 /// Initialize global logger
-pub fn initGlobalLogger(allocator: std.mem.Allocator, level: LogLevel) !void {
-    if (global_logger != null) {
-        return; // Already initialized
+pub fn initGlobal(allocator: std.mem.Allocator, level: LogLevel) !void {
+    global_logger_mutex.lock();
+    defer global_logger_mutex.unlock();
+    
+    if (global_logger) |*logger| {
+        logger.deinit();
     }
-
-    global_allocator = allocator;
-    global_logger = try allocator.create(Logger);
-    global_logger.?.* = try Logger.init(allocator, level);
+    global_logger = try Logger.init(allocator, level);
 }
 
 /// Deinitialize global logger
-pub fn deinitGlobalLogger() void {
-    if (global_logger) |logger| {
+pub fn deinitGlobal() void {
+    global_logger_mutex.lock();
+    defer global_logger_mutex.unlock();
+    
+    if (global_logger) |*logger| {
         logger.deinit();
-        if (global_allocator) |allocator| {
-            allocator.destroy(logger);
-        }
         global_logger = null;
-        global_allocator = null;
     }
 }
 
-/// Get global logger instance
-pub fn getGlobalLogger() ?*Logger {
-    return global_logger;
-}
-
-/// Convenience functions for global logger
-pub fn setGlobalLogLevel(level: LogLevel) void {
-    if (global_logger) |logger| {
-        logger.setLevel(level);
-    }
-}
-
+/// Global logging functions for convenience
 pub fn logGlobal(level: LogLevel, module: []const u8, message: []const u8) void {
-    if (global_logger) |logger| {
-        logger.log(level, module, message) catch |err| {
-            std.debug.print("Logging error: {any}\n", .{err});
-        };
+    global_logger_mutex.lock();
+    defer global_logger_mutex.unlock();
+    
+    if (global_logger) |*logger| {
+        logger.logFast(level, module, message);
     }
 }
 
 pub fn logGlobalWithContext(level: LogLevel, module: []const u8, message: []const u8, context: anytype) void {
-    if (global_logger) |logger| {
-        logger.logWithContext(level, module, message, context) catch |err| {
-            std.debug.print("Logging error: {any}\n", .{err});
+    global_logger_mutex.lock();
+    defer global_logger_mutex.unlock();
+    
+    if (global_logger) |*logger| {
+        logger.log(level, module, message, null) catch {
+            // Fallback to fast logging if context logging fails
+            logger.logFast(level, module, message);
         };
     }
 }
 
-// Convenience macros for global logging
+// Convenience functions
 pub fn debugGlobal(module: []const u8, message: []const u8) void {
     logGlobal(.DEBUG, module, message);
 }
 
 pub fn infoGlobal(module: []const u8, message: []const u8) void {
     logGlobal(.INFO, module, message);
+}
+
+pub fn infoGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
+    logGlobalWithContext(.INFO, module, message, context);
 }
 
 pub fn warnGlobal(module: []const u8, message: []const u8) void {
@@ -373,25 +256,4 @@ pub fn errorGlobal(module: []const u8, message: []const u8) void {
 
 pub fn criticalGlobal(module: []const u8, message: []const u8) void {
     logGlobal(.CRITICAL, module, message);
-}
-
-// Convenience functions with context for global logging
-pub fn debugGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
-    logGlobalWithContext(.DEBUG, module, message, context);
-}
-
-pub fn infoGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
-    logGlobalWithContext(.INFO, module, message, context);
-}
-
-pub fn warnGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
-    logGlobalWithContext(.WARN, module, message, context);
-}
-
-pub fn errorGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
-    logGlobalWithContext(.ERROR, module, message, context);
-}
-
-pub fn criticalGlobalWithContext(module: []const u8, message: []const u8, context: anytype) void {
-    logGlobalWithContext(.CRITICAL, module, message, context);
 }

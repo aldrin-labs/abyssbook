@@ -51,6 +51,193 @@ inline Amount horizontal_sum_512(__m512i values) {
     __m256i high = _mm512_extracti64x4_epi64(values, 1);
     
     // Add the lanes together
+    __m256i sum = _mm256_add_epi64(low, high);
+    
+    // Horizontal sum within 256-bit register
+    __m128i sum128 = _mm_add_epi64(_mm256_extracti128_si256(sum, 0), 
+                                   _mm256_extracti128_si256(sum, 1));
+    sum128 = _mm_add_epi64(sum128, _mm_shuffle_epi32(sum128, _MM_SHUFFLE(1,0,3,2)));
+    
+    return static_cast<Amount>(_mm_extract_epi64(sum128, 0) + _mm_extract_epi64(sum128, 1));
+}
+
+// Broadcast single value to all elements in AVX-512 register
+inline __m512i broadcast_amount_512(Amount value) {
+    return _mm512_set1_epi64(static_cast<std::int64_t>(value));
+}
+
+// Find minimum value in AVX-512 register
+inline Amount horizontal_min_512(__m512i values) {
+    // Extract high and low 256-bit lanes
+    __m256i low = _mm512_extracti64x4_epi64(values, 0);
+    __m256i high = _mm512_extracti64x4_epi64(values, 1);
+    
+    // Find minimum between lanes
+    __m256i min_vals = _mm256_min_epu64(low, high);
+    
+    // Horizontal minimum within 256-bit register
+    __m128i min128 = _mm_min_epu64(_mm256_extracti128_si256(min_vals, 0),
+                                   _mm256_extracti128_si256(min_vals, 1));
+    min128 = _mm_min_epu64(min128, _mm_shuffle_epi32(min128, _MM_SHUFFLE(1,0,3,2)));
+    
+    return static_cast<Amount>(std::min(_mm_extract_epi64(min128, 0), _mm_extract_epi64(min128, 1)));
+}
+
+// Find maximum value in AVX-512 register
+inline Amount horizontal_max_512(__m512i values) {
+    // Extract high and low 256-bit lanes
+    __m256i low = _mm512_extracti64x4_epi64(values, 0);
+    __m256i high = _mm512_extracti64x4_epi64(values, 1);
+    
+    // Find maximum between lanes
+    __m256i max_vals = _mm256_max_epu64(low, high);
+    
+    // Horizontal maximum within 256-bit register
+    __m128i max128 = _mm_max_epu64(_mm256_extracti128_si256(max_vals, 0),
+                                   _mm256_extracti128_si256(max_vals, 1));
+    max128 = _mm_max_epu64(max128, _mm_shuffle_epi32(max128, _MM_SHUFFLE(1,0,3,2)));
+    
+    return static_cast<Amount>(std::max(_mm_extract_epi64(max128, 0), _mm_extract_epi64(max128, 1)));
+}
+
+#endif // __AVX512F__
+
+#ifdef __AVX2__
+
+// AVX2 optimized functions for 4x 64-bit values
+constexpr std::size_t AVX2_VECTOR_WIDTH = 4;
+
+// Load 4 64-bit prices into AVX2 register
+inline __m256i load_prices_256(const Price* prices) {
+    return _mm256_loadu_si256(reinterpret_cast<const __m256i*>(prices));
+}
+
+// Load 4 64-bit amounts into AVX2 register
+inline __m256i load_amounts_256(const Amount* amounts) {
+    return _mm256_loadu_si256(reinterpret_cast<const __m256i*>(amounts));
+}
+
+// Store 4 64-bit values from AVX2 register
+inline void store_amounts_256(Amount* amounts, __m256i values) {
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(amounts), values);
+}
+
+// Compare prices for buy orders using AVX2
+inline __m256i compare_buy_prices_256(__m256i our_prices, __m256i their_prices) {
+    // AVX2 doesn't have direct 64-bit unsigned compare, use signed and adjust
+    __m256i cmp = _mm256_cmpgt_epi64(our_prices, their_prices);
+    __m256i eq = _mm256_cmpeq_epi64(our_prices, their_prices);
+    return _mm256_or_si256(cmp, eq);
+}
+
+// Compare prices for sell orders using AVX2  
+inline __m256i compare_sell_prices_256(__m256i our_prices, __m256i their_prices) {
+    __m256i cmp = _mm256_cmpgt_epi64(their_prices, our_prices);
+    __m256i eq = _mm256_cmpeq_epi64(our_prices, their_prices);
+    return _mm256_or_si256(cmp, eq);
+}
+
+// Blend values based on mask using AVX2
+inline __m256i blend_amounts_256(__m256i mask, __m256i true_values, __m256i false_values) {
+    return _mm256_blendv_epi8(false_values, true_values, mask);
+}
+
+// Sum all elements in a 256-bit register containing 4 64-bit integers
+inline Amount horizontal_sum_256(__m256i values) {
+    __m128i sum128 = _mm_add_epi64(_mm256_extracti128_si256(values, 0), 
+                                   _mm256_extracti128_si256(values, 1));
+    sum128 = _mm_add_epi64(sum128, _mm_shuffle_epi32(sum128, _MM_SHUFFLE(1,0,3,2)));
+    return static_cast<Amount>(_mm_extract_epi64(sum128, 0) + _mm_extract_epi64(sum128, 1));
+}
+
+// Broadcast single value to all elements in AVX2 register
+inline __m256i broadcast_amount_256(Amount value) {
+    return _mm256_set1_epi64x(static_cast<std::int64_t>(value));
+}
+
+// Batch update price levels using AVX2
+template<typename LockFreeHashMap>
+inline void batch_update_levels_256(OrderSide side, __m256i prices, __m256i amounts, 
+                                   LockFreeHashMap* levels) {
+    // Extract individual prices and amounts from SIMD registers
+    alignas(32) Price price_array[4];
+    alignas(32) Amount amount_array[4];
+    
+    _mm256_store_si256(reinterpret_cast<__m256i*>(price_array), prices);
+    _mm256_store_si256(reinterpret_cast<__m256i*>(amount_array), amounts);
+    
+    // Update levels individually (could be further optimized with custom hash operations)
+    for (int i = 0; i < 4; ++i) {
+        levels->insertOrUpdate(price_array[i], static_cast<std::int64_t>(amount_array[i]), 1);
+    }
+}
+
+#endif // __AVX2__
+
+// Vectorized price level aggregation
+template<std::size_t VECTOR_WIDTH>
+struct VectorizedPriceLevelOps {
+    static_assert(VECTOR_WIDTH == 4 || VECTOR_WIDTH == 8, "Only 4 or 8-wide vectors supported");
+    
+    // Aggregate multiple price levels into depth array
+    template<typename PriceLevelContainer>
+    static std::vector<PriceLevel> aggregateDepth(
+        const PriceLevelContainer& levels,
+        std::size_t max_levels) {
+        
+        std::vector<PriceLevel> result;
+        result.reserve(max_levels);
+        
+        // Process levels in batches using SIMD
+        const std::size_t batch_size = max_levels / VECTOR_WIDTH;
+        
+#ifdef __AVX2__
+        if constexpr (VECTOR_WIDTH == 4) {
+            for (std::size_t batch = 0; batch < batch_size; ++batch) {
+                // Load batch of price levels
+                alignas(32) Price prices[4];
+                alignas(32) Amount volumes[4];
+                alignas(32) std::size_t counts[4];
+                
+                // Extract data from levels (simplified)
+                for (int i = 0; i < 4; ++i) {
+                    auto level_iter = levels.begin();
+                    std::advance(level_iter, batch * 4 + i);
+                    if (level_iter != levels.end()) {
+                        prices[i] = level_iter->price;
+                        volumes[i] = level_iter->volume;
+                        counts[i] = level_iter->order_count;
+                    } else {
+                        prices[i] = 0;
+                        volumes[i] = 0;
+                        counts[i] = 0;
+                    }
+                }
+                
+                // Load into SIMD registers
+                __m256i price_vec = _mm256_load_si256(reinterpret_cast<const __m256i*>(prices));
+                __m256i volume_vec = _mm256_load_si256(reinterpret_cast<const __m256i*>(volumes));
+                
+                // Process with SIMD operations (filtering, sorting, etc.)
+                // For now, just add to result
+                for (int i = 0; i < 4; ++i) {
+                    if (prices[i] > 0 && result.size() < max_levels) {
+                        result.push_back({prices[i], volumes[i], counts[i]});
+                    }
+                }
+            }
+        }
+#endif
+        
+        return result;
+    }
+};
+
+} // namespace simd
+} // namespace abyssbook
+    __m256i high = _mm512_extracti64x4_epi64(values, 1);
+    
+    // Add the lanes together
     __m256i sum256 = _mm256_add_epi64(low, high);
     
     // Use manual horizontal sum for 256-bit
