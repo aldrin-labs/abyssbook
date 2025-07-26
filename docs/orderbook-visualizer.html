@@ -1127,14 +1127,26 @@
             }
 
             initializeSkipList() {
-                // Initialize skip list visualization with sample nodes
-                this.skipListNodes = [
-                    { price: 9520.00, levels: [true, true, false, false] },
-                    { price: 9522.50, levels: [true, false, false, false] },
-                    { price: 9525.00, levels: [true, true, true, false] },
-                    { price: 9527.50, levels: [true, false, false, false] },
-                    { price: 9530.00, levels: [true, true, false, false] }
-                ];
+                // Generate skip list nodes from actual orderbook data
+                this.generateSkipListFromOrderbook();
+            }
+
+            generateSkipListFromOrderbook() {
+                // Collect all price levels from bids and asks
+                const allPrices = [
+                    ...Array.from(this.bids.keys()),
+                    ...Array.from(this.asks.keys())
+                ].sort((a, b) => a - b);
+
+                // Generate skip list nodes with probabilistic level assignment
+                this.skipListNodes = allPrices.map(price => {
+                    const levels = [true]; // Level 0 always true
+                    for (let i = 1; i < this.skipListLevels; i++) {
+                        levels.push(Math.random() < 0.5); // 50% probability for each level
+                    }
+                    return { price, levels };
+                });
+
                 this.updateSkipListDisplay();
                 this.updateExecutionStats();
             }
@@ -1324,28 +1336,12 @@
                     '✅'
                 );
 
-                // Add new node to skip list if it's a new price level
-                const existingNode = this.skipListNodes.find(node => Math.abs(node.price - price) < 0.01);
-                if (!existingNode) {
-                    // Simulate probabilistic level assignment
-                    const levels = [true]; // Level 0 always true
-                    for (let i = 1; i < this.skipListLevels; i++) {
-                        levels.push(Math.random() < 0.5); // 50% probability for each level
-                    }
-
-                    this.skipListNodes.push({ price, levels });
-                    this.skipListNodes.sort((a, b) => a.price - b.price);
-                    
-                    this.memoryAllocs++;
-                    this.updateExecutionStats();
-                    this.updateSkipListDisplay();
-
-                    this.addExecutionStep(
-                        'New Price Level Created', 
-                        `Allocated new skip list node at $${price.toFixed(2)}`,
-                        '🆕'
-                    );
-                }
+                // Skip list is automatically updated via generateSkipListFromOrderbook() in updateDisplay()
+                this.addExecutionStep(
+                    'Skip List Updated', 
+                    `Skip list synchronized with orderbook price levels`,
+                    '🔄'
+                );
             }
 
             // Export functionality
@@ -1409,6 +1405,7 @@
                 this.updateAskLevels();
                 this.updateSpread();
                 this.updateMetrics();
+                this.generateSkipListFromOrderbook();
             }
 
             updateBidLevels() {
