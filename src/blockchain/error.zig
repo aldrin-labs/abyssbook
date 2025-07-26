@@ -181,7 +181,7 @@ pub const ErrorHandler = struct {
             200...299 => {
                 // Log warning for unexpected success code conversion
                 std.debug.print("Warning: httpStatusToError called with success code {d}\n", .{status_code});
-                return BlockchainError.UnknownError;
+                BlockchainError.UnknownError
             },
             400 => BlockchainError.InvalidOrderParameters,
             401 => BlockchainError.Unauthorized,
@@ -192,6 +192,7 @@ pub const ErrorHandler = struct {
             500 => BlockchainError.ServerError,
             502...599 => BlockchainError.ServiceUnavailable,
             else => BlockchainError.UnknownError,
+        };
     }
     
     /// Format error message for user display with security context and operation details
