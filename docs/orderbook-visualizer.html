@@ -39,9 +39,12 @@
         }
 
         .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
+            width: 100%;
+            margin: 0;
+            padding: 0.6rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .paper-section {
@@ -53,9 +56,12 @@
             border: 1px solid rgba(0,0,0,0.1);
             border-radius: 3px;
             box-shadow: 0 2px 8px var(--shadow);
-            margin-bottom: 2rem;
-            padding: 2rem;
+            margin-bottom: 0.6rem;
+            padding: 0.6rem;
             position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .paper-section::before {
@@ -77,43 +83,66 @@
         }
 
         h1 {
-            font-size: 2.5rem;
+            font-size: 1.6rem;
             font-weight: normal;
             color: var(--ink-dark);
             text-align: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.3rem;
             text-shadow: 1px 1px 2px var(--shadow);
+        }
+
+        h3 {
+            font-size: 1rem;
+            font-weight: normal;
+            margin-bottom: 0.4rem;
+        }
+
+        h4 {
+            font-size: 0.9rem;
+            font-weight: normal;
+            margin-bottom: 0.3rem;
         }
 
         .subtitle {
             text-align: center;
             color: var(--ink-medium);
             font-style: italic;
-            margin-bottom: 3rem;
-            font-size: 1.1rem;
+            margin-bottom: 0.6rem;
+            font-size: 0.9rem;
         }
 
         .orderbook-container {
             display: grid;
-            grid-template-columns: 1fr 400px 1fr;
-            gap: 2rem;
-            margin-bottom: 3rem;
+            grid-template-columns: 1fr 120px 1fr;
+            gap: 0.5rem;
+            flex: 1;
+            min-height: 250px;
         }
 
         .orderbook-side {
             background: var(--paper-surface);
             border: 2px solid var(--ink-light);
             border-radius: 8px;
-            padding: 1.5rem;
+            padding: 0.5rem;
             box-shadow: inset 0 1px 3px var(--shadow);
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .orderbook-side h3 {
             text-align: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.3rem;
             font-weight: normal;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+
+        #bidLevels, #askLevels {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
         }
 
         .bids h3 { color: var(--accent-green); }
@@ -123,12 +152,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem;
-            margin-bottom: 0.25rem;
+            padding: 0.25rem 0.4rem;
+            margin-bottom: 0.15rem;
             border-radius: 3px;
             transition: all 0.3s ease;
             position: relative;
             font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
         }
 
         .order-level:hover {
@@ -152,26 +182,30 @@
 
         .spread-info {
             text-align: center;
-            padding: 2rem;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .spread-value {
-            font-size: 2rem;
+            font-size: 1.1rem;
             font-weight: bold;
             color: var(--accent-blue);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.1rem;
         }
 
         .spread-label {
             color: var(--ink-medium);
             font-style: italic;
+            font-size: 0.7rem;
         }
 
         .controls {
             display: flex;
             justify-content: center;
-            gap: 1rem;
-            margin: 2rem 0;
+            gap: 0.3rem;
+            margin: 0.5rem 0;
             flex-wrap: wrap;
         }
 
@@ -179,11 +213,11 @@
             background: var(--paper-surface);
             border: 2px solid var(--ink-medium);
             color: var(--ink-dark);
-            padding: 0.75rem 1.5rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 5px;
             cursor: pointer;
             font-family: inherit;
-            font-size: 1rem;
+            font-size: 0.8rem;
             box-shadow: 2px 2px 4px var(--shadow);
             transition: all 0.2s ease;
         }
@@ -202,9 +236,9 @@
 
         .trade-form {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.3rem;
+            margin: 0.5rem 0;
         }
 
         .form-group {
@@ -213,18 +247,19 @@
         }
 
         .form-group label {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
             color: var(--ink-medium);
             font-weight: bold;
         }
 
         .form-group input {
-            padding: 0.75rem;
+            padding: 0.4rem;
             border: 2px solid var(--ink-light);
             border-radius: 3px;
             background: var(--paper-surface);
             color: var(--ink-dark);
             font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
         }
 
         .form-group input:focus {
@@ -233,23 +268,45 @@
             box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
         }
 
+        .main-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 0.6rem;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            min-height: 0;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            min-height: 0;
+        }
+
         .market-data {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
         }
 
         .metric {
             text-align: center;
-            padding: 1rem;
+            padding: 0.6rem;
             background: var(--paper-surface);
             border: 1px solid var(--ink-light);
             border-radius: 5px;
         }
 
         .metric-value {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
             color: var(--accent-blue);
             font-family: 'Courier New', monospace;
@@ -257,8 +314,8 @@
 
         .metric-label {
             color: var(--ink-medium);
-            font-size: 0.9rem;
-            margin-top: 0.25rem;
+            font-size: 0.7rem;
+            margin-top: 0.2rem;
         }
 
         .animation-indicator {
@@ -280,20 +337,22 @@
         }
 
         .trade-history {
-            max-height: 200px;
+            max-height: 150px;
             overflow-y: auto;
             border: 1px solid var(--ink-light);
             border-radius: 3px;
             background: var(--paper-surface);
+            flex: 1;
+            min-height: 0;
         }
 
         .trade-entry {
             display: flex;
             justify-content: space-between;
-            padding: 0.5rem;
+            padding: 0.3rem;
             border-bottom: 1px solid rgba(0,0,0,0.1);
             font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
         }
 
         .trade-entry:last-child { border-bottom: none; }
@@ -442,16 +501,16 @@
         /* Algorithm Execution Monitor Styles */
         .execution-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.3rem;
+            margin-bottom: 0.5rem;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 1.5rem;
+            border-radius: 6px;
+            padding: 0.3rem;
             text-align: center;
             transition: all 0.3s ease;
             position: relative;
@@ -479,10 +538,10 @@
         }
 
         .stat-value {
-            font-size: 2rem;
+            font-size: 1rem;
             font-weight: bold;
             color: var(--accent-blue);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.1rem;
             transition: all 0.3s ease;
         }
 
@@ -497,31 +556,34 @@
         }
 
         .stat-label {
-            font-size: 0.9rem;
+            font-size: 0.65rem;
             color: var(--ink-medium);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            line-height: 1.1;
         }
 
         .algorithm-steps {
-            margin: 2rem 0;
+            margin: 0.5rem 0;
+            flex: 1;
+            min-height: 0;
         }
 
         .steps-container {
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 1rem;
-            min-height: 150px;
-            max-height: 300px;
+            border-radius: 6px;
+            padding: 0.3rem;
+            min-height: 60px;
+            max-height: 80px;
             overflow-y: auto;
         }
 
         .execution-step {
             display: flex;
             align-items: center;
-            padding: 0.5rem;
-            margin: 0.25rem 0;
+            padding: 0.3rem;
+            margin: 0.2rem 0;
             background: rgba(255, 255, 255, 0.8);
             border-radius: 4px;
             border-left: 3px solid var(--accent-blue);
@@ -558,36 +620,39 @@
         }
 
         .step-description {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             color: var(--ink-medium);
-            margin-top: 0.2rem;
+            margin-top: 0.1rem;
         }
 
         .skip-list-visualization {
-            margin: 2rem 0;
+            margin: 0.5rem 0;
+            flex: 1;
+            min-height: 0;
         }
 
         .skip-list-container {
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 1.5rem;
-            min-height: 200px;
-            overflow-x: auto;
+            border-radius: 6px;
+            padding: 0.3rem;
+            min-height: 70px;
+            max-height: 100px;
+            overflow: auto;
         }
 
         .skip-list-level {
             display: flex;
             align-items: center;
-            margin: 0.5rem 0;
-            min-height: 40px;
+            margin: 0.3rem 0;
+            min-height: 28px;
         }
 
         .level-label {
-            width: 60px;
+            width: 50px;
             font-weight: bold;
             color: var(--ink-medium);
-            font-size: 0.9rem;
+            font-size: 0.75rem;
         }
 
         .skip-list-nodes {
@@ -599,13 +664,14 @@
         .skip-node {
             background: var(--paper-surface);
             border: 2px solid var(--ink-light);
-            border-radius: 6px;
-            padding: 0.5rem 1rem;
-            margin: 0 0.5rem;
-            min-width: 80px;
+            border-radius: 4px;
+            padding: 0.2rem 0.4rem;
+            margin: 0 0.2rem;
+            min-width: 50px;
             text-align: center;
             transition: all 0.3s ease;
             position: relative;
+            font-size: 0.7rem;
         }
 
         .skip-node.current {
@@ -654,10 +720,28 @@
             50% { opacity: 0.3; }
         }
 
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .right-panel {
+                order: -1;
+            }
+            
+            .execution-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
         @media (max-width: 768px) {
+            .container {
+                padding: 0.4rem;
+            }
+            
             .orderbook-container {
                 grid-template-columns: 1fr;
-                gap: 1rem;
+                gap: 0.4rem;
             }
             
             .trade-form {
@@ -665,6 +749,10 @@
             }
             
             .execution-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .market-data {
                 grid-template-columns: repeat(2, 1fr);
             }
             
@@ -685,116 +773,122 @@
 </head>
 <body>
     <div class="container">
-        <div class="paper-section">
-            <h1>📊 Interactive Orderbook Visualizer</h1>
-            <p class="subtitle">Experience AbyssBook's sub-microsecond orderbook in real-time</p>
+        <h1>📊 Interactive Orderbook Visualizer</h1>
+        <p class="subtitle">Experience AbyssBook's sub-microsecond orderbook in real-time</p>
 
-            <div class="market-data">
-                <div class="metric">
-                    <div class="metric-value" id="lastPrice">9,525.00</div>
-                    <div class="metric-label">Last Price</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value" id="volume">1,247,893</div>
-                    <div class="metric-label">24h Volume</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value" id="totalOrders">2,847</div>
-                    <div class="metric-label">Active Orders</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value" id="latency">0.3μs</div>
-                    <div class="metric-label">Avg Latency</div>
+        <div class="market-data">
+            <div class="metric">
+                <div class="metric-value" id="lastPrice">9,525.00</div>
+                <div class="metric-label">Last Price</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="volume">1,247,893</div>
+                <div class="metric-label">24h Volume</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="totalOrders">2,847</div>
+                <div class="metric-label">Active Orders</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="latency">0.3μs</div>
+                <div class="metric-label">Avg Latency</div>
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <div class="left-panel">
+                <div class="paper-section" style="flex: 1;">
+                    <div class="orderbook-container">
+                        <div class="orderbook-side bids">
+                            <h3>🟢 Bids</h3>
+                            <div id="bidLevels"></div>
+                        </div>
+
+                        <div class="spread-info">
+                            <div class="spread-value" id="spreadValue">$2.50</div>
+                            <div class="spread-label">Bid-Ask Spread</div>
+                            <div style="margin-top: 0.4rem;">
+                                <div class="metric-value" id="midPrice" style="font-size: 1rem;">9,523.75</div>
+                                <div class="metric-label" style="font-size: 0.75rem;">Mid Price</div>
+                            </div>
+                        </div>
+
+                        <div class="orderbook-side asks">
+                            <h3>🔴 Asks</h3>
+                            <div id="askLevels"></div>
+                        </div>
+                    </div>
+
+                    <div class="controls">
+                        <button class="btn" onclick="generateRandomTrade()">🎲 Random Trade</button>
+                        <button class="btn buy" onclick="simulateBuyOrder()">📈 Market Buy</button>
+                        <button class="btn sell" onclick="simulateSellOrder()">📉 Market Sell</button>
+                        <button class="btn" onclick="resetOrderbook()">🔄 Reset</button>
+                        <button class="btn" onclick="toggleAnimation()">⏸️ Pause</button>
+                    </div>
+
+                    <div class="trade-form">
+                        <div class="form-group">
+                            <label for="orderSide">Order Side</label>
+                            <select id="orderSide">
+                                <option value="buy">Buy</option>
+                                <option value="sell">Sell</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="orderPrice">Price ($)</label>
+                            <input type="number" id="orderPrice" value="9525" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="orderAmount">Amount</label>
+                            <input type="number" id="orderAmount" value="10" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn" onclick="placeCustomOrder()" style="margin-top: 1.5rem;">Place Order</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="orderbook-container">
-                <div class="orderbook-side bids">
-                    <h3>🟢 Bids</h3>
-                    <div id="bidLevels"></div>
-                </div>
+            <div class="right-panel">
+                <div class="paper-section" style="flex: 2;">
+                    <h3>⚡ Algorithm Execution Monitor</h3>
+                    <p class="subtitle">Watch AbyssBook's skip list algorithm process orders in real-time</p>
+                    
+                    <div class="execution-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="computeOps">0</div>
+                            <div class="stat-label">Compute Operations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="memoryAllocs">0</div>
+                            <div class="stat-label">Memory Allocations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="comparisons">0</div>
+                            <div class="stat-label">Node Comparisons</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="skipListLevel">0</div>
+                            <div class="stat-label">Current Skip Level</div>
+                        </div>
+                    </div>
 
-                <div class="spread-info">
-                    <div class="spread-value" id="spreadValue">$2.50</div>
-                    <div class="spread-label">Bid-Ask Spread</div>
-                    <div style="margin-top: 1rem;">
-                        <div class="metric-value" id="midPrice">9,523.75</div>
-                        <div class="metric-label">Mid Price</div>
+                    <div class="algorithm-steps">
+                        <h4>🔍 Current Execution Steps</h4>
+                        <div class="steps-container" id="executionSteps"></div>
+                    </div>
+
+                    <div class="skip-list-visualization">
+                        <h4>📊 Skip List Structure</h4>
+                        <div class="skip-list-container" id="skipListContainer"></div>
                     </div>
                 </div>
 
-                <div class="orderbook-side asks">
-                    <h3>🔴 Asks</h3>
-                    <div id="askLevels"></div>
+                <div class="paper-section" style="flex: 1;">
+                    <h3>📈 Recent Trades</h3>
+                    <div class="trade-history" id="tradeHistory"></div>
                 </div>
-            </div>
-
-            <div class="controls">
-                <button class="btn" onclick="generateRandomTrade()">🎲 Random Trade</button>
-                <button class="btn buy" onclick="simulateBuyOrder()">📈 Market Buy</button>
-                <button class="btn sell" onclick="simulateSellOrder()">📉 Market Sell</button>
-                <button class="btn" onclick="resetOrderbook()">🔄 Reset</button>
-                <button class="btn" onclick="toggleAnimation()">⏸️ Pause</button>
-            </div>
-
-            <div class="trade-form">
-                <div class="form-group">
-                    <label for="orderSide">Order Side</label>
-                    <select id="orderSide">
-                        <option value="buy">Buy</option>
-                        <option value="sell">Sell</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="orderPrice">Price ($)</label>
-                    <input type="number" id="orderPrice" value="9525" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="orderAmount">Amount</label>
-                    <input type="number" id="orderAmount" value="10" step="0.1">
-                </div>
-                <div class="form-group">
-                    <button class="btn" onclick="placeCustomOrder()" style="margin-top: 1.5rem;">Place Order</button>
-                </div>
-            </div>
-
-            <div class="paper-section">
-                <h3>⚡ Algorithm Execution Monitor</h3>
-                <p class="subtitle">Watch AbyssBook's skip list algorithm process orders in real-time</p>
-                
-                <div class="execution-stats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="computeOps">0</div>
-                        <div class="stat-label">Compute Operations</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="memoryAllocs">0</div>
-                        <div class="stat-label">Memory Allocations</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="comparisons">0</div>
-                        <div class="stat-label">Node Comparisons</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="skipListLevel">0</div>
-                        <div class="stat-label">Current Skip Level</div>
-                    </div>
-                </div>
-
-                <div class="algorithm-steps">
-                    <h4>🔍 Current Execution Steps</h4>
-                    <div class="steps-container" id="executionSteps"></div>
-                </div>
-
-                <div class="skip-list-visualization">
-                    <h4>📊 Skip List Structure</h4>
-                    <div class="skip-list-container" id="skipListContainer"></div>
-                </div>
-            </div>
-
-            <div class="paper-section">
-                <h3>📈 Recent Trades</h3>
-                <div class="trade-history" id="tradeHistory"></div>
             </div>
         </div>
     </div>
