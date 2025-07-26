@@ -16,44 +16,34 @@ pub const BlockchainConfig = struct {
     /// Load configuration from environment or config file
     pub fn load(allocator: std.mem.Allocator) !BlockchainConfig {
         // Try to load from environment variables first
-        const api_key = std.process.getEnvVarOwned(allocator, "ABYSSBOOK_API_KEY") catch |err| {
-            switch (err) {
-                error.EnvironmentVariableNotFound => {
-                    // Fall back to config file or default testing values
-                    std.debug.print("Warning: ABYSSBOOK_API_KEY environment variable not found\n");
-                    std.debug.print("Using default API key for testing. Set ABYSSBOOK_API_KEY for production.\n");
-                    return try allocator.dupe(u8, "test_api_key_please_set_environment_variable");
-                },
-                else => return err,
-            }
+        const api_key = std.process.getEnvVarOwned(allocator, "ABYSSBOOK_API_KEY") catch blk: {
+            // Fall back to config file or default testing values
+            std.debug.print("Warning: ABYSSBOOK_API_KEY environment variable not found\n", .{});
+            std.debug.print("Using default API key for testing. Set ABYSSBOOK_API_KEY for production.\n", .{});
+            break :blk try allocator.dupe(u8, "test_api_key_please_set_environment_variable");
         };
 
-        const base_url = std.process.getEnvVarOwned(allocator, "ABYSSBOOK_BASE_URL") catch |err| {
-            switch (err) {
-                error.EnvironmentVariableNotFound => {
-                    // Use default bloXroute endpoint
-                    std.debug.print("Using default bloXroute Solana endpoint\n");
-                    return try allocator.dupe(u8, "https://ny.solana.dex.blxrbdn.com");
-                },
-                else => return err,
-            }
+        const base_url = std.process.getEnvVarOwned(allocator, "ABYSSBOOK_BASE_URL") catch blk: {
+            // Use default bloXroute endpoint
+            std.debug.print("Using default bloXroute Solana endpoint\n", .{});
+            break :blk try allocator.dupe(u8, "https://ny.solana.dex.blxrbdn.com");
         };
 
         // Determine network from environment or default to mainnet
-        const network_str = std.process.getEnvVarOwned(allocator, "ABYSSBOOK_NETWORK") catch {
-            return .mainnet;
+        const network_str = std.process.getEnvVarOwned(allocator, "ABYSSBOOK_NETWORK") catch blk: {
+            break :blk null;
         };
-        defer allocator.free(network_str);
+        defer if (network_str) |ns| allocator.free(ns);
 
-        const network = blk: {
-            if (std.mem.eql(u8, network_str, "testnet")) {
+        const network = if (network_str) |ns| blk: {
+            if (std.mem.eql(u8, ns, "testnet")) {
                 break :blk Network.testnet;
-            } else if (std.mem.eql(u8, network_str, "devnet")) {
+            } else if (std.mem.eql(u8, ns, "devnet")) {
                 break :blk Network.devnet;
             } else {
                 break :blk Network.mainnet;
             }
-        };
+        } else Network.mainnet;
 
         return BlockchainConfig{
             .api_key = api_key,

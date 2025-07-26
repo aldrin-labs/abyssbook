@@ -806,7 +806,7 @@ pub const InputSanitizer = struct {
         var total_time: u64 = 0;
         const iterations = 1000;
 
-        std.debug.print("=== InputSanitizer Benchmark ===\n");
+        std.debug.print("=== InputSanitizer Benchmark ===\n", .{});
         
         for (test_inputs) |input| {
             const start_time = std.time.nanoTimestamp();
@@ -830,6 +830,6 @@ pub const InputSanitizer = struct {
         
         const overall_avg = total_time / (iterations * test_inputs.len);
         std.debug.print("Overall average: {d}ns per sanitization\n", .{overall_avg});
-        std.debug.print("Benchmark completed successfully.\n");
+        std.debug.print("Benchmark completed successfully.\n", .{});
     }
 };

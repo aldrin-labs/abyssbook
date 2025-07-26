@@ -21,9 +21,16 @@ test "Blockchain client - URL validation" {
 
     for (malicious_urls) |url| {
         std.debug.print("Testing URL: {s}\n", .{url});
-        // Should reject malicious URLs at init stage due to HTTPS enforcement
+        // Should reject malicious URLs at init stage
         const init_result = blockchain_client.BlockchainClient.init(allocator, "test-key", url);
-        try testing.expectError(error.InvalidUrl, init_result);
+        
+        // Different URLs will fail with different errors - both are security rejections
+        if (init_result) |_| {
+            try testing.expect(false); // Should have failed
+        } else |err| {
+            // Accept either InvalidUrl or InsecureBaseUrl as valid security rejections
+            try testing.expect(err == error.InvalidUrl or err == error.InsecureBaseUrl);
+        }
         std.debug.print("Correctly rejected malicious URL: {s}\n", .{url});
     }
 }
@@ -124,10 +131,14 @@ test "Blockchain client - rate limiting protection" {
     var request_count: u32 = 0;
 
     while (request_count < rapid_requests) : (request_count += 1) {
-        _ = client.getOrderbook("test-market") catch |err| {
+        if (client.getOrderbook("test-market")) |orderbook| {
+            // Successfully got orderbook - clean it up
+            var mutable_orderbook = orderbook;
+            mutable_orderbook.deinit(std.testing.allocator);
+        } else |err| {
             // Rate limiting or connection errors are expected
             try testing.expect(err != error.OutOfMemory);
-        };
+        }
     }
 
     // Verify that the client handles rapid requests gracefully

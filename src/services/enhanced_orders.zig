@@ -50,7 +50,7 @@ pub const EnhancedOrderService = struct {
         };
         
         // Initialize wallet securely
-        var wallet = Wallet.initRandom(allocator) catch |err| {
+        const wallet = Wallet.initRandom(allocator) catch |err| {
             order_service.deinit();
             logging.errorGlobalWithContext("service.orders", "Failed to initialize wallet", .{
                 .error_name = @errorName(err),
@@ -241,7 +241,7 @@ pub const EnhancedOrderService = struct {
         };
         defer {
             // Secure cleanup of signature
-            std.crypto.utils.secureZero(signature);
+            std.crypto.utils.secureZero(u8, @constCast(signature));
             self.allocator.free(signature);
         }
         
@@ -353,7 +353,7 @@ pub const EnhancedOrderService = struct {
         };
         defer {
             // Secure cleanup of signature
-            std.crypto.utils.secureZero(signature);
+            std.crypto.utils.secureZero(u8, @constCast(signature));
             self.allocator.free(signature);
         }
         
@@ -377,8 +377,6 @@ pub const EnhancedOrderService = struct {
                         error.InvalidOrderId => return BlockchainError.InvalidOrderId,
                         error.OrderIdTooLong => return BlockchainError.OrderIdTooLong,
                         error.InvalidOrderIdFormat => return BlockchainError.InvalidOrderIdFormat,
-                        error.OutOfMemory => return BlockchainError.UnknownError,
-                        else => return BlockchainError.ApiRequestFailed,
                     }
                 };
                 

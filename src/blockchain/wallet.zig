@@ -30,8 +30,8 @@ pub const Wallet = struct {
         // Ed25519 requires secret keys to be in the valid scalar range
         secret_key[31] &= 0x7F; // Clear the top bit to ensure valid scalar
         
-        std.debug.print("Generated new secure keypair for wallet\n");
-        std.debug.print("Warning: This is a temporary wallet. Save your private key securely in production.\n");
+        std.debug.print("Generated new secure keypair for wallet\n", .{});
+        std.debug.print("Warning: This is a temporary wallet. Save your private key securely in production.\n", .{});
         
         return try initFromSecretKey(allocator, &secret_key);
     }

@@ -12,12 +12,11 @@ pub const TransactionSigner = struct {
             return error.InvalidSecretKeyLength;
         }
 
-        // Create Ed25519 secret key from 32-byte input
-        var secret_key_bytes: [32]u8 = undefined;
-        @memcpy(&secret_key_bytes, secret_key[0..32]);
+        // Create Ed25519 keypair from 32-byte seed
+        var seed: [32]u8 = undefined;
+        @memcpy(&seed, secret_key[0..32]);
 
-        const secret_key_struct = try ed25519.SecretKey.fromBytes(secret_key_bytes);
-        const keypair = try ed25519.KeyPair.fromSecretKey(secret_key_struct);
+        const keypair = try ed25519.KeyPair.create(seed);
 
         return TransactionSigner{
             .allocator = allocator,
@@ -74,7 +73,7 @@ pub const TransactionSigner = struct {
         const hex_signature = try self.allocator.alloc(u8, signature_bytes.len * 2);
         
         for (signature_bytes, 0..) |byte, i| {
-            _ = try std.fmt.bufPrint(hex_signature[i*2..i*2+2], "{:02x}", .{byte});
+            _ = try std.fmt.bufPrint(hex_signature[i*2..i*2+2], "{X:0>2}", .{byte});
         }
         
         return hex_signature;
@@ -114,7 +113,7 @@ pub const TransactionSigner = struct {
         const hex_signature = try self.allocator.alloc(u8, signature_bytes.len * 2);
         
         for (signature_bytes, 0..) |byte, i| {
-            _ = try std.fmt.bufPrint(hex_signature[i*2..i*2+2], "{:02x}", .{byte});
+            _ = try std.fmt.bufPrint(hex_signature[i*2..i*2+2], "{X:0>2}", .{byte});
         }
         
         return hex_signature;

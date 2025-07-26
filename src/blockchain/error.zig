@@ -100,11 +100,11 @@ pub const ErrorHandler = struct {
         while (retry_count <= self.max_retries) : (retry_count += 1) {
             // If this isn't the first attempt, apply exponential backoff
             if (retry_count > 0) {
-                const delay_ms = self.base_delay_ms * (1 << (retry_count - 1));
+                const delay_ms = self.base_delay_ms * (@as(u32, 1) << @intCast(retry_count - 1));
                 std.time.sleep(delay_ms * std.time.ns_per_ms);
 
                 // Log retry attempt
-                std.debug.print("Retrying operation (attempt {}/{})...\n", .{ retry_count, self.max_retries });
+                std.debug.print("Retrying operation (attempt {d}/{d})...\n", .{ retry_count, self.max_retries });
             }
 
             // Attempt the operation
@@ -181,7 +181,7 @@ pub const ErrorHandler = struct {
             200...299 => {
                 // Log warning for unexpected success code conversion
                 std.debug.print("Warning: httpStatusToError called with success code {d}\n", .{status_code});
-                BlockchainError.UnknownError
+                return BlockchainError.UnknownError;
             },
             400 => BlockchainError.InvalidOrderParameters,
             401 => BlockchainError.Unauthorized,
