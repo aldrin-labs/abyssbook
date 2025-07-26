@@ -304,10 +304,11 @@
         .order-level {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             transform: translateX(0);
+            will-change: transform, box-shadow;
         }
 
         .order-level:hover {
-            transform: translateX(5px);
+            transform: translate3d(5px, 0, 0);
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             background: rgba(255,255,255,0.1);
         }
@@ -317,8 +318,8 @@
         }
 
         @keyframes levelUpdate {
-            0% { background: rgba(255, 215, 0, 0.3); transform: scale(1.02); }
-            100% { background: transparent; transform: scale(1); }
+            0% { background: rgba(255, 215, 0, 0.3); transform: scale3d(1.02, 1.02, 1); }
+            100% { background: transparent; transform: scale3d(1, 1, 1); }
         }
 
         .trade-entry {
@@ -374,12 +375,12 @@
         }
 
         .btn:hover {
-            transform: translateY(-2px);
+            transform: translate3d(0, -2px, 0);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .btn:active {
-            transform: translateY(0);
+            transform: translate3d(0, 0, 0);
         }
 
         .spread-value {
@@ -446,6 +447,15 @@
             
             .trade-form {
                 grid-template-columns: 1fr;
+            }
+            
+            /* Reduce animation intensity on mobile for better performance */
+            .order-level:hover {
+                transform: translateX(3px);
+            }
+            
+            .btn:hover {
+                transform: translateY(-1px);
             }
         }
     </style>
