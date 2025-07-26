@@ -41,7 +41,7 @@
         .container {
             width: 100%;
             margin: 0;
-            padding: 0.6rem;
+            padding: 0.4rem;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -56,8 +56,8 @@
             border: 1px solid rgba(0,0,0,0.1);
             border-radius: 3px;
             box-shadow: 0 2px 8px var(--shadow);
-            margin-bottom: 0.6rem;
-            padding: 0.6rem;
+            margin-bottom: 0.4rem;
+            padding: 0.4rem;
             position: relative;
             flex: 1;
             display: flex;
@@ -83,47 +83,47 @@
         }
 
         h1 {
-            font-size: 1.6rem;
+            font-size: 1.3rem;
             font-weight: normal;
             color: var(--ink-dark);
             text-align: center;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.2rem;
             text-shadow: 1px 1px 2px var(--shadow);
         }
 
         h3 {
-            font-size: 1rem;
+            font-size: 0.85rem;
             font-weight: normal;
-            margin-bottom: 0.4rem;
+            margin-bottom: 0.3rem;
         }
 
         h4 {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             font-weight: normal;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.2rem;
         }
 
         .subtitle {
             text-align: center;
             color: var(--ink-medium);
             font-style: italic;
-            margin-bottom: 0.6rem;
-            font-size: 0.9rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.8rem;
         }
 
         .orderbook-container {
             display: grid;
-            grid-template-columns: 1fr 120px 1fr;
-            gap: 0.5rem;
+            grid-template-columns: 1fr 80px 1fr;
+            gap: 0.3rem;
             flex: 1;
-            min-height: 250px;
+            min-height: 200px;
         }
 
         .orderbook-side {
             background: var(--paper-surface);
             border: 2px solid var(--ink-light);
             border-radius: 8px;
-            padding: 0.5rem;
+            padding: 0.3rem;
             box-shadow: inset 0 1px 3px var(--shadow);
             min-height: 0;
             display: flex;
@@ -132,11 +132,11 @@
 
         .orderbook-side h3 {
             text-align: center;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.2rem;
             font-weight: normal;
             text-transform: uppercase;
             letter-spacing: 1px;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
         }
 
         #bidLevels, #askLevels {
@@ -152,13 +152,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.25rem 0.4rem;
-            margin-bottom: 0.15rem;
+            padding: 0.15rem 0.3rem;
+            margin-bottom: 0.1rem;
             border-radius: 3px;
             transition: all 0.3s ease;
             position: relative;
             font-family: 'Courier New', monospace;
-            font-size: 0.75rem;
+            font-size: 0.65rem;
         }
 
         .order-level:hover {
@@ -182,14 +182,14 @@
 
         .spread-info {
             text-align: center;
-            padding: 0.5rem;
+            padding: 0.3rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
 
         .spread-value {
-            font-size: 1.1rem;
+            font-size: 0.9rem;
             font-weight: bold;
             color: var(--accent-blue);
             margin-bottom: 0.1rem;
@@ -198,14 +198,14 @@
         .spread-label {
             color: var(--ink-medium);
             font-style: italic;
-            font-size: 0.7rem;
+            font-size: 0.6rem;
         }
 
         .controls {
             display: flex;
             justify-content: center;
-            gap: 0.3rem;
-            margin: 0.5rem 0;
+            gap: 0.2rem;
+            margin: 0.3rem 0;
             flex-wrap: wrap;
         }
 
@@ -213,11 +213,11 @@
             background: var(--paper-surface);
             border: 2px solid var(--ink-medium);
             color: var(--ink-dark);
-            padding: 0.4rem 0.8rem;
+            padding: 0.3rem 0.6rem;
             border-radius: 5px;
             cursor: pointer;
             font-family: inherit;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             box-shadow: 2px 2px 4px var(--shadow);
             transition: all 0.2s ease;
         }
@@ -237,8 +237,12 @@
         .trade-form {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.3rem;
-            margin: 0.5rem 0;
+            gap: 0.2rem;
+            margin: 0.3rem 0;
+        }
+
+        .trade-form.expanded {
+            grid-template-columns: repeat(6, 1fr);
         }
 
         .form-group {
@@ -247,31 +251,64 @@
         }
 
         .form-group label {
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.2rem;
             color: var(--ink-medium);
             font-weight: bold;
+            font-size: 0.7rem;
         }
 
-        .form-group input {
-            padding: 0.4rem;
+        .form-group input, .form-group select {
+            padding: 0.3rem;
             border: 2px solid var(--ink-light);
             border-radius: 3px;
             background: var(--paper-surface);
             color: var(--ink-dark);
             font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
         }
 
-        .form-group input:focus {
+        .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: var(--accent-blue);
             box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
         }
 
+        .form-group.hidden {
+            display: none;
+        }
+
+        .form-group.conditional {
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .form-group.conditional.active {
+            opacity: 1;
+        }
+
+        .order-type-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.3rem;
+        }
+
+        .order-type-indicator.limit { background-color: var(--accent-blue); }
+        .order-type-indicator.market { background-color: var(--accent-green); }
+        .order-type-indicator.stop { background-color: var(--accent-red); }
+        .order-type-indicator.stop-limit { background-color: #dc8b26; }
+        .order-type-indicator.ioc { background-color: #7c3aed; }
+        .order-type-indicator.fok { background-color: #ec4899; }
+        .order-type-indicator.post-only { background-color: #059669; }
+        .order-type-indicator.iceberg { background-color: #0ea5e9; }
+        .order-type-indicator.twap { background-color: #8b5cf6; }
+        .order-type-indicator.trailing-stop { background-color: #f59e0b; }
+
         .main-layout {
             display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 0.6rem;
+            grid-template-columns: 1fr 3fr;
+            gap: 0.4rem;
             flex: 1;
             min-height: 0;
         }
@@ -279,34 +316,34 @@
         .left-panel {
             display: flex;
             flex-direction: column;
-            gap: 0.6rem;
+            gap: 0.4rem;
             min-height: 0;
         }
 
         .right-panel {
             display: flex;
             flex-direction: column;
-            gap: 0.6rem;
+            gap: 0.4rem;
             min-height: 0;
         }
 
         .market-data {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.4rem;
-            margin-bottom: 0.6rem;
+            gap: 0.3rem;
+            margin-bottom: 0.4rem;
         }
 
         .metric {
             text-align: center;
-            padding: 0.6rem;
+            padding: 0.4rem;
             background: var(--paper-surface);
             border: 1px solid var(--ink-light);
             border-radius: 5px;
         }
 
         .metric-value {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: bold;
             color: var(--accent-blue);
             font-family: 'Courier New', monospace;
@@ -314,8 +351,8 @@
 
         .metric-label {
             color: var(--ink-medium);
-            font-size: 0.7rem;
-            margin-top: 0.2rem;
+            font-size: 0.65rem;
+            margin-top: 0.1rem;
         }
 
         .animation-indicator {
@@ -337,7 +374,7 @@
         }
 
         .trade-history {
-            max-height: 150px;
+            max-height: 120px;
             overflow-y: auto;
             border: 1px solid var(--ink-light);
             border-radius: 3px;
@@ -349,10 +386,10 @@
         .trade-entry {
             display: flex;
             justify-content: space-between;
-            padding: 0.3rem;
+            padding: 0.2rem;
             border-bottom: 1px solid rgba(0,0,0,0.1);
             font-family: 'Courier New', monospace;
-            font-size: 0.75rem;
+            font-size: 0.65rem;
         }
 
         .trade-entry:last-child { border-bottom: none; }
@@ -502,15 +539,15 @@
         .execution-stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.3rem;
-            margin-bottom: 0.5rem;
+            gap: 0.2rem;
+            margin-bottom: 0.3rem;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 6px;
-            padding: 0.3rem;
+            padding: 0.2rem;
             text-align: center;
             transition: all 0.3s ease;
             position: relative;
@@ -538,10 +575,10 @@
         }
 
         .stat-value {
-            font-size: 1rem;
+            font-size: 0.85rem;
             font-weight: bold;
             color: var(--accent-blue);
-            margin-bottom: 0.1rem;
+            margin-bottom: 0.05rem;
             transition: all 0.3s ease;
         }
 
@@ -556,7 +593,7 @@
         }
 
         .stat-label {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: var(--ink-medium);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -564,7 +601,7 @@
         }
 
         .algorithm-steps {
-            margin: 0.5rem 0;
+            margin: 0.3rem 0;
             flex: 1;
             min-height: 0;
         }
@@ -573,17 +610,17 @@
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 6px;
-            padding: 0.3rem;
-            min-height: 60px;
-            max-height: 80px;
+            padding: 0.2rem;
+            min-height: 50px;
+            max-height: 60px;
             overflow-y: auto;
         }
 
         .execution-step {
             display: flex;
             align-items: center;
-            padding: 0.3rem;
-            margin: 0.2rem 0;
+            padding: 0.2rem;
+            margin: 0.1rem 0;
             background: rgba(255, 255, 255, 0.8);
             border-radius: 4px;
             border-left: 3px solid var(--accent-blue);
@@ -606,8 +643,8 @@
         }
 
         .step-icon {
-            margin-right: 0.5rem;
-            font-size: 1.2rem;
+            margin-right: 0.3rem;
+            font-size: 1rem;
         }
 
         .step-details {
@@ -617,16 +654,17 @@
         .step-operation {
             font-weight: bold;
             color: var(--ink-dark);
+            font-size: 0.7rem;
         }
 
         .step-description {
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             color: var(--ink-medium);
-            margin-top: 0.1rem;
+            margin-top: 0.05rem;
         }
 
         .skip-list-visualization {
-            margin: 0.5rem 0;
+            margin: 0.3rem 0;
             flex: 1;
             min-height: 0;
         }
@@ -635,24 +673,24 @@
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 6px;
-            padding: 0.3rem;
-            min-height: 70px;
-            max-height: 100px;
+            padding: 0.2rem;
+            min-height: 50px;
+            max-height: 80px;
             overflow: auto;
         }
 
         .skip-list-level {
             display: flex;
             align-items: center;
-            margin: 0.3rem 0;
-            min-height: 28px;
+            margin: 0.2rem 0;
+            min-height: 24px;
         }
 
         .level-label {
-            width: 50px;
+            width: 40px;
             font-weight: bold;
             color: var(--ink-medium);
-            font-size: 0.75rem;
+            font-size: 0.65rem;
         }
 
         .skip-list-nodes {
@@ -665,13 +703,13 @@
             background: var(--paper-surface);
             border: 2px solid var(--ink-light);
             border-radius: 4px;
-            padding: 0.2rem 0.4rem;
-            margin: 0 0.2rem;
-            min-width: 50px;
+            padding: 0.1rem 0.3rem;
+            margin: 0 0.1rem;
+            min-width: 40px;
             text-align: center;
             transition: all 0.3s ease;
             position: relative;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
         }
 
         .skip-node.current {
@@ -704,7 +742,7 @@
         }
 
         .node-connector {
-            width: 20px;
+            width: 15px;
             height: 2px;
             background: var(--ink-light);
             position: relative;
@@ -718,6 +756,163 @@
         @keyframes connectorPulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-dark);
+            border-radius: 8px;
+            padding: 1rem;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+            animation: modalSlideIn 0.3s ease-out;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--ink-light);
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--ink-dark);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--ink-medium);
+            padding: 0.2rem;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--accent-red);
+            transform: scale(1.1);
+        }
+
+        .modal-body {
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .expand-btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.65rem;
+            margin-left: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .expand-btn:hover {
+            background: var(--ink-dark);
+            transform: translateY(-1px);
+        }
+
+        .export-btn {
+            background: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .export-btn:hover {
+            background: var(--ink-dark);
+            transform: translateY(-1px);
+        }
+
+        .modal-list-item {
+            padding: 0.3rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-list-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .modal-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-stat-card {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--ink-light);
+            border-radius: 6px;
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        .modal-stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 0.2rem;
+        }
+
+        .modal-stat-label {
+            font-size: 0.8rem;
+            color: var(--ink-medium);
+        }
+
+        @media (max-width: 1400px) {
+            .main-layout {
+                grid-template-columns: 1fr 2fr;
+            }
         }
 
         @media (max-width: 1200px) {
@@ -747,6 +942,10 @@
             .trade-form {
                 grid-template-columns: 1fr;
             }
+
+            .trade-form.expanded {
+                grid-template-columns: repeat(2, 1fr);
+            }
             
             .execution-stats {
                 grid-template-columns: 1fr;
@@ -754,6 +953,26 @@
             
             .market-data {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            /* Improve touch targets on mobile */
+            .btn {
+                padding: 0.4rem 0.7rem;
+                font-size: 0.75rem;
+                min-height: 44px;
+            }
+            
+            .expand-btn, .export-btn {
+                padding: 0.3rem 0.5rem;
+                font-size: 0.7rem;
+                min-height: 36px;
+                min-width: 60px;
+            }
+            
+            .order-level {
+                padding: 0.2rem 0.4rem;
+                margin-bottom: 0.15rem;
+                font-size: 0.7rem;
             }
             
             /* Reduce animation intensity on mobile for better performance */
@@ -767,6 +986,17 @@
             
             .skip-list-container {
                 overflow-x: scroll;
+            }
+            
+            /* Modal adjustments for mobile */
+            .modal-content {
+                margin: 1rem;
+                max-width: calc(100vw - 2rem);
+                max-height: calc(100vh - 2rem);
+            }
+            
+            .modal-stats-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -827,15 +1057,31 @@
                         <button class="btn" onclick="toggleAnimation()">⏸️ Pause</button>
                     </div>
 
-                    <div class="trade-form">
+                    <div class="trade-form" id="tradeForm">
                         <div class="form-group">
-                            <label for="orderSide">Order Side</label>
-                            <select id="orderSide">
-                                <option value="buy">Buy</option>
-                                <option value="sell">Sell</option>
+                            <label for="orderType">Order Type</label>
+                            <select id="orderType" onchange="updateOrderTypeFields()">
+                                <option value="limit">📊 Limit</option>
+                                <option value="market">⚡ Market</option>
+                                <option value="stop">🛑 Stop</option>
+                                <option value="stop-limit">🎯 Stop-Limit</option>
+                                <option value="ioc">⏱️ IOC</option>
+                                <option value="fok">💥 FOK</option>
+                                <option value="post-only">📌 Post-Only</option>
+                                <option value="gtd">📅 GTD</option>
+                                <option value="iceberg">🧊 Iceberg</option>
+                                <option value="twap">📈 TWAP</option>
+                                <option value="trailing-stop">📉 Trailing Stop</option>
                             </select>
                         </div>
                         <div class="form-group">
+                            <label for="orderSide">Order Side</label>
+                            <select id="orderSide">
+                                <option value="buy">📈 Buy</option>
+                                <option value="sell">📉 Sell</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="priceGroup">
                             <label for="orderPrice">Price ($)</label>
                             <input type="number" id="orderPrice" value="9525" step="0.01">
                         </div>
@@ -843,8 +1089,38 @@
                             <label for="orderAmount">Amount</label>
                             <input type="number" id="orderAmount" value="10" step="0.1">
                         </div>
+                        
+                        <!-- Conditional fields for different order types -->
+                        <div class="form-group conditional hidden" id="stopPriceGroup">
+                            <label for="stopPrice">Stop Price ($)</label>
+                            <input type="number" id="stopPrice" value="9500" step="0.01">
+                        </div>
+                        
+                        <div class="form-group conditional hidden" id="displayAmountGroup">
+                            <label for="displayAmount">Display Amount</label>
+                            <input type="number" id="displayAmount" value="5" step="0.1">
+                        </div>
+                        
+                        <div class="form-group conditional hidden" id="expiryTimeGroup">  
+                            <label for="expiryTime">Expiry (minutes)</label>
+                            <input type="number" id="expiryTime" value="60" min="1">
+                        </div>
+                        
+                        <div class="form-group conditional hidden" id="intervalGroup">
+                            <label for="twapInterval">Intervals</label>
+                            <input type="number" id="twapInterval" value="10" min="2">
+                        </div>
+                        
+                        <div class="form-group conditional hidden" id="trailDistanceGroup">
+                            <label for="trailDistance">Trail Distance ($)</label>
+                            <input type="number" id="trailDistance" value="5" step="0.01">
+                        </div>
+                        
                         <div class="form-group">
-                            <button class="btn" onclick="placeCustomOrder()" style="margin-top: 1.5rem;">Place Order</button>
+                            <button class="btn" onclick="placeCustomOrder()" style="margin-top: 1.5rem;">
+                                <span class="order-type-indicator limit" id="orderTypeIndicator"></span>
+                                Place Order
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -852,7 +1128,9 @@
 
             <div class="right-panel">
                 <div class="paper-section" style="flex: 2;">
-                    <h3>⚡ Algorithm Execution Monitor</h3>
+                    <h3>⚡ Algorithm Execution Monitor
+                        <button class="export-btn" onclick="exportMetricsToCSV()">📋 Export Metrics CSV</button>
+                    </h3>
                     <p class="subtitle">Watch AbyssBook's skip list algorithm process orders in real-time</p>
                     
                     <div class="execution-stats">
@@ -875,20 +1153,40 @@
                     </div>
 
                     <div class="algorithm-steps">
-                        <h4>🔍 Current Execution Steps</h4>
+                        <h4>🔍 Current Execution Steps
+                            <button class="expand-btn" onclick="expandExecutionSteps()">↗️ Expand</button>
+                        </h4>
                         <div class="steps-container" id="executionSteps"></div>
                     </div>
 
                     <div class="skip-list-visualization">
-                        <h4>📊 Skip List Structure</h4>
+                        <h4>📊 Skip List Structure
+                            <button class="expand-btn" onclick="expandSkipList()">↗️ Expand</button>
+                        </h4>
                         <div class="skip-list-container" id="skipListContainer"></div>
                     </div>
                 </div>
 
                 <div class="paper-section" style="flex: 1;">
-                    <h3>📈 Recent Trades</h3>
+                    <h3>📈 Recent Trades
+                        <button class="expand-btn" onclick="expandTradeHistory()">↗️ Expand</button>
+                        <button class="export-btn" onclick="exportTradesToCSV()">📋 Export CSV</button>
+                    </h3>
                     <div class="trade-history" id="tradeHistory"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for expanded views -->
+    <div id="expandModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Expanded View</div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content will be inserted here -->
             </div>
         </div>
     </div>
@@ -915,14 +1213,26 @@
             }
 
             initializeSkipList() {
-                // Initialize skip list visualization with sample nodes
-                this.skipListNodes = [
-                    { price: 9520.00, levels: [true, true, false, false] },
-                    { price: 9522.50, levels: [true, false, false, false] },
-                    { price: 9525.00, levels: [true, true, true, false] },
-                    { price: 9527.50, levels: [true, false, false, false] },
-                    { price: 9530.00, levels: [true, true, false, false] }
-                ];
+                // Generate skip list nodes from actual orderbook data
+                this.generateSkipListFromOrderbook();
+            }
+
+            generateSkipListFromOrderbook() {
+                // Collect all price levels from bids and asks
+                const allPrices = [
+                    ...Array.from(this.bids.keys()),
+                    ...Array.from(this.asks.keys())
+                ].sort((a, b) => a - b);
+
+                // Generate skip list nodes with probabilistic level assignment
+                this.skipListNodes = allPrices.map(price => {
+                    const levels = [true]; // Level 0 always true
+                    for (let i = 1; i < this.skipListLevels; i++) {
+                        levels.push(Math.random() < 0.5); // 50% probability for each level
+                    }
+                    return { price, levels };
+                });
+
                 this.updateSkipListDisplay();
                 this.updateExecutionStats();
             }
@@ -1112,28 +1422,48 @@
                     '✅'
                 );
 
-                // Add new node to skip list if it's a new price level
-                const existingNode = this.skipListNodes.find(node => Math.abs(node.price - price) < 0.01);
-                if (!existingNode) {
-                    // Simulate probabilistic level assignment
-                    const levels = [true]; // Level 0 always true
-                    for (let i = 1; i < this.skipListLevels; i++) {
-                        levels.push(Math.random() < 0.5); // 50% probability for each level
-                    }
+                // Skip list is automatically updated via generateSkipListFromOrderbook() in updateDisplay()
+                this.addExecutionStep(
+                    'Skip List Updated', 
+                    `Skip list synchronized with orderbook price levels`,
+                    '🔄'
+                );
+            }
 
-                    this.skipListNodes.push({ price, levels });
-                    this.skipListNodes.sort((a, b) => a.price - b.price);
-                    
-                    this.memoryAllocs++;
-                    this.updateExecutionStats();
-                    this.updateSkipListDisplay();
+            // Export functionality
+            getAllMetrics() {
+                return {
+                    timestamp: new Date().toISOString(),
+                    computeOps: this.computeOps,
+                    memoryAllocs: this.memoryAllocs,
+                    comparisons: this.comparisons,
+                    currentLevel: this.currentLevel,
+                    totalOrders: this.bids.size + this.asks.size,
+                    bidLevels: this.bids.size,
+                    askLevels: this.asks.size,
+                    spread: Math.min(...this.asks.keys()) - Math.max(...this.bids.keys()),
+                    midPrice: (Math.max(...this.bids.keys()) + Math.min(...this.asks.keys())) / 2,
+                    totalTrades: this.trades.length
+                };
+            }
 
-                    this.addExecutionStep(
-                        'New Price Level Created', 
-                        `Allocated new skip list node at $${price.toFixed(2)}`,
-                        '🆕'
-                    );
-                }
+            getAllExecutionSteps() {
+                return this.executionSteps.map(step => ({
+                    timestamp: step.timestamp,
+                    operation: step.operation,
+                    description: step.description,
+                    icon: step.icon,
+                    active: step.active
+                }));
+            }
+
+            getAllTrades() {
+                return this.trades.map(trade => ({
+                    timestamp: trade.timestamp,
+                    side: trade.side,
+                    price: trade.price,
+                    amount: trade.amount
+                }));
             }
             initializeOrderbook() {
                 // Initialize with sample data
@@ -1161,6 +1491,7 @@
                 this.updateAskLevels();
                 this.updateSpread();
                 this.updateMetrics();
+                this.generateSkipListFromOrderbook();
             }
 
             updateBidLevels() {
@@ -1454,10 +1785,309 @@
                     }
                 }, 2000);
             }
+
+            // Advanced order execution methods
+            addPendingOrder(orderParams) {
+                this.addExecutionStep(
+                    'Order Queued',
+                    `${orderParams.type} order pending trigger at $${orderParams.stopPrice?.toFixed(2) || 'market'}`,
+                    '⏳'
+                );
+            }
+
+            executeIOCOrder(side, amount, price) {
+                // Immediate execution against best available prices
+                this.addExecutionStep(
+                    'IOC Execution',
+                    `Attempting immediate fill at $${price.toFixed(2)} or better`,
+                    '⚡'
+                );
+                
+                // Check if can be filled immediately
+                const book = side === 'buy' ? this.asks : this.bids;
+                let canFill = false;
+                
+                for (let [bookPrice, bookAmount] of book.entries()) {
+                    if ((side === 'buy' && bookPrice <= price) || (side === 'sell' && bookPrice >= price)) {
+                        canFill = true;
+                        break;
+                    }
+                }
+                
+                if (canFill) {
+                    this.executeMarketOrder(side, amount);
+                } else {
+                    this.addExecutionStep('IOC Cancelled', 'No immediate fill available - order cancelled', '❌');
+                }
+            }
+
+            executeFOKOrder(side, amount, price) {
+                // Check if entire order can be filled
+                this.addExecutionStep(
+                    'FOK Validation',
+                    `Checking if full ${amount} can be filled at $${price.toFixed(2)}`,
+                    '🔍'
+                );
+                
+                const book = side === 'buy' ? this.asks : this.bids;
+                let availableAmount = 0;
+                
+                for (let [bookPrice, bookAmount] of book.entries()) {
+                    if ((side === 'buy' && bookPrice <= price) || (side === 'sell' && bookPrice >= price)) {
+                        availableAmount += bookAmount;
+                        if (availableAmount >= amount) break;
+                    }
+                }
+                
+                if (availableAmount >= amount) {
+                    this.executeMarketOrder(side, amount);
+                    this.addExecutionStep('FOK Filled', `Full order executed`, '✅');
+                } else {
+                    this.addExecutionStep('FOK Killed', 'Insufficient liquidity - order killed', '💀');
+                }
+            }
+
+            executePostOnlyOrder(side, amount, price) {
+                // Check if order would cross the spread (become a taker)
+                const bestBid = Math.max(...this.bids.keys());
+                const bestAsk = Math.min(...this.asks.keys());
+                
+                let wouldCross = false;
+                if (side === 'buy' && price >= bestAsk) wouldCross = true;
+                if (side === 'sell' && price <= bestBid) wouldCross = true;
+                
+                if (wouldCross) {
+                    this.addExecutionStep(
+                        'Post-Only Rejected',
+                        `Order would cross spread - rejected to maintain maker status`,
+                        '🚫'
+                    );
+                } else {
+                    // Add to book as maker order
+                    if (side === 'buy') {
+                        this.bids.set(price, amount);
+                    } else {
+                        this.asks.set(price, amount);
+                    }
+                    this.addExecutionStep(
+                        'Post-Only Added',
+                        `Maker order added to book at $${price.toFixed(2)}`,
+                        '📌'
+                    );
+                }
+            }
+
+            executeGTDOrder(side, amount, price, expiryMinutes) {
+                // Add order with expiry tracking
+                if (side === 'buy') {
+                    this.bids.set(price, amount);
+                } else {
+                    this.asks.set(price, amount);
+                }
+                
+                this.addExecutionStep(
+                    'GTD Order Active',
+                    `Order will expire in ${expiryMinutes} minutes`,
+                    '⏰'
+                );
+                
+                // Simulate expiry (for demo purposes, much shorter timeframe)
+                setTimeout(() => {
+                    if ((side === 'buy' && this.bids.has(price)) || 
+                        (side === 'sell' && this.asks.has(price))) {
+                        if (side === 'buy') {
+                            this.bids.delete(price);
+                        } else {
+                            this.asks.delete(price);
+                        }
+                        this.addExecutionStep('GTD Expired', 'Order expired and removed', '⏰');
+                        this.updateDisplay();
+                    }
+                }, expiryMinutes * 1000); // Demo: 1 second per "minute"
+            }
+
+            executeIcebergOrder(side, amount, price, displayAmount) {
+                // Show only display amount initially
+                if (side === 'buy') {
+                    this.bids.set(price, displayAmount);
+                } else {
+                    this.asks.set(price, displayAmount);
+                }
+                
+                this.addExecutionStep(
+                    'Iceberg Order',
+                    `Showing ${displayAmount} of ${amount} total (${(amount - displayAmount).toFixed(1)} hidden)`,
+                    '🧊'
+                );
+                
+                // Simulate hidden amount management
+                const hiddenAmount = amount - displayAmount;
+                if (hiddenAmount > 0) {
+                    setTimeout(() => {
+                        this.addExecutionStep(
+                            'Iceberg Refresh',
+                            `Revealing next slice: ${Math.min(displayAmount, hiddenAmount).toFixed(1)}`,
+                            '🧊'
+                        );
+                    }, 3000);
+                }
+            }
+
+            executeTWAPOrder(side, amount, price, intervals) {
+                const amountPerInterval = amount / intervals;
+                let executedIntervals = 0;
+                
+                this.addExecutionStep(
+                    'TWAP Started',
+                    `Executing ${amount} over ${intervals} intervals (${amountPerInterval.toFixed(1)} per interval)`,
+                    '📈'
+                );
+                
+                const twapInterval = setInterval(() => {
+                    if (executedIntervals < intervals) {
+                        // Execute slice
+                        if (side === 'buy') {
+                            const currentAmount = this.bids.get(price) || 0;
+                            this.bids.set(price, currentAmount + amountPerInterval);
+                        } else {
+                            const currentAmount = this.asks.get(price) || 0;
+                            this.asks.set(price, currentAmount + amountPerInterval);
+                        }
+                        
+                        executedIntervals++;
+                        this.addExecutionStep(
+                            `TWAP Slice ${executedIntervals}`,
+                            `Executed ${amountPerInterval.toFixed(1)} - ${executedIntervals}/${intervals} complete`,
+                            '📊'
+                        );
+                        this.updateDisplay();
+                        
+                        if (executedIntervals >= intervals) {
+                            clearInterval(twapInterval);
+                            this.addExecutionStep('TWAP Complete', 'All slices executed', '✅');
+                        }
+                    }
+                }, 2000); // Execute every 2 seconds for demo
+            }
+
+            executeTrailingStopOrder(side, amount, trailDistance) {
+                const currentPrice = (Math.max(...this.bids.keys()) + Math.min(...this.asks.keys())) / 2;
+                let stopPrice = side === 'buy' ? 
+                    currentPrice + trailDistance : 
+                    currentPrice - trailDistance;
+                
+                this.addExecutionStep(
+                    'Trailing Stop Active',
+                    `Initial stop at $${stopPrice.toFixed(2)} (trail: $${trailDistance.toFixed(2)})`,
+                    '📉'
+                );
+                
+                // Simulate trailing behavior (simplified for demo)
+                let trailCount = 0;
+                const trailInterval = setInterval(() => {
+                    const newCurrentPrice = (Math.max(...this.bids.keys()) + Math.min(...this.asks.keys())) / 2;
+                    let newStopPrice = side === 'buy' ? 
+                        newCurrentPrice + trailDistance : 
+                        newCurrentPrice - trailDistance;
+                    
+                    if ((side === 'buy' && newStopPrice < stopPrice) || 
+                        (side === 'sell' && newStopPrice > stopPrice)) {
+                        stopPrice = newStopPrice;
+                        this.addExecutionStep(
+                            'Trail Updated',
+                            `Stop moved to $${stopPrice.toFixed(2)}`,
+                            '📉'
+                        );
+                    }
+                    
+                    trailCount++;
+                    if (trailCount > 5) { // Demo limit
+                        clearInterval(trailInterval);
+                        this.addExecutionStep('Trailing Stop Demo Complete', 'Monitoring ended', '✅');
+                    }
+                }, 3000);
+            }
         }
 
         // Initialize visualizer
         const visualizer = new OrderbookVisualizer();
+
+        // Order type management
+        function updateOrderTypeFields() {
+            const orderType = document.getElementById('orderType').value;
+            const tradeForm = document.getElementById('tradeForm');
+            const priceGroup = document.getElementById('priceGroup');
+            const stopPriceGroup = document.getElementById('stopPriceGroup');
+            const displayAmountGroup = document.getElementById('displayAmountGroup');
+            const expiryTimeGroup = document.getElementById('expiryTimeGroup');
+            const intervalGroup = document.getElementById('intervalGroup');
+            const trailDistanceGroup = document.getElementById('trailDistanceGroup');
+            const orderTypeIndicator = document.getElementById('orderTypeIndicator');
+
+            // Reset all conditional fields
+            [stopPriceGroup, displayAmountGroup, expiryTimeGroup, intervalGroup, trailDistanceGroup].forEach(group => {
+                group.classList.remove('active');
+                group.classList.add('hidden');
+            });
+
+            // Update indicator color
+            orderTypeIndicator.className = `order-type-indicator ${orderType}`;
+
+            // Handle layout expansion
+            tradeForm.classList.remove('expanded');
+
+            // Show/hide fields based on order type
+            switch(orderType) {
+                case 'market':
+                    priceGroup.classList.add('hidden');
+                    break;
+                    
+                case 'stop':
+                    stopPriceGroup.classList.remove('hidden');
+                    stopPriceGroup.classList.add('active');
+                    tradeForm.classList.add('expanded');
+                    priceGroup.classList.add('hidden');
+                    break;
+                    
+                case 'stop-limit':
+                    stopPriceGroup.classList.remove('hidden');
+                    stopPriceGroup.classList.add('active');
+                    tradeForm.classList.add('expanded');
+                    break;
+                    
+                case 'gtd':
+                    expiryTimeGroup.classList.remove('hidden');
+                    expiryTimeGroup.classList.add('active');
+                    tradeForm.classList.add('expanded');
+                    break;
+                    
+                case 'iceberg':
+                    displayAmountGroup.classList.remove('hidden');
+                    displayAmountGroup.classList.add('active');
+                    tradeForm.classList.add('expanded');
+                    break;
+                    
+                case 'twap':
+                    intervalGroup.classList.remove('hidden');
+                    intervalGroup.classList.add('active');
+                    tradeForm.classList.add('expanded');
+                    break;
+                    
+                case 'trailing-stop':
+                    trailDistanceGroup.classList.remove('hidden');
+                    trailDistanceGroup.classList.add('active');
+                    priceGroup.classList.add('hidden');
+                    tradeForm.classList.add('expanded');
+                    break;
+                    
+                default:
+                    priceGroup.classList.remove('hidden');
+                    break;
+            }
+        }
+
+        // Initialize order type fields on page load
+        updateOrderTypeFields();
 
         // Control functions
         function generateRandomTrade() {
@@ -1536,24 +2166,128 @@
             btn.disabled = true;
             
             setTimeout(() => {
+                const orderType = document.getElementById('orderType').value;
                 const side = document.getElementById('orderSide').value;
-                const price = parseFloat(document.getElementById('orderPrice').value);
                 const amount = parseFloat(document.getElementById('orderAmount').value);
                 
-                // Trigger algorithm visualization for custom orders
-                visualizer.addExecutionStep(
-                    'Limit Order Received',
-                    `Processing ${side} limit order: ${amount} @ $${price.toFixed(2)}`,
-                    '📋'
-                );
+                // Get order-specific parameters
+                let orderParams = {
+                    type: orderType,
+                    side: side,
+                    amount: amount
+                };
                 
-                visualizer.animateSkipListTraversal(price, side);
+                let executionMessage = '';
+                let orderIcon = '📋';
                 
-                if (side === 'buy') {
-                    visualizer.bids.set(price, amount);
-                } else {
-                    visualizer.asks.set(price, amount);
+                // Handle different order types
+                switch(orderType) {
+                    case 'market':
+                        executionMessage = `Processing ${side} market order: ${amount} shares`;
+                        orderIcon = '⚡';
+                        visualizer.executeMarketOrder(side, amount);
+                        break;
+                        
+                    case 'limit':
+                        const price = parseFloat(document.getElementById('orderPrice').value);
+                        orderParams.price = price;
+                        executionMessage = `Processing ${side} limit order: ${amount} @ $${price.toFixed(2)}`;
+                        orderIcon = '📊';
+                        visualizer.animateSkipListTraversal(price, side);
+                        if (side === 'buy') {
+                            visualizer.bids.set(price, amount);
+                        } else {
+                            visualizer.asks.set(price, amount);
+                        }
+                        break;
+                        
+                    case 'stop':
+                        const stopPrice = parseFloat(document.getElementById('stopPrice').value);
+                        orderParams.stopPrice = stopPrice;
+                        executionMessage = `Processing ${side} stop order: ${amount} @ stop $${stopPrice.toFixed(2)}`;
+                        orderIcon = '🛑';
+                        visualizer.addPendingOrder({...orderParams, status: 'pending-trigger'});
+                        break;
+                        
+                    case 'stop-limit':
+                        const limitPrice = parseFloat(document.getElementById('orderPrice').value);
+                        const stopLimitPrice = parseFloat(document.getElementById('stopPrice').value);
+                        orderParams.price = limitPrice;
+                        orderParams.stopPrice = stopLimitPrice;
+                        executionMessage = `Processing ${side} stop-limit: ${amount} @ $${limitPrice.toFixed(2)} stop $${stopLimitPrice.toFixed(2)}`;
+                        orderIcon = '🎯';
+                        visualizer.addPendingOrder({...orderParams, status: 'pending-trigger'});
+                        break;
+                        
+                    case 'ioc':
+                        const iocPrice = parseFloat(document.getElementById('orderPrice').value);
+                        orderParams.price = iocPrice;
+                        executionMessage = `Processing ${side} IOC order: ${amount} @ $${iocPrice.toFixed(2)} (immediate or cancel)`;
+                        orderIcon = '⏱️';
+                        visualizer.executeIOCOrder(side, amount, iocPrice);
+                        break;
+                        
+                    case 'fok':
+                        const fokPrice = parseFloat(document.getElementById('orderPrice').value);
+                        orderParams.price = fokPrice;
+                        executionMessage = `Processing ${side} FOK order: ${amount} @ $${fokPrice.toFixed(2)} (fill or kill)`;
+                        orderIcon = '💥';
+                        visualizer.executeFOKOrder(side, amount, fokPrice);
+                        break;
+                        
+                    case 'post-only':
+                        const postPrice = parseFloat(document.getElementById('orderPrice').value);
+                        orderParams.price = postPrice;
+                        executionMessage = `Processing ${side} post-only: ${amount} @ $${postPrice.toFixed(2)} (maker only)`;
+                        orderIcon = '📌';
+                        visualizer.executePostOnlyOrder(side, amount, postPrice);
+                        break;
+                        
+                    case 'gtd':
+                        const gtdPrice = parseFloat(document.getElementById('orderPrice').value);
+                        const expiryMinutes = parseInt(document.getElementById('expiryTime').value);
+                        orderParams.price = gtdPrice;
+                        orderParams.expiry = expiryMinutes;
+                        executionMessage = `Processing ${side} GTD order: ${amount} @ $${gtdPrice.toFixed(2)} (expires in ${expiryMinutes}min)`;
+                        orderIcon = '📅';
+                        visualizer.executeGTDOrder(side, amount, gtdPrice, expiryMinutes);
+                        break;
+                        
+                    case 'iceberg':
+                        const icebergPrice = parseFloat(document.getElementById('orderPrice').value);
+                        const displayAmount = parseFloat(document.getElementById('displayAmount').value);
+                        orderParams.price = icebergPrice;
+                        orderParams.displayAmount = displayAmount;
+                        executionMessage = `Processing ${side} iceberg: ${amount} @ $${icebergPrice.toFixed(2)} (display: ${displayAmount})`;
+                        orderIcon = '🧊';
+                        visualizer.executeIcebergOrder(side, amount, icebergPrice, displayAmount);
+                        break;
+                        
+                    case 'twap':
+                        const twapPrice = parseFloat(document.getElementById('orderPrice').value);
+                        const intervals = parseInt(document.getElementById('twapInterval').value);
+                        orderParams.price = twapPrice;
+                        orderParams.intervals = intervals;
+                        executionMessage = `Processing ${side} TWAP: ${amount} @ $${twapPrice.toFixed(2)} (${intervals} intervals)`;
+                        orderIcon = '📈';
+                        visualizer.executeTWAPOrder(side, amount, twapPrice, intervals);
+                        break;
+                        
+                    case 'trailing-stop':
+                        const trailDistance = parseFloat(document.getElementById('trailDistance').value);
+                        orderParams.trailDistance = trailDistance;
+                        executionMessage = `Processing ${side} trailing stop: ${amount} (trail: $${trailDistance.toFixed(2)})`;
+                        orderIcon = '📉';
+                        visualizer.executeTrailingStopOrder(side, amount, trailDistance);
+                        break;
                 }
+                
+                // Trigger algorithm visualization
+                visualizer.addExecutionStep(
+                    `${orderType.charAt(0).toUpperCase() + orderType.slice(1)} Order Received`,
+                    executionMessage,
+                    orderIcon
+                );
                 
                 visualizer.updateDisplay();
                 
@@ -1561,6 +2295,240 @@
                 btn.disabled = false;
             }, 300);
         }
+
+        // Modal functionality
+        function closeModal() {
+            const modal = document.getElementById('expandModal');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        function openModal(title, content) {
+            const modal = document.getElementById('expandModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            modalTitle.textContent = title;
+            modalBody.innerHTML = content;
+            
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+        }
+
+        function expandTradeHistory() {
+            const trades = visualizer.getAllTrades();
+            let content = `
+                <div class="modal-stats-grid">
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${trades.length}</div>
+                        <div class="modal-stat-label">Total Trades</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${trades.filter(t => t.side === 'buy').length}</div>
+                        <div class="modal-stat-label">Buy Orders</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${trades.filter(t => t.side === 'sell').length}</div>
+                        <div class="modal-stat-label">Sell Orders</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">$${trades.reduce((sum, t) => sum + (t.price * t.amount), 0).toLocaleString()}</div>
+                        <div class="modal-stat-label">Total Volume</div>
+                    </div>
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+            `;
+            
+            trades.forEach(trade => {
+                content += `
+                    <div class="modal-list-item">
+                        <span>${trade.timestamp}</span>
+                        <span style="color: ${trade.side === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                            ${trade.side.toUpperCase()}
+                        </span>
+                        <span>$${trade.price.toFixed(2)}</span>
+                        <span>${trade.amount.toFixed(1)}</span>
+                        <span>$${(trade.price * trade.amount).toFixed(2)}</span>
+                    </div>
+                `;
+            });
+            
+            content += '</div>';
+            openModal('📈 Trade History - Full View', content);
+        }
+
+        function expandExecutionSteps() {
+            const steps = visualizer.getAllExecutionSteps();
+            let content = `
+                <div class="modal-stats-grid">
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${steps.length}</div>
+                        <div class="modal-stat-label">Total Steps</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${steps.filter(s => s.active).length}</div>
+                        <div class="modal-stat-label">Active Steps</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${visualizer.computeOps}</div>
+                        <div class="modal-stat-label">Compute Operations</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${visualizer.comparisons}</div>
+                        <div class="modal-stat-label">Node Comparisons</div>
+                    </div>
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+            `;
+            
+            steps.forEach(step => {
+                content += `
+                    <div class="modal-list-item">
+                        <div>
+                            <div style="font-weight: bold; color: ${step.active ? 'var(--accent-green)' : 'var(--ink-medium)'}">
+                                ${step.icon} ${step.operation}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--ink-medium); margin-top: 0.2rem;">
+                                ${step.description}
+                            </div>
+                        </div>
+                        <span>${step.timestamp}</span>
+                    </div>
+                `;
+            });
+            
+            content += '</div>';
+            openModal('🔍 Algorithm Execution Steps - Full View', content);
+        }
+
+        function expandSkipList() {
+            const nodes = visualizer.skipListNodes;
+            let content = `
+                <div class="modal-stats-grid">
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${nodes.length}</div>
+                        <div class="modal-stat-label">Skip List Nodes</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${visualizer.skipListLevels}</div>
+                        <div class="modal-stat-label">Skip List Levels</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${visualizer.currentLevel}</div>
+                        <div class="modal-stat-label">Current Level</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">O(log n)</div>
+                        <div class="modal-stat-label">Search Complexity</div>
+                    </div>
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+            `;
+            
+            for (let level = visualizer.skipListLevels - 1; level >= 0; level--) {
+                content += `<h4 style="margin: 1rem 0 0.5rem 0;">Level ${level}</h4>`;
+                nodes.forEach(node => {
+                    if (node.levels[level]) {
+                        content += `
+                            <div class="modal-list-item">
+                                <span style="font-weight: bold;">$${node.price.toFixed(2)}</span>
+                                <span>Present at ${node.levels.filter(l => l).length} levels</span>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            content += '</div>';
+            openModal('📊 Skip List Structure - Full View', content);
+        }
+
+        // CSV Export functions
+        function exportTradesToCSV() {
+            const trades = visualizer.getAllTrades();
+            const csvContent = [
+                ['Timestamp', 'Side', 'Price', 'Amount', 'Total Value'].join(','),
+                ...trades.map(trade => [
+                    trade.timestamp,
+                    trade.side,
+                    trade.price.toFixed(2),
+                    trade.amount.toFixed(1),
+                    (trade.price * trade.amount).toFixed(2)
+                ].join(','))
+            ].join('\n');
+            
+            downloadCSV(csvContent, 'abyssbook-trades.csv');
+        }
+
+        function exportMetricsToCSV() {
+            const metrics = visualizer.getAllMetrics();
+            const steps = visualizer.getAllExecutionSteps();
+            
+            // Export metrics summary
+            const metricsCSV = [
+                ['Metric', 'Value'].join(','),
+                ['Timestamp', metrics.timestamp],
+                ['Compute Operations', metrics.computeOps],
+                ['Memory Allocations', metrics.memoryAllocs],
+                ['Node Comparisons', metrics.comparisons],
+                ['Current Skip Level', metrics.currentLevel],
+                ['Total Orders', metrics.totalOrders],
+                ['Bid Levels', metrics.bidLevels],
+                ['Ask Levels', metrics.askLevels],
+                ['Spread', metrics.spread.toFixed(2)],
+                ['Mid Price', metrics.midPrice.toFixed(2)],
+                ['Total Trades', metrics.totalTrades]
+            ].map(row => row.join(',')).join('\n');
+            
+            downloadCSV(metricsCSV, 'abyssbook-metrics.csv');
+            
+            // Export execution steps
+            const stepsCSV = [
+                ['Timestamp', 'Operation', 'Description', 'Status'].join(','),
+                ...steps.map(step => [
+                    step.timestamp,
+                    `"${step.operation}"`,
+                    `"${step.description}"`,
+                    step.active ? 'Active' : 'Completed'
+                ].join(','))
+            ].join('\n');
+            
+            downloadCSV(stepsCSV, 'abyssbook-execution-steps.csv');
+        }
+
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('expandModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
