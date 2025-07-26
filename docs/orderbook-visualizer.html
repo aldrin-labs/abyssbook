@@ -439,6 +439,221 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* Algorithm Execution Monitor Styles */
+        .execution-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .stat-card.updated::before {
+            left: 100%;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-value.incrementing {
+            animation: counterIncrement 0.4s ease-out;
+        }
+
+        @keyframes counterIncrement {
+            0% { transform: scale(1); color: var(--accent-blue); }
+            50% { transform: scale(1.1); color: var(--accent-green); }
+            100% { transform: scale(1); color: var(--accent-blue); }
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--ink-medium);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .algorithm-steps {
+            margin: 2rem 0;
+        }
+
+        .steps-container {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .execution-step {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 4px;
+            border-left: 3px solid var(--accent-blue);
+            animation: stepAppear 0.3s ease-out;
+        }
+
+        .execution-step.active {
+            border-left-color: var(--accent-green);
+            background: rgba(22, 101, 52, 0.1);
+        }
+
+        .execution-step.completed {
+            border-left-color: var(--ink-light);
+            opacity: 0.7;
+        }
+
+        @keyframes stepAppear {
+            0% { opacity: 0; transform: translateX(-20px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        .step-icon {
+            margin-right: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .step-details {
+            flex: 1;
+        }
+
+        .step-operation {
+            font-weight: bold;
+            color: var(--ink-dark);
+        }
+
+        .step-description {
+            font-size: 0.9rem;
+            color: var(--ink-medium);
+            margin-top: 0.2rem;
+        }
+
+        .skip-list-visualization {
+            margin: 2rem 0;
+        }
+
+        .skip-list-container {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            min-height: 200px;
+            overflow-x: auto;
+        }
+
+        .skip-list-level {
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 0;
+            min-height: 40px;
+        }
+
+        .level-label {
+            width: 60px;
+            font-weight: bold;
+            color: var(--ink-medium);
+            font-size: 0.9rem;
+        }
+
+        .skip-list-nodes {
+            display: flex;
+            flex: 1;
+            align-items: center;
+        }
+
+        .skip-node {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-light);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .skip-node.current {
+            border-color: var(--accent-blue);
+            background: rgba(30, 58, 138, 0.1);
+            transform: scale(1.05);
+        }
+
+        .skip-node.matched {
+            border-color: var(--accent-green);
+            background: rgba(22, 101, 52, 0.1);
+            animation: nodeMatch 0.6s ease-out;
+        }
+
+        .skip-node.comparing {
+            border-color: var(--accent-red);
+            background: rgba(220, 38, 38, 0.1);
+            animation: nodeCompare 0.4s ease-out;
+        }
+
+        @keyframes nodeMatch {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1.05); }
+        }
+
+        @keyframes nodeCompare {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .node-connector {
+            width: 20px;
+            height: 2px;
+            background: var(--ink-light);
+            position: relative;
+        }
+
+        .node-connector.active {
+            background: var(--accent-blue);
+            animation: connectorPulse 0.8s ease-in-out;
+        }
+
+        @keyframes connectorPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
         @media (max-width: 768px) {
             .orderbook-container {
                 grid-template-columns: 1fr;
@@ -449,6 +664,10 @@
                 grid-template-columns: 1fr;
             }
             
+            .execution-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
             /* Reduce animation intensity on mobile for better performance */
             .order-level:hover {
                 transform: translateX(3px);
@@ -456,6 +675,10 @@
             
             .btn:hover {
                 transform: translateY(-1px);
+            }
+            
+            .skip-list-container {
+                overflow-x: scroll;
             }
         }
     </style>
@@ -536,6 +759,40 @@
             </div>
 
             <div class="paper-section">
+                <h3>⚡ Algorithm Execution Monitor</h3>
+                <p class="subtitle">Watch AbyssBook's skip list algorithm process orders in real-time</p>
+                
+                <div class="execution-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="computeOps">0</div>
+                        <div class="stat-label">Compute Operations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="memoryAllocs">0</div>
+                        <div class="stat-label">Memory Allocations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="comparisons">0</div>
+                        <div class="stat-label">Node Comparisons</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="skipListLevel">0</div>
+                        <div class="stat-label">Current Skip Level</div>
+                    </div>
+                </div>
+
+                <div class="algorithm-steps">
+                    <h4>🔍 Current Execution Steps</h4>
+                    <div class="steps-container" id="executionSteps"></div>
+                </div>
+
+                <div class="skip-list-visualization">
+                    <h4>📊 Skip List Structure</h4>
+                    <div class="skip-list-container" id="skipListContainer"></div>
+                </div>
+            </div>
+
+            <div class="paper-section">
                 <h3>📈 Recent Trades</h3>
                 <div class="trade-history" id="tradeHistory"></div>
             </div>
@@ -550,10 +807,240 @@
                 this.trades = [];
                 this.animationRunning = true;
                 
+                // Algorithm execution tracking
+                this.computeOps = 0;
+                this.memoryAllocs = 0;
+                this.comparisons = 0;
+                this.currentLevel = 0;
+                this.executionSteps = [];
+                this.skipListLevels = 4; // Typical skip list height
+                
                 this.initializeOrderbook();
+                this.initializeSkipList();
                 this.startAnimation();
             }
 
+            initializeSkipList() {
+                // Initialize skip list visualization with sample nodes
+                this.skipListNodes = [
+                    { price: 9520.00, levels: [true, true, false, false] },
+                    { price: 9522.50, levels: [true, false, false, false] },
+                    { price: 9525.00, levels: [true, true, true, false] },
+                    { price: 9527.50, levels: [true, false, false, false] },
+                    { price: 9530.00, levels: [true, true, false, false] }
+                ];
+                this.updateSkipListDisplay();
+                this.updateExecutionStats();
+            }
+
+            updateExecutionStats() {
+                // Update stat counters with animations
+                const updateStat = (id, value) => {
+                    const element = document.getElementById(id);
+                    const oldValue = parseInt(element.textContent) || 0;
+                    if (value !== oldValue) {
+                        element.textContent = value;
+                        element.classList.add('incrementing');
+                        element.parentElement.classList.add('updated');
+                        setTimeout(() => {
+                            element.classList.remove('incrementing');
+                            element.parentElement.classList.remove('updated');
+                        }, 400);
+                    }
+                };
+
+                updateStat('computeOps', this.computeOps);
+                updateStat('memoryAllocs', this.memoryAllocs);
+                updateStat('comparisons', this.comparisons);
+                updateStat('skipListLevel', this.currentLevel);
+            }
+
+            addExecutionStep(operation, description, icon = '⚡') {
+                const step = {
+                    id: Date.now(),
+                    operation,
+                    description,
+                    icon,
+                    timestamp: new Date().toLocaleTimeString(),
+                    active: true
+                };
+
+                this.executionSteps.unshift(step);
+                
+                // Keep only last 10 steps
+                if (this.executionSteps.length > 10) {
+                    this.executionSteps.pop();
+                }
+
+                this.updateExecutionStepsDisplay();
+
+                // Mark step as completed after a delay
+                setTimeout(() => {
+                    step.active = false;
+                    this.updateExecutionStepsDisplay();
+                }, 2000);
+            }
+
+            updateExecutionStepsDisplay() {
+                const container = document.getElementById('executionSteps');
+                container.innerHTML = this.executionSteps.map(step => `
+                    <div class="execution-step ${step.active ? 'active' : 'completed'}">
+                        <div class="step-icon">${step.icon}</div>
+                        <div class="step-details">
+                            <div class="step-operation">${step.operation}</div>
+                            <div class="step-description">${step.description}</div>
+                        </div>
+                        <div class="step-time">${step.timestamp}</div>
+                    </div>
+                `).join('');
+            }
+
+            updateSkipListDisplay() {
+                const container = document.getElementById('skipListContainer');
+                let html = '';
+
+                for (let level = this.skipListLevels - 1; level >= 0; level--) {
+                    html += `<div class="skip-list-level">`;
+                    html += `<div class="level-label">Level ${level}</div>`;
+                    html += `<div class="skip-list-nodes">`;
+
+                    let first = true;
+                    this.skipListNodes.forEach((node, index) => {
+                        if (node.levels[level]) {
+                            if (!first) {
+                                html += `<div class="node-connector"></div>`;
+                            }
+                            html += `
+                                <div class="skip-node" data-price="${node.price}" data-level="${level}">
+                                    $${node.price.toFixed(2)}
+                                </div>
+                            `;
+                            first = false;
+                        }
+                    });
+
+                    html += `</div></div>`;
+                }
+
+                container.innerHTML = html;
+            }
+
+            animateSkipListTraversal(targetPrice, side) {
+                this.addExecutionStep(
+                    'Skip List Traversal Started',
+                    `Searching for ${side} order at price $${targetPrice.toFixed(2)}`,
+                    '🔍'
+                );
+
+                let currentLevel = this.skipListLevels - 1;
+                let stepDelay = 0;
+
+                const traverseLevel = (level) => {
+                    setTimeout(() => {
+                        this.currentLevel = level;
+                        this.updateExecutionStats();
+
+                        // Highlight current level
+                        document.querySelectorAll('.skip-node').forEach(node => {
+                            node.classList.remove('current', 'comparing', 'matched');
+                        });
+
+                        // Find nodes to compare at this level
+                        const levelNodes = document.querySelectorAll(`[data-level="${level}"]`);
+                        let nodeFound = false;
+
+                        levelNodes.forEach((node, index) => {
+                            setTimeout(() => {
+                                const nodePrice = parseFloat(node.dataset.price);
+                                node.classList.add('current');
+                                
+                                this.comparisons++;
+                                this.computeOps++;
+                                this.updateExecutionStats();
+
+                                this.addExecutionStep(
+                                    'Node Comparison',
+                                    `Comparing target $${targetPrice.toFixed(2)} with node $${nodePrice.toFixed(2)} at level ${level}`,
+                                    '🔍'
+                                );
+
+                                setTimeout(() => {
+                                    if (Math.abs(nodePrice - targetPrice) < 0.01) {
+                                        node.classList.remove('current');
+                                        node.classList.add('matched');
+                                        nodeFound = true;
+                                        
+                                        this.addExecutionStep(
+                                            'Match Found',
+                                            `Exact price match found at $${nodePrice.toFixed(2)}`,
+                                            '✅'
+                                        );
+                                    } else {
+                                        node.classList.remove('current');
+                                        node.classList.add('comparing');
+                                        
+                                        setTimeout(() => {
+                                            node.classList.remove('comparing');
+                                        }, 500);
+                                    }
+                                }, 300);
+
+                            }, index * 200);
+                        });
+
+                        // Continue to next level
+                        if (level > 0 && !nodeFound) {
+                            setTimeout(() => {
+                                traverseLevel(level - 1);
+                            }, levelNodes.length * 200 + 500);
+                        } else {
+                            // Insertion/matching complete
+                            setTimeout(() => {
+                                this.completeOrderExecution(targetPrice, side);
+                            }, levelNodes.length * 200 + 800);
+                        }
+
+                    }, stepDelay);
+                };
+
+                traverseLevel(currentLevel);
+            }
+
+            completeOrderExecution(price, side) {
+                // Simulate memory allocation for new order
+                this.memoryAllocs++;
+                this.computeOps += 2; // Insert operation + rebalance
+                this.updateExecutionStats();
+
+                this.addExecutionStep(
+                    'Order Execution Complete',
+                    `${side === 'buy' ? 'Buy' : 'Sell'} order processed with O(log n) complexity`,
+                    '✅'
+                );
+
+                // Add new node to skip list if it's a new price level
+                const existingNode = this.skipListNodes.find(node => Math.abs(node.price - price) < 0.01);
+                if (!existingNode) {
+                    // Simulate probabilistic level assignment
+                    const levels = [true]; // Level 0 always true
+                    for (let i = 1; i < this.skipListLevels; i++) {
+                        levels.push(Math.random() < 0.5); // 50% probability for each level
+                    }
+
+                    this.skipListNodes.push({ price, levels });
+                    this.skipListNodes.sort((a, b) => a.price - b.price);
+                    
+                    this.memoryAllocs++;
+                    this.updateExecutionStats();
+                    this.updateSkipListDisplay();
+
+                    this.addExecutionStep(
+                        'New Price Level Created', 
+                        `Allocated new skip list node at $${price.toFixed(2)}`,
+                        '🆕'
+                    );
+                }
+            }
             initializeOrderbook() {
                 // Initialize with sample data
                 const basePrice = 9525;
@@ -747,6 +1234,13 @@
             }
 
             executeMarketOrder(side, amount) {
+                // Start algorithm execution animation
+                this.addExecutionStep(
+                    'Market Order Received',
+                    `Processing ${side} order for ${amount.toFixed(1)} units`,
+                    '📨'
+                );
+
                 if (side === 'buy') {
                     // Execute against asks
                     let remainingAmount = amount;
@@ -755,16 +1249,32 @@
                     for (const [price, availableAmount] of sortedAsks) {
                         if (remainingAmount <= 0) break;
                         
+                        // Animate skip list traversal for this price
+                        this.animateSkipListTraversal(price, 'buy');
+                        
                         const tradeAmount = Math.min(remainingAmount, availableAmount);
                         this.simulateTrade('buy', price, tradeAmount);
                         
                         if (availableAmount <= tradeAmount) {
                             this.asks.delete(price);
+                            this.addExecutionStep(
+                                'Price Level Removed',
+                                `Deleted ask level at $${price.toFixed(2)} - fully consumed`,
+                                '🗑️'
+                            );
                         } else {
                             this.asks.set(price, availableAmount - tradeAmount);
+                            this.addExecutionStep(
+                                'Price Level Updated',
+                                `Updated ask level at $${price.toFixed(2)} - remaining: ${(availableAmount - tradeAmount).toFixed(1)}`,
+                                '📝'
+                            );
                         }
                         
                         remainingAmount -= tradeAmount;
+                        
+                        // Only process one level for visual clarity
+                        break;
                     }
                 } else {
                     // Execute against bids
@@ -774,16 +1284,32 @@
                     for (const [price, availableAmount] of sortedBids) {
                         if (remainingAmount <= 0) break;
                         
+                        // Animate skip list traversal for this price
+                        this.animateSkipListTraversal(price, 'sell');
+                        
                         const tradeAmount = Math.min(remainingAmount, availableAmount);
                         this.simulateTrade('sell', price, tradeAmount);
                         
                         if (availableAmount <= tradeAmount) {
                             this.bids.delete(price);
+                            this.addExecutionStep(
+                                'Price Level Removed',
+                                `Deleted bid level at $${price.toFixed(2)} - fully consumed`,
+                                '🗑️'
+                            );
                         } else {
                             this.bids.set(price, availableAmount - tradeAmount);
+                            this.addExecutionStep(
+                                'Price Level Updated',
+                                `Updated bid level at $${price.toFixed(2)} - remaining: ${(availableAmount - tradeAmount).toFixed(1)}`,
+                                '📝'
+                            );
                         }
                         
                         remainingAmount -= tradeAmount;
+                        
+                        // Only process one level for visual clarity
+                        break;
                     }
                 }
                 
@@ -797,6 +1323,11 @@
                     const price = bestBid - Math.random() * 5;
                     const amount = Math.random() * 50 + 5;
                     this.bids.set(price, amount);
+                    
+                    // Track operations for random order addition
+                    this.computeOps++;
+                    this.memoryAllocs++;
+                    this.updateExecutionStats();
                 }
                 
                 // Add random ask
@@ -805,6 +1336,11 @@
                     const price = bestAsk + Math.random() * 5;
                     const amount = Math.random() * 50 + 5;
                     this.asks.set(price, amount);
+                    
+                    // Track operations for random order addition
+                    this.computeOps++;
+                    this.memoryAllocs++;
+                    this.updateExecutionStats();
                 }
             }
 
@@ -909,6 +1445,15 @@
                 const side = document.getElementById('orderSide').value;
                 const price = parseFloat(document.getElementById('orderPrice').value);
                 const amount = parseFloat(document.getElementById('orderAmount').value);
+                
+                // Trigger algorithm visualization for custom orders
+                visualizer.addExecutionStep(
+                    'Limit Order Received',
+                    `Processing ${side} limit order: ${amount} @ $${price.toFixed(2)}`,
+                    '📋'
+                );
+                
+                visualizer.animateSkipListTraversal(price, side);
                 
                 if (side === 'buy') {
                     visualizer.bids.set(price, amount);
