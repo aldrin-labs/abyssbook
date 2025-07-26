@@ -307,6 +307,12 @@
             font-family: 'Courier New', monospace;
             margin-left: 1rem;
             font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .complexity-badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
         }
 
         .complexity-section {
@@ -315,6 +321,13 @@
             border-radius: 5px;
             padding: 1rem;
             margin: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .complexity-section:hover {
+            background: rgba(124, 58, 237, 0.08);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
         }
 
         .step-indicator {
@@ -327,6 +340,17 @@
             border-radius: 5px;
             font-family: 'Courier New', monospace;
             font-weight: bold;
+            transition: all 0.4s ease;
+        }
+
+        .step-indicator.updated {
+            animation: stepUpdate 0.6s ease-out;
+        }
+
+        @keyframes stepUpdate {
+            0% { transform: scale(1); background: var(--accent-blue); }
+            50% { transform: scale(1.05); background: var(--accent-green); }
+            100% { transform: scale(1); background: var(--accent-blue); }
         }
 
         .progress-bar {
@@ -337,13 +361,153 @@
             border-radius: 10px;
             overflow: hidden;
             margin: 1rem 0;
+            position: relative;
         }
 
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
             width: 0%;
-            transition: width 0.5s ease;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+            animation: progressShine 2s ease-in-out infinite;
+        }
+
+        @keyframes progressShine {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .order-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(0);
+        }
+
+        .order-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .order-item.processing {
+            animation: orderProcessing 1s ease-in-out;
+        }
+
+        .order-item.matched {
+            animation: orderMatched 0.8s ease-out forwards;
+        }
+
+        @keyframes orderProcessing {
+            0% { background: transparent; transform: scale(1); }
+            50% { background: rgba(255, 215, 0, 0.3); transform: scale(1.02); }
+            100% { background: transparent; transform: scale(1); }
+        }
+
+        @keyframes orderMatched {
+            0% { opacity: 1; transform: scale(1); }
+            50% { background: rgba(34, 197, 94, 0.3); transform: scale(1.05); }
+            100% { opacity: 0.7; transform: scale(0.95); }
+        }
+
+        .vector-element {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .vector-element:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .vector-element.processing {
+            animation: vectorProcessing 0.6s ease-out;
+        }
+
+        @keyframes vectorProcessing {
+            0% { background: var(--paper-surface); transform: scale(1); }
+            50% { background: var(--accent-blue); color: white; transform: scale(1.1); }
+            100% { background: var(--paper-surface); color: var(--ink-dark); transform: scale(1); }
+        }
+
+        .tab-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .tab-button:hover::before {
+            left: 100%;
+        }
+
+        .btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: width 0.3s, height 0.3s, top 0.3s, left 0.3s;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         @media (max-width: 768px) {
@@ -631,11 +795,14 @@
             }
 
             async matchOrders(bid, ask) {
-                // Highlight processing orders
+                // Highlight processing orders with animation
                 this.highlightOrder(bid.id, 'processing');
                 this.highlightOrder(ask.id, 'processing');
                 
-                document.getElementById('matchingStep').textContent = `Step ${this.step}: Matching ${bid.price} ≥ ${ask.price}`;
+                const stepIndicator = document.getElementById('matchingStep');
+                stepIndicator.textContent = `Step ${this.step}: Matching ${bid.price} ≥ ${ask.price}`;
+                stepIndicator.classList.add('updated');
+                setTimeout(() => stepIndicator.classList.remove('updated'), 600);
                 
                 await this.sleep(1000);
 
@@ -739,11 +906,17 @@
                 this.isRunning = true;
                 this.step = 1;
 
-                document.getElementById('simdStep').textContent = 'Step 1: Load Vectors';
+                const stepIndicator = document.getElementById('simdStep');
+                stepIndicator.textContent = 'Step 1: Load Vectors';
+                stepIndicator.classList.add('updated');
+                setTimeout(() => stepIndicator.classList.remove('updated'), 600);
                 await this.sleep(1000);
 
-                // Simulate vectorized comparison
-                document.getElementById('simdStep').textContent = 'Step 2: Vectorized Compare';
+                // Simulate vectorized comparison with enhanced animations
+                stepIndicator.textContent = 'Step 2: Vectorized Compare';
+                stepIndicator.classList.add('updated');
+                setTimeout(() => stepIndicator.classList.remove('updated'), 600);
+                
                 for (let i = 0; i < 8; i++) {
                     this.highlightElement('priceVector', i);
                     this.highlightElement('amountVector', i);
@@ -751,9 +924,14 @@
                     
                     this.results[i] = this.prices[i] > 9500 ? 1 : 0;
                     this.updateVector('resultVector', this.results);
+                    
+                    // Highlight the result
+                    this.highlightElement('resultVector', i);
                 }
 
-                document.getElementById('simdStep').textContent = 'Step 3: Store Results';
+                stepIndicator.textContent = 'Step 3: Store Results';
+                stepIndicator.classList.add('updated');
+                setTimeout(() => stepIndicator.classList.remove('updated'), 600);
                 this.isRunning = false;
             }
 
@@ -786,19 +964,89 @@
         matchingViz.generateInitialOrders();
         simdViz.generateRandomData();
 
-        // Control functions
-        function startOrderMatching() { matchingViz.startMatching(); }
-        function addRandomOrder() { 
-            const side = Math.random() > 0.5 ? 'buy' : 'sell';
-            const price = side === 'buy' ? 9500 - Math.random() * 50 : 9505 + Math.random() * 50;
-            const amount = Math.floor(Math.random() * 100) + 10;
-            matchingViz.addOrder(side, price, amount);
+        // Control functions with loading states
+        function startOrderMatching() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '▶️ Starting...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                matchingViz.startMatching();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 300);
         }
-        function resetMatching() { matchingViz.reset(); }
+        
+        function addRandomOrder() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '➕ Adding...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                const side = Math.random() > 0.5 ? 'buy' : 'sell';
+                const price = side === 'buy' ? 9500 - Math.random() * 50 : 9505 + Math.random() * 50;
+                const amount = Math.floor(Math.random() * 100) + 10;
+                matchingViz.addOrder(side, price, amount);
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 200);
+        }
+        
+        function resetMatching() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🔄 Resetting...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                matchingViz.reset();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 500);
+        }
 
-        function startSIMD() { simdViz.startSIMD(); }
-        function generateRandomPrices() { simdViz.generateRandomData(); }
-        function resetSIMD() { simdViz.reset(); }
+        function startSIMD() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '▶️ Computing...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                simdViz.startSIMD().then(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+            }, 200);
+        }
+        
+        function generateRandomPrices() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🎲 Generating...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                simdViz.generateRandomData();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 300);
+        }
+        
+        function resetSIMD() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🔄 Resetting...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                simdViz.reset();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 400);
+        }
 
         // Sharding visualization functions
         let shardOrders = [0, 0, 0, 0];
@@ -895,6 +1143,49 @@
             document.getElementById('twapTotal').textContent = twapTotal.toLocaleString();
             document.getElementById('twapPerInterval').textContent = (twapTotal / 10).toLocaleString();
         }
+
+        // Tab switching with animations
+        function showAlgorithm(algorithmName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Hide all algorithm contents with fade out
+            document.querySelectorAll('.algorithm-content').forEach(content => {
+                if (content.classList.contains('active')) {
+                    content.style.opacity = '0';
+                    content.style.transform = 'translateY(10px)';
+                    setTimeout(() => {
+                        content.classList.remove('active');
+                        content.style.display = 'none';
+                    }, 200);
+                }
+            });
+
+            // Show selected algorithm content with fade in
+            setTimeout(() => {
+                const targetContent = document.getElementById(algorithmName);
+                targetContent.style.display = 'block';
+                targetContent.classList.add('active');
+                
+                // Trigger reflow
+                targetContent.offsetHeight;
+                
+                targetContent.style.opacity = '1';
+                targetContent.style.transform = 'translateY(0)';
+            }, 250);
+        }
+
+        // Add CSS transitions for algorithm content switching
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.algorithm-content').forEach(content => {
+                content.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                content.style.opacity = content.classList.contains('active') ? '1' : '0';
+                content.style.transform = 'translateY(0)';
+            });
+        });
     </script>
 </body>
 </html>

@@ -300,6 +300,144 @@
         .trade-entry.buy { border-left: 3px solid var(--accent-green); }
         .trade-entry.sell { border-left: 3px solid var(--accent-red); }
 
+        /* Micro animations */
+        .order-level {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(0);
+        }
+
+        .order-level:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            background: rgba(255,255,255,0.1);
+        }
+
+        .order-level.updated {
+            animation: levelUpdate 0.6s ease-out;
+        }
+
+        @keyframes levelUpdate {
+            0% { background: rgba(255, 215, 0, 0.3); transform: scale(1.02); }
+            100% { background: transparent; transform: scale(1); }
+        }
+
+        .trade-entry {
+            animation: tradeSlideIn 0.4s ease-out;
+            transition: all 0.2s ease;
+        }
+
+        .trade-entry:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        @keyframes tradeSlideIn {
+            0% { opacity: 0; transform: translateX(-20px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        .metric-value {
+            transition: all 0.3s ease;
+        }
+
+        .metric-value.updated {
+            animation: valueFlash 0.5s ease-out;
+        }
+
+        @keyframes valueFlash {
+            0% { color: var(--accent-blue); transform: scale(1.05); }
+            100% { color: var(--ink-dark); transform: scale(1); }
+        }
+
+        .btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: width 0.3s, height 0.3s, top 0.3s, left 0.3s;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .spread-value {
+            transition: all 0.4s ease;
+        }
+
+        .spread-value.changed {
+            animation: spreadPulse 0.8s ease-out;
+        }
+
+        @keyframes spreadPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); color: var(--accent-purple); }
+            100% { transform: scale(1); }
+        }
+
+        .orderbook-side {
+            transition: transform 0.2s ease;
+        }
+
+        .orderbook-side:hover {
+            transform: translateY(-2px);
+        }
+
+        .animation-indicator {
+            position: absolute;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            animation: executionPulse 1s ease-out;
+        }
+
+        @keyframes executionPulse {
+            0% { opacity: 0; transform: translateY(-50%) scale(0); }
+            50% { opacity: 1; transform: translateY(-50%) scale(1.5); }
+            100% { opacity: 0; transform: translateY(-50%) scale(0); }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid transparent;
+            border-top: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             .orderbook-container {
                 grid-template-columns: 1fr;
@@ -441,16 +579,28 @@
                     .slice(0, 10);
                 
                 let totalAmount = 0;
-                bidLevels.innerHTML = sortedBids.map(([price, amount]) => {
+                const newContent = sortedBids.map(([price, amount]) => {
                     totalAmount += amount;
                     return `
-                        <div class="order-level bid-level">
+                        <div class="order-level bid-level" data-price="${price}">
                             <span class="price">$${price.toFixed(2)}</span>
                             <span class="amount">${amount.toFixed(1)}</span>
                             <span class="total">${totalAmount.toFixed(1)}</span>
                         </div>
                     `;
                 }).join('');
+                
+                // Check for changes and animate
+                if (bidLevels.innerHTML !== newContent) {
+                    bidLevels.innerHTML = newContent;
+                    // Add update animation to new levels
+                    bidLevels.querySelectorAll('.order-level').forEach((level, index) => {
+                        setTimeout(() => {
+                            level.classList.add('updated');
+                            setTimeout(() => level.classList.remove('updated'), 600);
+                        }, index * 50);
+                    });
+                }
             }
 
             updateAskLevels() {
@@ -460,16 +610,28 @@
                     .slice(0, 10);
                 
                 let totalAmount = 0;
-                askLevels.innerHTML = sortedAsks.map(([price, amount]) => {
+                const newContent = sortedAsks.map(([price, amount]) => {
                     totalAmount += amount;
                     return `
-                        <div class="order-level ask-level">
+                        <div class="order-level ask-level" data-price="${price}">
                             <span class="price">$${price.toFixed(2)}</span>
                             <span class="amount">${amount.toFixed(1)}</span>
                             <span class="total">${totalAmount.toFixed(1)}</span>
                         </div>
                     `;
                 }).join('');
+                
+                // Check for changes and animate
+                if (askLevels.innerHTML !== newContent) {
+                    askLevels.innerHTML = newContent;
+                    // Add update animation to new levels
+                    askLevels.querySelectorAll('.order-level').forEach((level, index) => {
+                        setTimeout(() => {
+                            level.classList.add('updated');
+                            setTimeout(() => level.classList.remove('updated'), 600);
+                        }, index * 50);
+                    });
+                }
             }
 
             updateSpread() {
@@ -478,17 +640,50 @@
                 const spread = bestAsk - bestBid;
                 const midPrice = (bestBid + bestAsk) / 2;
                 
-                document.getElementById('spreadValue').textContent = `$${spread.toFixed(2)}`;
-                document.getElementById('midPrice').textContent = midPrice.toFixed(2);
+                const spreadElement = document.getElementById('spreadValue');
+                const midPriceElement = document.getElementById('midPrice');
+                
+                // Check if spread changed and animate
+                const oldSpread = spreadElement.textContent;
+                const newSpread = `$${spread.toFixed(2)}`;
+                if (oldSpread !== newSpread) {
+                    spreadElement.classList.add('changed');
+                    setTimeout(() => spreadElement.classList.remove('changed'), 800);
+                }
+                
+                spreadElement.textContent = newSpread;
+                
+                // Animate mid price changes
+                const oldMidPrice = midPriceElement.textContent;
+                const newMidPrice = midPrice.toFixed(2);
+                if (oldMidPrice !== newMidPrice) {
+                    midPriceElement.classList.add('updated');
+                    setTimeout(() => midPriceElement.classList.remove('updated'), 500);
+                }
+                
+                midPriceElement.textContent = newMidPrice;
             }
 
             updateMetrics() {
                 const totalOrders = this.bids.size + this.asks.size;
-                document.getElementById('totalOrders').textContent = totalOrders.toLocaleString();
+                const totalOrdersElement = document.getElementById('totalOrders');
+                const oldValue = totalOrdersElement.textContent;
+                const newValue = totalOrders.toLocaleString();
                 
-                // Simulate volume update
-                const currentVolume = parseInt(document.getElementById('volume').textContent.replace(/,/g, ''));
-                document.getElementById('volume').textContent = (currentVolume + Math.floor(Math.random() * 100)).toLocaleString();
+                if (oldValue !== newValue) {
+                    totalOrdersElement.classList.add('updated');
+                    setTimeout(() => totalOrdersElement.classList.remove('updated'), 500);
+                    totalOrdersElement.textContent = newValue;
+                }
+                
+                // Simulate volume update with animation
+                const volumeElement = document.getElementById('volume');
+                const currentVolume = parseInt(volumeElement.textContent.replace(/,/g, ''));
+                const newVolume = currentVolume + Math.floor(Math.random() * 100);
+                
+                volumeElement.classList.add('updated');
+                setTimeout(() => volumeElement.classList.remove('updated'), 500);
+                volumeElement.textContent = newVolume.toLocaleString();
             }
 
             simulateTrade(side, price, amount) {
@@ -503,8 +698,11 @@
                 this.updateTradeHistory();
                 this.animateOrderExecution(side, price);
                 
-                // Update last price
-                document.getElementById('lastPrice').textContent = price.toFixed(2);
+                // Update last price with animation
+                const lastPriceElement = document.getElementById('lastPrice');
+                lastPriceElement.classList.add('updated');
+                setTimeout(() => lastPriceElement.classList.remove('updated'), 500);
+                lastPriceElement.textContent = price.toFixed(2);
             }
 
             updateTradeHistory() {
@@ -623,26 +821,66 @@
 
         // Control functions
         function generateRandomTrade() {
-            const side = Math.random() > 0.5 ? 'buy' : 'sell';
-            const amount = Math.random() * 50 + 10;
-            visualizer.executeMarketOrder(side, amount);
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🎲 Trading...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                const side = Math.random() > 0.5 ? 'buy' : 'sell';
+                const amount = Math.random() * 50 + 10;
+                visualizer.executeMarketOrder(side, amount);
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 500);
         }
 
         function simulateBuyOrder() {
-            const amount = Math.random() * 30 + 20;
-            visualizer.executeMarketOrder('buy', amount);
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '📈 Buying...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                const amount = Math.random() * 30 + 20;
+                visualizer.executeMarketOrder('buy', amount);
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 400);
         }
 
         function simulateSellOrder() {
-            const amount = Math.random() * 30 + 20;
-            visualizer.executeMarketOrder('sell', amount);
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '📉 Selling...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                const amount = Math.random() * 30 + 20;
+                visualizer.executeMarketOrder('sell', amount);
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 400);
         }
 
         function resetOrderbook() {
-            visualizer.bids.clear();
-            visualizer.asks.clear();
-            visualizer.trades = [];
-            visualizer.initializeOrderbook();
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🔄 Resetting...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                visualizer.bids.clear();
+                visualizer.asks.clear();
+                visualizer.trades = [];
+                visualizer.initializeOrderbook();
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 600);
         }
 
         function toggleAnimation() {
@@ -652,17 +890,27 @@
         }
 
         function placeCustomOrder() {
-            const side = document.getElementById('orderSide').value;
-            const price = parseFloat(document.getElementById('orderPrice').value);
-            const amount = parseFloat(document.getElementById('orderAmount').value);
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Placing...<span class="loading-spinner"></span>';
+            btn.disabled = true;
             
-            if (side === 'buy') {
-                visualizer.bids.set(price, amount);
-            } else {
-                visualizer.asks.set(price, amount);
-            }
-            
-            visualizer.updateDisplay();
+            setTimeout(() => {
+                const side = document.getElementById('orderSide').value;
+                const price = parseFloat(document.getElementById('orderPrice').value);
+                const amount = parseFloat(document.getElementById('orderAmount').value);
+                
+                if (side === 'buy') {
+                    visualizer.bids.set(price, amount);
+                } else {
+                    visualizer.asks.set(price, amount);
+                }
+                
+                visualizer.updateDisplay();
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 300);
         }
     </script>
 </body>

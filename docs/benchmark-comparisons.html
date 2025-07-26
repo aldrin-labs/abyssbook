@@ -215,6 +215,24 @@
             padding: 1.5rem;
             text-align: center;
             box-shadow: 2px 2px 4px var(--shadow);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 4px 4px 12px var(--shadow);
+            border-color: var(--accent-blue);
+        }
+
+        .stat-card.animated {
+            animation: statCardPulse 0.6s ease-out;
+        }
+
+        @keyframes statCardPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
 
         .stat-value {
@@ -223,6 +241,17 @@
             color: var(--accent-blue);
             font-family: 'Courier New', monospace;
             margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-value.updated {
+            animation: valueUpdate 0.8s ease-out;
+        }
+
+        @keyframes valueUpdate {
+            0% { transform: scale(1); color: var(--accent-blue); }
+            50% { transform: scale(1.1); color: var(--accent-green); }
+            100% { transform: scale(1); color: var(--accent-blue); }
         }
 
         .stat-label {
@@ -270,14 +299,66 @@
             font-family: inherit;
             font-size: 1rem;
             box-shadow: 2px 2px 4px var(--shadow);
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: width 0.3s, height 0.3s, top 0.3s, left 0.3s;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
         }
 
         .btn:hover {
-            transform: translate(-1px, -1px);
-            box-shadow: 3px 3px 6px var(--shadow);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             background: var(--ink-dark);
             color: var(--paper-surface);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .legend {
@@ -982,88 +1063,168 @@
 
         // Show/hide benchmarks
         function showBenchmark(benchmark) {
-            // Update tabs
+            // Update tabs with animation
             document.querySelectorAll('.tab-button').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
             
-            // Update content
+            // Hide all benchmark contents with fade out
             document.querySelectorAll('.benchmark-content').forEach(content => {
-                content.classList.remove('active');
+                if (content.classList.contains('active')) {
+                    content.style.opacity = '0';
+                    content.style.transform = 'translateY(10px)';
+                    setTimeout(() => {
+                        content.classList.remove('active');
+                        content.style.display = 'none';
+                    }, 200);
+                }
             });
-            document.getElementById(benchmark).classList.add('active');
+
+            // Show selected benchmark content with fade in
+            setTimeout(() => {
+                const targetContent = document.getElementById(benchmark);
+                targetContent.style.display = 'block';
+                targetContent.classList.add('active');
+                
+                // Trigger reflow
+                targetContent.offsetHeight;
+                
+                targetContent.style.opacity = '1';
+                targetContent.style.transform = 'translateY(0)';
+            }, 250);
             
             currentBenchmark = benchmark;
         }
 
-        // Update chart functions
+        // Update chart functions with loading states and animations
         function updateLatencyChart(type) {
-            const chart = charts.latency;
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = btn.innerHTML + '<span class="loading-spinner"></span>';
+            btn.disabled = true;
             
-            switch(type) {
-                case 'percentiles':
-                    chart.data.datasets[0].label = 'P99 Latency (μs)';
-                    chart.data.datasets[0].data = [0.8, 1200000, 900000, 1000000, 200];
-                    break;
-                case 'comparison':
-                    chart.data.datasets[0].label = 'Median Latency (μs)';
-                    chart.data.datasets[0].data = [0.3, 500000, 350000, 400000, 50];
-                    break;
-                case 'distribution':
-                    chart.data.datasets[0].label = 'P95 Latency (μs)';
-                    chart.data.datasets[0].data = [0.5, 750000, 600000, 650000, 100];
-                    break;
-            }
+            // Remove active class from all buttons
+            document.querySelectorAll('#latency .btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             
-            chart.update();
+            setTimeout(() => {
+                const chart = charts.latency;
+                
+                switch(type) {
+                    case 'percentiles':
+                        chart.data.datasets[0].label = 'P99 Latency (μs)';
+                        chart.data.datasets[0].data = [0.8, 1200000, 900000, 1000000, 200];
+                        break;
+                    case 'comparison':
+                        chart.data.datasets[0].label = 'Median Latency (μs)';
+                        chart.data.datasets[0].data = [0.3, 500000, 350000, 400000, 50];
+                        break;
+                    case 'distribution':
+                        chart.data.datasets[0].label = 'P95 Latency (μs)';
+                        chart.data.datasets[0].data = [0.5, 750000, 600000, 650000, 100];
+                        break;
+                }
+                
+                chart.update('active');
+                
+                // Animate stat cards
+                document.querySelectorAll('.stat-card').forEach(card => {
+                    card.classList.add('animated');
+                    setTimeout(() => card.classList.remove('animated'), 600);
+                });
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 500);
         }
 
         function updateThroughputChart(type) {
-            const chart = charts.throughput;
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = btn.innerHTML + '<span class="loading-spinner"></span>';
+            btn.disabled = true;
             
-            switch(type) {
-                case 'orders':
-                    chart.data.datasets[0].label = 'Orders/Second';
-                    chart.data.datasets[0].data = [1000000, 5000, 7500, 6000];
-                    break;
-                case 'matches':
-                    chart.data.datasets[0].label = 'Matches/Second';
-                    chart.data.datasets[0].data = [500000, 2500, 3750, 3000];
-                    break;
-                case 'settlement':
-                    chart.data.datasets[0].label = 'Settlements/Second';
-                    chart.data.datasets[0].data = [200000, 1000, 1500, 1200];
-                    break;
-            }
+            // Remove active class from all buttons
+            document.querySelectorAll('#throughput .btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             
-            chart.update();
+            setTimeout(() => {
+                const chart = charts.throughput;
+                
+                switch(type) {
+                    case 'orders':
+                        chart.data.datasets[0].label = 'Orders/Second';
+                        chart.data.datasets[0].data = [1000000, 5000, 7500, 6000];
+                        break;
+                    case 'matches':
+                        chart.data.datasets[0].label = 'Matches/Second';
+                        chart.data.datasets[0].data = [500000, 2500, 3750, 3000];
+                        break;
+                    case 'settlement':
+                        chart.data.datasets[0].label = 'Settlements/Second';
+                        chart.data.datasets[0].data = [200000, 1000, 1500, 1200];
+                        break;
+                }
+                
+                chart.update('active');
+                
+                // Animate stat values
+                document.querySelectorAll('.stat-value').forEach(value => {
+                    value.classList.add('updated');
+                    setTimeout(() => value.classList.remove('updated'), 800);
+                });
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 400);
         }
 
         function updateMemoryChart(type) {
-            const chart = charts.memory;
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = btn.innerHTML + '<span class="loading-spinner"></span>';
+            btn.disabled = true;
             
-            switch(type) {
-                case 'usage':
-                    chart.data.datasets[0].label = 'Memory per Order (bytes)';
-                    chart.data.datasets[0].data = [64, 256, 192, 224];
-                    break;
-                case 'cache':
-                    chart.data.datasets[0].label = 'Cache Hit Rate (%)';
-                    chart.data.datasets[0].data = [98.5, 85, 89, 87];
-                    break;
-                case 'allocation':
-                    chart.data.datasets[0].label = 'Peak Memory (GB)';
-                    chart.data.datasets[0].data = [2.1, 8.5, 6.2, 7.8];
-                    break;
-            }
+            // Remove active class from all buttons
+            document.querySelectorAll('#memory .btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             
-            chart.update();
+            setTimeout(() => {
+                const chart = charts.memory;
+            
+                switch(type) {
+                    case 'usage':
+                        chart.data.datasets[0].label = 'Memory per Order (bytes)';
+                        chart.data.datasets[0].data = [64, 256, 192, 224];
+                        break;
+                    case 'cache':
+                        chart.data.datasets[0].label = 'Cache Hit Rate (%)';
+                        chart.data.datasets[0].data = [98.5, 85, 89, 87];
+                        break;
+                    case 'allocation':
+                        chart.data.datasets[0].label = 'Peak Memory (GB)';
+                        chart.data.datasets[0].data = [2.1, 8.5, 6.2, 7.8];
+                        break;
+                }
+                
+                chart.update('active');
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 600);
         }
 
         // Initialize charts when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initializeCharts();
+            
+            // Add CSS transitions for benchmark content switching
+            document.querySelectorAll('.benchmark-content').forEach(content => {
+                content.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                content.style.opacity = content.classList.contains('active') ? '1' : '0';
+                content.style.transform = 'translateY(0)';
+            });
         });
     </script>
 </body>
