@@ -41,7 +41,7 @@
         .container {
             width: 100%;
             margin: 0;
-            padding: 1rem;
+            padding: 0.6rem;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -56,8 +56,8 @@
             border: 1px solid rgba(0,0,0,0.1);
             border-radius: 3px;
             box-shadow: 0 2px 8px var(--shadow);
-            margin-bottom: 1rem;
-            padding: 1rem;
+            margin-bottom: 0.6rem;
+            padding: 0.6rem;
             position: relative;
             flex: 1;
             display: flex;
@@ -83,35 +83,47 @@
         }
 
         h1 {
-            font-size: 2rem;
+            font-size: 1.6rem;
             font-weight: normal;
             color: var(--ink-dark);
             text-align: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
             text-shadow: 1px 1px 2px var(--shadow);
+        }
+
+        h3 {
+            font-size: 1rem;
+            font-weight: normal;
+            margin-bottom: 0.4rem;
+        }
+
+        h4 {
+            font-size: 0.9rem;
+            font-weight: normal;
+            margin-bottom: 0.3rem;
         }
 
         .subtitle {
             text-align: center;
             color: var(--ink-medium);
             font-style: italic;
-            margin-bottom: 1rem;
-            font-size: 1rem;
+            margin-bottom: 0.6rem;
+            font-size: 0.9rem;
         }
 
         .orderbook-container {
             display: grid;
-            grid-template-columns: 1fr 150px 1fr;
-            gap: 0.75rem;
+            grid-template-columns: 1fr 120px 1fr;
+            gap: 0.5rem;
             flex: 1;
-            min-height: 300px;
+            min-height: 250px;
         }
 
         .orderbook-side {
             background: var(--paper-surface);
             border: 2px solid var(--ink-light);
             border-radius: 8px;
-            padding: 0.75rem;
+            padding: 0.5rem;
             box-shadow: inset 0 1px 3px var(--shadow);
             min-height: 0;
             display: flex;
@@ -120,11 +132,11 @@
 
         .orderbook-side h3 {
             text-align: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
             font-weight: normal;
             text-transform: uppercase;
             letter-spacing: 1px;
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
 
         #bidLevels, #askLevels {
@@ -140,13 +152,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.4rem 0.5rem;
-            margin-bottom: 0.2rem;
+            padding: 0.25rem 0.4rem;
+            margin-bottom: 0.15rem;
             border-radius: 3px;
             transition: all 0.3s ease;
             position: relative;
             font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
         }
 
         .order-level:hover {
@@ -170,30 +182,30 @@
 
         .spread-info {
             text-align: center;
-            padding: 0.75rem;
+            padding: 0.5rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
 
         .spread-value {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: bold;
             color: var(--accent-blue);
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.1rem;
         }
 
         .spread-label {
             color: var(--ink-medium);
             font-style: italic;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
         }
 
         .controls {
             display: flex;
             justify-content: center;
-            gap: 0.4rem;
-            margin: 0.75rem 0;
+            gap: 0.3rem;
+            margin: 0.5rem 0;
             flex-wrap: wrap;
         }
 
@@ -201,11 +213,11 @@
             background: var(--paper-surface);
             border: 2px solid var(--ink-medium);
             color: var(--ink-dark);
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 5px;
             cursor: pointer;
             font-family: inherit;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             box-shadow: 2px 2px 4px var(--shadow);
             transition: all 0.2s ease;
         }
@@ -225,8 +237,8 @@
         .trade-form {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.4rem;
-            margin: 0.75rem 0;
+            gap: 0.3rem;
+            margin: 0.5rem 0;
         }
 
         .form-group {
@@ -235,19 +247,19 @@
         }
 
         .form-group label {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.3rem;
             color: var(--ink-medium);
             font-weight: bold;
         }
 
         .form-group input {
-            padding: 0.5rem;
+            padding: 0.4rem;
             border: 2px solid var(--ink-light);
             border-radius: 3px;
             background: var(--paper-surface);
             color: var(--ink-dark);
             font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
 
         .form-group input:focus {
@@ -259,7 +271,7 @@
         .main-layout {
             display: grid;
             grid-template-columns: 2fr 1fr;
-            gap: 1rem;
+            gap: 0.6rem;
             flex: 1;
             min-height: 0;
         }
@@ -267,34 +279,34 @@
         .left-panel {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.6rem;
             min-height: 0;
         }
 
         .right-panel {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.6rem;
             min-height: 0;
         }
 
         .market-data {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+            gap: 0.4rem;
+            margin-bottom: 0.6rem;
         }
 
         .metric {
             text-align: center;
-            padding: 1rem;
+            padding: 0.6rem;
             background: var(--paper-surface);
             border: 1px solid var(--ink-light);
             border-radius: 5px;
         }
 
         .metric-value {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
             color: var(--accent-blue);
             font-family: 'Courier New', monospace;
@@ -302,8 +314,8 @@
 
         .metric-label {
             color: var(--ink-medium);
-            font-size: 0.9rem;
-            margin-top: 0.25rem;
+            font-size: 0.7rem;
+            margin-top: 0.2rem;
         }
 
         .animation-indicator {
@@ -325,7 +337,7 @@
         }
 
         .trade-history {
-            max-height: 200px;
+            max-height: 150px;
             overflow-y: auto;
             border: 1px solid var(--ink-light);
             border-radius: 3px;
@@ -337,10 +349,10 @@
         .trade-entry {
             display: flex;
             justify-content: space-between;
-            padding: 0.5rem;
+            padding: 0.3rem;
             border-bottom: 1px solid rgba(0,0,0,0.1);
             font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
         }
 
         .trade-entry:last-child { border-bottom: none; }
@@ -490,15 +502,15 @@
         .execution-stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.4rem;
-            margin-bottom: 0.75rem;
+            gap: 0.3rem;
+            margin-bottom: 0.5rem;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 6px;
-            padding: 0.5rem;
+            padding: 0.3rem;
             text-align: center;
             transition: all 0.3s ease;
             position: relative;
@@ -526,10 +538,10 @@
         }
 
         .stat-value {
-            font-size: 1.3rem;
+            font-size: 1rem;
             font-weight: bold;
             color: var(--accent-blue);
-            margin-bottom: 0.15rem;
+            margin-bottom: 0.1rem;
             transition: all 0.3s ease;
         }
 
@@ -544,15 +556,15 @@
         }
 
         .stat-label {
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             color: var(--ink-medium);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            line-height: 1.2;
+            line-height: 1.1;
         }
 
         .algorithm-steps {
-            margin: 0.75rem 0;
+            margin: 0.5rem 0;
             flex: 1;
             min-height: 0;
         }
@@ -561,17 +573,17 @@
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 6px;
-            padding: 0.4rem;
-            min-height: 80px;
-            max-height: 120px;
+            padding: 0.3rem;
+            min-height: 60px;
+            max-height: 80px;
             overflow-y: auto;
         }
 
         .execution-step {
             display: flex;
             align-items: center;
-            padding: 0.5rem;
-            margin: 0.25rem 0;
+            padding: 0.3rem;
+            margin: 0.2rem 0;
             background: rgba(255, 255, 255, 0.8);
             border-radius: 4px;
             border-left: 3px solid var(--accent-blue);
@@ -608,13 +620,13 @@
         }
 
         .step-description {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             color: var(--ink-medium);
-            margin-top: 0.2rem;
+            margin-top: 0.1rem;
         }
 
         .skip-list-visualization {
-            margin: 0.75rem 0;
+            margin: 0.5rem 0;
             flex: 1;
             min-height: 0;
         }
@@ -623,24 +635,24 @@
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 6px;
-            padding: 0.5rem;
-            min-height: 100px;
-            max-height: 160px;
+            padding: 0.3rem;
+            min-height: 70px;
+            max-height: 100px;
             overflow: auto;
         }
 
         .skip-list-level {
             display: flex;
             align-items: center;
-            margin: 0.5rem 0;
-            min-height: 40px;
+            margin: 0.3rem 0;
+            min-height: 28px;
         }
 
         .level-label {
-            width: 60px;
+            width: 50px;
             font-weight: bold;
             color: var(--ink-medium);
-            font-size: 0.9rem;
+            font-size: 0.75rem;
         }
 
         .skip-list-nodes {
@@ -653,13 +665,13 @@
             background: var(--paper-surface);
             border: 2px solid var(--ink-light);
             border-radius: 4px;
-            padding: 0.3rem 0.6rem;
-            margin: 0 0.3rem;
-            min-width: 60px;
+            padding: 0.2rem 0.4rem;
+            margin: 0 0.2rem;
+            min-width: 50px;
             text-align: center;
             transition: all 0.3s ease;
             position: relative;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
         }
 
         .skip-node.current {
@@ -724,12 +736,12 @@
 
         @media (max-width: 768px) {
             .container {
-                padding: 0.5rem;
+                padding: 0.4rem;
             }
             
             .orderbook-container {
                 grid-template-columns: 1fr;
-                gap: 0.5rem;
+                gap: 0.4rem;
             }
             
             .trade-form {
