@@ -287,11 +287,13 @@ pub const OrderSnapshot = struct {
 };
 
 pub const BookSnapshot = struct {
-    orders: []OrderSnapshot,
+    bids: std.ArrayList(OrderSnapshot),
+    asks: std.ArrayList(OrderSnapshot),
     allocator: std.mem.Allocator,
 
     pub fn deinit(self: *const BookSnapshot) void {
-        self.allocator.free(self.orders);
+        self.bids.deinit();
+        self.asks.deinit();
     }
 };
 
@@ -334,6 +336,18 @@ pub const ShardedOrderbook = struct {
 
     pub fn deinit(self: *ShardedOrderbook) void {
         for (0..self.shard_count) |i| {
+            // Clean up orders and their allocated memory
+            var order_it = self.shards[i].iterator();
+            while (order_it.next()) |entry| {
+                entry.value_ptr.deinit(self.allocator);
+            }
+
+            // Clean up stop orders and their allocated memory
+            var stop_it = self.stop_orders[i].iterator();
+            while (stop_it.next()) |entry| {
+                entry.value_ptr.deinit(self.allocator);
+            }
+
             self.shards[i].deinit();
             self.bid_levels[i].deinit();
             self.ask_levels[i].deinit();
@@ -465,16 +479,40 @@ pub const ShardedOrderbook = struct {
     pub const MatchError = OrderError;
 
     pub fn placeOrder(self: *ShardedOrderbook, side: OrderSide, price: u64, amount: u64, id: u64) OrderError!void {
+        if (amount == 0) {
+            return OrderError.InvalidAmount;
+        }
+
+        // Check for duplicate order ID across all shards
+        const key = OrderKey{ .price = price, .id = id };
+        for (0..self.shard_count) |i| {
+            if (self.shards[i].contains(OrderKey{ .price = 0, .id = id })) {
+                return OrderError.DuplicateOrder;
+            }
+            // Also check all possible prices for this ID (since we don't know the price of existing orders)
+            var it = self.shards[i].iterator();
+            while (it.next()) |entry| {
+                if (entry.key_ptr.id == id) {
+                    return OrderError.DuplicateOrder;
+                }
+            }
+        }
+
         const order = CacheAlignedOrder.init(price, amount, id, side, .Limit, null);
         const shard_index = self.priceToShard(price);
 
         const levels = if (side == .Buy) &self.bid_levels[shard_index] else &self.ask_levels[shard_index];
         try self.updatePriceLevel(levels, price, @as(i64, @intCast(amount)), 1);
 
-        const key = OrderKey{ .price = price, .id = id };
         try self.shards[shard_index].put(key, order);
+    }
 
-        _ = try self.matchOrder(side, price, amount);
+    pub fn placeMarketOrder(self: *ShardedOrderbook, side: OrderSide, amount: u64, _: u64) !MatchResult {
+        if (amount == 0) {
+            return OrderError.InvalidAmount;
+        }
+        const price: u64 = if (side == .Buy) std.math.maxInt(u64) else 0;
+        return self.matchOrder(side, price, amount);
     }
 
     pub fn placeOrderWithType(self: *ShardedOrderbook, order: CacheAlignedOrder) OrderError!void {
@@ -498,8 +536,17 @@ pub const ShardedOrderbook = struct {
         try self.updatePriceLevel(levels, order.price, @as(i64, @intCast(display_amount)), 1);
         try self.shards[self.priceToShard(order.price)].put(key, order);
 
-        // Check if this order triggers any stop orders
-        _ = try self.matchOrder(order.side, order.price, order.amount);
+        // Only match certain order types immediately
+        const should_match = switch (order.order_type) {
+            .Stop, .StopLimit => true, // Stop orders should trigger matching
+            .Limit => true, // Regular limit orders should match
+            .TWAP, .Iceberg => false, // TWAP and Iceberg orders shouldn't match immediately
+            else => true,
+        };
+
+        if (should_match) {
+            _ = try self.matchOrder(order.side, order.price, order.amount);
+        }
     }
 
     // Helper functions for different order types
@@ -580,7 +627,11 @@ pub const ShardedOrderbook = struct {
         order.twap_params = twap_params;
         order.flags.is_twap = true;
 
-        try self.placeOrderWithType(order);
+        self.placeOrderWithType(order) catch |err| {
+            // Clean up memory if placement fails
+            self.allocator.destroy(twap_params);
+            return err;
+        };
     }
 
     pub fn placeOSOOrder(self: *ShardedOrderbook, primary_order: CacheAlignedOrder, child_order: CacheAlignedOrder) !void {
@@ -690,7 +741,11 @@ pub const ShardedOrderbook = struct {
             self.current_order_flags = .{};
         }
 
-        try self.placeOrderWithType(order);
+        self.placeOrderWithType(order) catch |err| {
+            // Clean up memory if placement fails
+            self.allocator.destroy(disc_params);
+            return err;
+        };
     }
 
     pub fn placeConditionalOrder(self: *ShardedOrderbook, side: OrderSide, price: u64, amount: u64, id: u64, condition_type: ConditionalType, target_value: u64) OrderError!void {
@@ -811,11 +866,14 @@ pub const ShardedOrderbook = struct {
             var it = self.shards[i].iterator();
             while (it.next()) |entry| {
                 if (entry.value_ptr.*.id == id) {
-                    const order = entry.value_ptr.*;
+                    var order = entry.value_ptr.*;
                     const levels = if (order.side == .Buy) &self.bid_levels[i] else &self.ask_levels[i];
 
                     // Update price level
                     try self.updatePriceLevel(levels, order.price, -@as(i64, @intCast(order.amount)), -1);
+
+                    // Clean up order memory
+                    order.deinit(self.allocator);
 
                     // Remove order
                     _ = self.shards[i].swapRemove(entry.key_ptr.*);
@@ -827,6 +885,9 @@ pub const ShardedOrderbook = struct {
             var stop_it = self.stop_orders[i].iterator();
             while (stop_it.next()) |entry| {
                 if (entry.value_ptr.*.id == id) {
+                    var order = entry.value_ptr.*;
+                    // Clean up order memory
+                    order.deinit(self.allocator);
                     _ = self.stop_orders[i].orderedRemove(entry.key_ptr.*);
                     return;
                 }
@@ -1079,7 +1140,13 @@ pub const ShardedOrderbook = struct {
                     order_entry.order.price >= price;
 
                 if (should_match) {
-                    const matched = @min(remaining_amount, order_entry.order.amount);
+                    // For iceberg orders, limit matching to the display amount
+                    const available_amount = if (order_entry.order.flags.is_iceberg)
+                        @min(order_entry.order.amount, order_entry.order.display_amount.?)
+                    else
+                        order_entry.order.amount;
+                    
+                    const matched = @min(remaining_amount, available_amount);
                     if (matched > 0) {
                         try self.updateMatchedOrder(order_entry, matched, current_best_price.?, shard_index);
                         executed_amount += matched;
@@ -1110,21 +1177,43 @@ pub const ShardedOrderbook = struct {
         else
             &self.ask_levels[shard_index];
 
-        if (matched_amount == order_entry.order.amount) {
+        // For iceberg orders, check if the display amount is fully matched
+        const is_fully_matched = if (order_entry.order.flags.is_iceberg)
+            matched_amount == @min(order_entry.order.amount, order_entry.order.display_amount.?)
+        else
+            matched_amount == order_entry.order.amount;
+            
+        if (is_fully_matched) {
             try self.updatePriceLevel(levels, execution_price, -@as(i64, @intCast(matched_amount)), -1);
-            _ = self.shards[shard_index].swapRemove(order_entry.key);
 
+            // Handle iceberg replenishment BEFORE removing the order
             if (order_entry.order.flags.is_iceberg) {
-                if (self.shards[shard_index].getPtr(order_entry.key)) |original_order| {
-                    const remaining_total = original_order.amount - matched_amount;
-                    if (remaining_total > 0) {
-                        var updated_order = original_order.*;
-                        updated_order.amount = remaining_total;
-                        updated_order.display_amount = @min(remaining_total, order_entry.order.display_amount.?);
-                        try self.shards[shard_index].put(order_entry.key, updated_order);
-                        try self.updatePriceLevel(levels, execution_price, @as(i64, @intCast(updated_order.display_amount.?)), 1);
-                    }
+                // For iceberg orders, matched_amount represents the display amount that was matched
+                // The order.amount contains the total remaining amount (including hidden reserves)
+                const remaining_total = order_entry.order.amount - matched_amount;
+                
+                if (remaining_total > 0) {
+                    // Replenish the iceberg with a new display portion
+                    var replenished_order = order_entry.order;
+                    replenished_order.amount = remaining_total;
+                    const new_display_amount = @min(remaining_total, order_entry.order.display_amount.?);
+                    replenished_order.display_amount = new_display_amount;
+                    
+                    // Replace the order in the shard (no need to remove first)
+                    try self.shards[shard_index].put(order_entry.key, replenished_order);
+                    // Add the new display amount back to the price level
+                    try self.updatePriceLevel(levels, execution_price, @as(i64, @intCast(new_display_amount)), 1);
+                } else {
+                    // No remaining amount, remove the order completely
+                    var order_to_remove = order_entry.order;
+                    order_to_remove.deinit(self.allocator);
+                    _ = self.shards[shard_index].swapRemove(order_entry.key);
                 }
+            } else {
+                // Regular order - remove it completely
+                var order_to_remove = order_entry.order;
+                order_to_remove.deinit(self.allocator);
+                _ = self.shards[shard_index].swapRemove(order_entry.key);
             }
         } else {
             try self.updatePriceLevel(levels, execution_price, -@as(i64, @intCast(matched_amount)), 0);
@@ -1303,7 +1392,7 @@ pub const ShardedOrderbook = struct {
     }
 
     pub fn executeMarketOrder(self: *ShardedOrderbook, side: OrderSide, amount: u64) !MatchResult {
-        return self.matchOrder(side, if (side == .Buy) std.math.maxInt(u64) else 0, amount);
+        return self.placeMarketOrder(side, amount, 0); // Use 0 as a placeholder ID for market orders
     }
 
     pub fn getPriceLevelStats(self: *const ShardedOrderbook, price: u64, side: OrderSide) ?PriceLevelStats {
@@ -1372,22 +1461,27 @@ pub const ShardedOrderbook = struct {
 
     // Snapshot and persistence functions
     pub fn takeSnapshot(self: *const ShardedOrderbook) !BookSnapshot {
-        var orders = std.ArrayList(OrderSnapshot).init(self.allocator);
-        defer orders.deinit();
+        var bids = std.ArrayList(OrderSnapshot).init(self.allocator);
+        var asks = std.ArrayList(OrderSnapshot).init(self.allocator);
 
         // Collect regular orders
         for (self.shards) |shard| {
             var it = shard.iterator();
             while (it.next()) |entry| {
                 const order = entry.value_ptr.*;
-                try orders.append(.{
+                const order_snapshot = OrderSnapshot{
                     .price = order.price,
                     .amount = order.amount,
                     .id = order.id,
                     .side = order.side,
                     .order_type = order.order_type,
                     .stop_price = order.stop_price,
-                });
+                };
+
+                switch (order.side) {
+                    .Buy => try bids.append(order_snapshot),
+                    .Sell => try asks.append(order_snapshot),
+                }
             }
         }
 
@@ -1396,19 +1490,39 @@ pub const ShardedOrderbook = struct {
             var it = shard.iterator();
             while (it.next()) |entry| {
                 const order = entry.value_ptr.*;
-                try orders.append(.{
+                const order_snapshot = OrderSnapshot{
                     .price = order.price,
                     .amount = order.amount,
                     .id = order.id,
                     .side = order.side,
                     .order_type = order.order_type,
                     .stop_price = order.stop_price,
-                });
+                };
+
+                switch (order.side) {
+                    .Buy => try bids.append(order_snapshot),
+                    .Sell => try asks.append(order_snapshot),
+                }
             }
         }
 
+        // Sort bids by price descending (highest first)
+        std.mem.sort(OrderSnapshot, bids.items, {}, struct {
+            fn lessThan(_: void, a: OrderSnapshot, b: OrderSnapshot) bool {
+                return a.price > b.price;
+            }
+        }.lessThan);
+
+        // Sort asks by price ascending (lowest first)
+        std.mem.sort(OrderSnapshot, asks.items, {}, struct {
+            fn lessThan(_: void, a: OrderSnapshot, b: OrderSnapshot) bool {
+                return a.price < b.price;
+            }
+        }.lessThan);
+
         return BookSnapshot{
-            .orders = try orders.toOwnedSlice(),
+            .bids = bids,
+            .asks = asks,
             .allocator = self.allocator,
         };
     }
@@ -1422,8 +1536,20 @@ pub const ShardedOrderbook = struct {
             self.stop_orders[i].clearRetainingCapacity();
         }
 
-        // Restore orders
-        for (snapshot.orders) |order| {
+        // Restore orders from both bids and asks
+        for (snapshot.bids.items) |order| {
+            const cache_aligned = CacheAlignedOrder.init(
+                order.price,
+                order.amount,
+                order.id,
+                order.side,
+                order.order_type,
+                order.stop_price,
+            );
+            try self.placeOrderWithType(cache_aligned);
+        }
+
+        for (snapshot.asks.items) |order| {
             const cache_aligned = CacheAlignedOrder.init(
                 order.price,
                 order.amount,
@@ -1446,10 +1572,24 @@ pub const ShardedOrderbook = struct {
         var writer = file.writer();
 
         // Write header
-        try writer.writeInt(u64, snapshot.orders.len, .little);
+        try writer.writeInt(u64, snapshot.bids.items.len, .little);
+        try writer.writeInt(u64, snapshot.asks.items.len, .little);
 
-        // Write orders
-        for (snapshot.orders) |order| {
+        // Write bids
+        for (snapshot.bids.items) |order| {
+            try writer.writeInt(u64, order.price, .little);
+            try writer.writeInt(u64, order.amount, .little);
+            try writer.writeInt(u64, order.id, .little);
+            try writer.writeInt(u8, @intFromEnum(order.side), .little);
+            try writer.writeInt(u8, @intFromEnum(order.order_type), .little);
+            try writer.writeByte(if (order.stop_price != null) 1 else 0);
+            if (order.stop_price) |stop_price| {
+                try writer.writeInt(u64, stop_price, .little);
+            }
+        }
+
+        // Write asks
+        for (snapshot.asks.items) |order| {
             try writer.writeInt(u64, order.price, .little);
             try writer.writeInt(u64, order.amount, .little);
             try writer.writeInt(u64, order.id, .little);
@@ -1469,14 +1609,13 @@ pub const ShardedOrderbook = struct {
         var reader = file.reader();
 
         // Read header
-        const order_count = try reader.readInt(u64, .little);
+        const bid_count = try reader.readInt(u64, .little);
+        const ask_count = try reader.readInt(u64, .little);
 
-        // Read orders
-        var orders = try std.ArrayList(OrderSnapshot).initCapacity(self.allocator, order_count);
-        defer orders.deinit();
-
+        // Read bids
+        var bids = std.ArrayList(OrderSnapshot).init(self.allocator);
         var i: usize = 0;
-        while (i < order_count) : (i += 1) {
+        while (i < bid_count) : (i += 1) {
             const price = try reader.readInt(u64, .little);
             const amount = try reader.readInt(u64, .little);
             const id = try reader.readInt(u64, .little);
@@ -1488,7 +1627,32 @@ pub const ShardedOrderbook = struct {
             else
                 null;
 
-            try orders.append(.{
+            try bids.append(.{
+                .price = price,
+                .amount = amount,
+                .id = id,
+                .side = side,
+                .order_type = order_type,
+                .stop_price = stop_price,
+            });
+        }
+
+        // Read asks
+        var asks = std.ArrayList(OrderSnapshot).init(self.allocator);
+        i = 0;
+        while (i < ask_count) : (i += 1) {
+            const price = try reader.readInt(u64, .little);
+            const amount = try reader.readInt(u64, .little);
+            const id = try reader.readInt(u64, .little);
+            const side = @as(OrderSide, @enumFromInt(try reader.readInt(u8, .little)));
+            const order_type = @as(OrderType, @enumFromInt(try reader.readInt(u8, .little)));
+            const has_stop_price = try reader.readByte() == 1;
+            const stop_price = if (has_stop_price)
+                try reader.readInt(u64, .little)
+            else
+                null;
+
+            try asks.append(.{
                 .price = price,
                 .amount = amount,
                 .id = id,
@@ -1500,7 +1664,8 @@ pub const ShardedOrderbook = struct {
 
         // Create snapshot and restore
         const snapshot = BookSnapshot{
-            .orders = try orders.toOwnedSlice(),
+            .bids = bids,
+            .asks = asks,
             .allocator = self.allocator,
         };
         defer snapshot.deinit();
@@ -1590,7 +1755,14 @@ pub const ShardedOrderbook = struct {
         if (elapsed_intervals <= twap_params.intervals_executed) return false;
         if (elapsed_intervals >= twap_params.num_intervals) return true;
 
-        // Execute the current interval
+        // Execute the current interval by placing the order
+        const shard_index = self.priceToShard(order_data.price);
+        const levels = if (order_data.side == .Buy) &self.bid_levels[shard_index] else &self.ask_levels[shard_index];
+
+        // Update price level with the executed amount
+        try self.updatePriceLevel(levels, order_data.price, @as(i64, @intCast(twap_params.amount_per_interval)), 1);
+
+        // Execute the matching
         const result = try self.matchOrder(
             order_data.side,
             order_data.price,
@@ -1602,7 +1774,6 @@ pub const ShardedOrderbook = struct {
 
         // Check if we need to place a new order for remaining amount
         if (result.remaining_amount > 0) {
-            const shard_index = self.priceToShard(order_data.price);
             const key = OrderKey{ .price = order_data.price, .id = order_data.id };
             var updated_order = order_data.*;
             updated_order.amount = result.remaining_amount;

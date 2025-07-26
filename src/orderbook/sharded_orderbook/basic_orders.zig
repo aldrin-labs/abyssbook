@@ -10,9 +10,17 @@ pub fn placeOrder(self: *core.ShardedOrderbook, side: types.OrderSide, price: u6
 }
 
 pub fn placeOrderWithType(self: *core.ShardedOrderbook, order_data: order.CacheAlignedOrder) !void {
+    // Check for duplicate order ID across all shards
+    if (self.isDuplicateOrderId(order_data.id)) {
+        return types.OrderError.DuplicateOrder;
+    }
+
     const shard_index = self.priceToShard(order_data.price);
     const key = types.OrderKey{ .price = order_data.price, .id = order_data.id };
 
+    // Register order ID in global index
+    try self.registerOrderId(order_data.id, shard_index, order_data.price, order_data.side);
+    
     // Set current order context for matching
     self.current_order = &order_data;
     self.current_order_flags = order_data.flags;
@@ -85,41 +93,44 @@ pub fn placeOrderWithType(self: *core.ShardedOrderbook, order_data: order.CacheA
 }
 
 pub fn cancelOrder(self: *core.ShardedOrderbook, id: u64) types.OrderError!void {
-    // Search all shards for the order
-    for (0..self.shard_count) |i| {
-        var it = self.shards[i].iterator();
-        while (it.next()) |entry| {
-            if (entry.value_ptr.*.id == id) {
-                const order_data = entry.value_ptr.*;
-                const levels = if (order_data.side == .Buy) &self.bid_levels[i] else &self.ask_levels[i];
-
-                // Update price level
-                try price_level.updatePriceLevel(levels, order_data.price, -@as(i64, @intCast(order_data.amount)), -1);
-
-                // Remove order
-                _ = self.shards[i].swapRemove(entry.key_ptr.*);
-
-                // Update best bid/ask cache
-                if (order_data.side == .Buy) {
-                    self.best_bid_cache = null;
-                } else {
-                    self.best_ask_cache = null;
+    // Use global index for fast lookup
+    const location_info = self.getOrderLocation(id) orelse {
+        // If not in regular orders, check stop orders across all shards
+        for (0..self.shard_count) |i| {
+            var stop_it = self.stop_orders[i].iterator();
+            while (stop_it.next()) |entry| {
+                if (entry.value_ptr.*.id == id) {
+                    _ = self.stop_orders[i].orderedRemove(entry.key_ptr.*);
+                    self.unregisterOrderId(id);
+                    return;
                 }
-
-                return;
             }
         }
+        return types.OrderError.OrderNotFound;
+    };
+    
+    const shard_index = location_info.shard_index;
+    const key = types.OrderKey{ .price = location_info.price, .id = id };
+    
+    // Get order from the specific shard
+    const order_data = self.shards[shard_index].get(key) orelse return types.OrderError.OrderNotFound;
+    const levels = if (order_data.side == .Buy) &self.bid_levels[shard_index] else &self.ask_levels[shard_index];
 
-        // Also check stop orders
-        var stop_it = self.stop_orders[i].iterator();
-        while (stop_it.next()) |entry| {
-            if (entry.value_ptr.*.id == id) {
-                _ = self.stop_orders[i].orderedRemove(entry.key_ptr.*);
-                return;
-            }
-        }
+    // Update price level
+    try price_level.updatePriceLevel(levels, order_data.price, -@as(i64, @intCast(order_data.amount)), -1);
+
+    // Remove order from shard
+    _ = self.shards[shard_index].swapRemove(key);
+    
+    // Remove from global index  
+    self.unregisterOrderId(id);
+
+    // Update best bid/ask cache
+    if (order_data.side == .Buy) {
+        self.best_bid_cache = null;
+    } else {
+        self.best_ask_cache = null;
     }
-    return types.OrderError.OrderNotFound;
 }
 
 pub fn checkStopOrders(self: *core.ShardedOrderbook, price: u64) types.OrderError!void {

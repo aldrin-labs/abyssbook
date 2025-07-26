@@ -75,7 +75,6 @@ pub const EnhancedOrderService = struct {
             .config_mutex = Thread.Mutex{},
             .error_handler = error_handler,
             .operation_count = std.atomic.Value(u64).init(0),
-        };
     }
     
     /// List orders from the blockchain with thread safety (read operation)
@@ -119,7 +118,6 @@ pub const EnhancedOrderService = struct {
             }
         }.execute;
         
-        try self.error_handler.executeWithRetry(void, context, listOrdersImpl);
     }
     
     /// Place a new order with comprehensive security and validation (write operation)
@@ -163,7 +161,6 @@ pub const EnhancedOrderService = struct {
             logging.warnGlobalWithContext("service.orders", "Invalid order side provided", .{
                 .provided_side = side,
             });
-            return BlockchainError.InvalidSide;
         }
         
         // Parse and validate price with comprehensive error handling
@@ -174,14 +171,13 @@ pub const EnhancedOrderService = struct {
             });
             return BlockchainError.InvalidPrice;
         };
-        
+
         const size = std.fmt.parseFloat(f64, size_str) catch |err| {
             logging.errorGlobalWithContext("service.orders", "Failed to parse size", .{
                 .size_string = size_str,
                 .error_name = @errorName(err),
             });
-            return BlockchainError.InvalidSize;
-        };
+        }
         
         // Comprehensive business logic validation
         if (price <= 0.0) {
@@ -190,13 +186,14 @@ pub const EnhancedOrderService = struct {
             });
             return BlockchainError.InvalidPrice;
         }
-        
+
         if (size <= 0.0) {
             logging.warnGlobalWithContext("service.orders", "Non-positive size value", .{
                 .size = size,
             });
             return BlockchainError.InvalidSize;
         }
+<<<<<<< HEAD
         
         // Additional security checks
         if (price > BlockchainConstants.MAX_PRICE_VALUE) {
@@ -235,6 +232,12 @@ pub const EnhancedOrderService = struct {
             price,
             size
         ) catch |err| {
+=======
+
+        // Sign the transaction with the wallet
+        logging.debugGlobal("service.orders", "Signing order transaction");
+        const signature = self.wallet.signPlaceOrderTransaction(self.order_service.default_market, side, price, size) catch |err| {
+>>>>>>> 0a653a302aa04fb07226a161d3a9628d421cf931
             logging.errorGlobalWithContext("service.orders", "Failed to sign order transaction", .{
                 .error_name = @errorName(err),
             });

@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AbyssBook - Algorithm Visualizations</title>
+    <style>
+        :root {
+            --paper-bg: #faf9f7;
+            --paper-surface: #f5f4f2;
+            --ink-dark: #2c2c2c;
+            --ink-medium: #555555;
+            --ink-light: #777777;
+            --accent-blue: #1e3a8a;
+            --accent-green: #166534;
+            --accent-red: #dc2626;
+            --accent-purple: #7c3aed;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --grain-opacity: 0.03;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: var(--paper-bg);
+            background-image: 
+                radial-gradient(circle at 1px 1px, var(--ink-dark) 0.5px, transparent 0),
+                radial-gradient(circle at 3px 7px, var(--ink-dark) 0.3px, transparent 0),
+                radial-gradient(circle at 7px 3px, var(--ink-dark) 0.2px, transparent 0);
+            background-size: 15px 15px, 25px 25px, 35px 35px;
+            background-blend-mode: multiply;
+            color: var(--ink-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .paper-section {
+            background: var(--paper-surface);
+            background-image: 
+                linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 3px;
+            box-shadow: 0 2px 8px var(--shadow);
+            margin-bottom: 2rem;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .paper-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,var(--grain-opacity)) 2px,
+                    rgba(0,0,0,var(--grain-opacity)) 4px
+                );
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: normal;
+            color: var(--ink-dark);
+            text-align: center;
+            margin-bottom: 1rem;
+            text-shadow: 1px 1px 2px var(--shadow);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: normal;
+            color: var(--accent-blue);
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--accent-blue);
+            padding-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--ink-medium);
+            font-style: italic;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .algorithm-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-medium);
+            color: var(--ink-dark);
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
+            box-shadow: 2px 2px 4px var(--shadow);
+            transition: all 0.2s ease;
+        }
+
+        .tab-button:hover, .tab-button.active {
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 6px var(--shadow);
+            background: var(--accent-blue);
+            color: var(--paper-surface);
+            border-color: var(--accent-blue);
+        }
+
+        .algorithm-content {
+            display: none;
+        }
+
+        .algorithm-content.active {
+            display: block;
+        }
+
+        .visualization-area {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-light);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            min-height: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-medium);
+            color: var(--ink-dark);
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
+            box-shadow: 2px 2px 4px var(--shadow);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 6px var(--shadow);
+            background: var(--ink-dark);
+            color: var(--paper-surface);
+        }
+
+        .btn.primary { border-color: var(--accent-blue); }
+        .btn.primary:hover { background: var(--accent-blue); }
+
+        /* Order Matching Visualization */
+        .order-queue {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .order-item {
+            background: var(--paper-bg);
+            border: 2px solid var(--ink-light);
+            border-radius: 5px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            transition: all 0.5s ease;
+        }
+
+        .order-item.processing {
+            border-color: var(--accent-blue);
+            background: rgba(30, 58, 138, 0.1);
+            transform: scale(1.02);
+        }
+
+        .order-item.matched {
+            border-color: var(--accent-green);
+            background: rgba(22, 101, 52, 0.1);
+        }
+
+        .order-item.buy { border-left: 4px solid var(--accent-green); }
+        .order-item.sell { border-left: 4px solid var(--accent-red); }
+
+        /* SIMD Visualization */
+        .simd-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .vector-operation {
+            background: var(--paper-bg);
+            border: 2px solid var(--ink-light);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .vector-row {
+            display: flex;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+            align-items: center;
+        }
+
+        .vector-element {
+            background: var(--paper-surface);
+            border: 1px solid var(--ink-light);
+            border-radius: 3px;
+            padding: 0.5rem;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            min-width: 60px;
+            transition: all 0.3s ease;
+        }
+
+        .vector-element.processing {
+            background: var(--accent-blue);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .vector-operator {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-purple);
+            margin: 0 1rem;
+        }
+
+        /* Sharding Visualization */
+        .shard-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .shard {
+            background: var(--paper-bg);
+            border: 2px solid var(--ink-light);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.5s ease;
+        }
+
+        .shard.active {
+            border-color: var(--accent-blue);
+            background: rgba(30, 58, 138, 0.1);
+            transform: scale(1.05);
+        }
+
+        .shard-header {
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .shard-orders {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--ink-medium);
+        }
+
+        /* Complexity Annotations */
+        .complexity-badge {
+            display: inline-block;
+            background: var(--accent-purple);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+            margin-left: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .complexity-badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+        }
+
+        .complexity-section {
+            background: rgba(124, 58, 237, 0.05);
+            border: 1px solid var(--accent-purple);
+            border-radius: 5px;
+            padding: 1rem;
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .complexity-section:hover {
+            background: rgba(124, 58, 237, 0.08);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+        }
+
+        .step-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--accent-blue);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: all 0.4s ease;
+        }
+
+        .step-indicator.updated {
+            animation: stepUpdate 0.6s ease-out;
+        }
+
+        @keyframes stepUpdate {
+            0% { transform: scale(1); background: var(--accent-blue); }
+            50% { transform: scale(1.05); background: var(--accent-green); }
+            100% { transform: scale(1); background: var(--accent-blue); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: var(--paper-bg);
+            border: 1px solid var(--ink-light);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+            width: 0%;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+            animation: progressShine 2s ease-in-out infinite;
+        }
+
+        @keyframes progressShine {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .order-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(0);
+        }
+
+        .order-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .order-item.processing {
+            animation: orderProcessing 1s ease-in-out;
+        }
+
+        .order-item.matched {
+            animation: orderMatched 0.8s ease-out forwards;
+        }
+
+        @keyframes orderProcessing {
+            0% { background: transparent; transform: scale(1); }
+            50% { background: rgba(255, 215, 0, 0.3); transform: scale(1.02); }
+            100% { background: transparent; transform: scale(1); }
+        }
+
+        @keyframes orderMatched {
+            0% { opacity: 1; transform: scale(1); }
+            50% { background: rgba(34, 197, 94, 0.3); transform: scale(1.05); }
+            100% { opacity: 0.7; transform: scale(0.95); }
+        }
+
+        .vector-element {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .vector-element:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .vector-element.processing {
+            animation: vectorProcessing 0.6s ease-out;
+        }
+
+        @keyframes vectorProcessing {
+            0% { background: var(--paper-surface); transform: scale(1); }
+            50% { background: var(--accent-blue); color: white; transform: scale(1.1); }
+            100% { background: var(--paper-surface); color: var(--ink-dark); transform: scale(1); }
+        }
+
+        .tab-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .tab-button:hover::before {
+            left: 100%;
+        }
+
+        .btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: width 0.3s, height 0.3s, top 0.3s, left 0.3s;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .simd-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .shard-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .algorithm-tabs {
+                justify-content: center;
+            }
+            
+            /* Reduce animation intensity on mobile for better performance */
+            .complexity-section:hover {
+                transform: none;
+            }
+            
+            .order-item:hover {
+                transform: translateX(3px);
+            }
+            
+            .vector-element:hover {
+                transform: translateY(-1px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="paper-section">
+            <h1>⚡ Algorithm Visualizations</h1>
+            <p class="subtitle">Interactive demonstrations of AbyssBook's core algorithms</p>
+
+            <div class="algorithm-tabs">
+                <button class="tab-button active" onclick="showAlgorithm('matching')">Order Matching</button>
+                <button class="tab-button" onclick="showAlgorithm('simd')">SIMD Operations</button>
+                <button class="tab-button" onclick="showAlgorithm('sharding')">Sharded Architecture</button>
+                <button class="tab-button" onclick="showAlgorithm('twap')">TWAP Execution</button>
+            </div>
+
+            <!-- Order Matching Algorithm -->
+            <div id="matching" class="algorithm-content active">
+                <h2>🎯 Order Matching Algorithm <span class="complexity-badge">O(log n)</span></h2>
+                
+                <div class="complexity-section">
+                    <strong>Algorithm Complexity:</strong>
+                    <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+                        <li><strong>Time Complexity:</strong> O(log n) for order insertion using skip list</li>
+                        <li><strong>Space Complexity:</strong> O(n) for order storage</li>
+                        <li><strong>Matching Complexity:</strong> O(k) where k is number of matched orders</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button class="btn primary" onclick="startOrderMatching()">▶️ Start Matching</button>
+                    <button class="btn" onclick="addRandomOrder()">➕ Add Order</button>
+                    <button class="btn" onclick="resetMatching()">🔄 Reset</button>
+                </div>
+
+                <div class="visualization-area">
+                    <div class="step-indicator" id="matchingStep">Step 1: Initialize</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="matchingProgress"></div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div>
+                            <h3>📈 Buy Orders (Bids)</h3>
+                            <div class="order-queue" id="buyOrders"></div>
+                        </div>
+                        <div>
+                            <h3>📉 Sell Orders (Asks)</h3>
+                            <div class="order-queue" id="sellOrders"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIMD Operations -->
+            <div id="simd" class="algorithm-content">
+                <h2>🚀 SIMD Vectorized Operations <span class="complexity-badge">O(n/8)</span></h2>
+                
+                <div class="complexity-section">
+                    <strong>SIMD Optimization:</strong>
+                    <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+                        <li><strong>Vector Width:</strong> 8 elements (256-bit AVX2)</li>
+                        <li><strong>Throughput:</strong> 8x parallel operations per instruction</li>
+                        <li><strong>Memory Bandwidth:</strong> Optimized for cache line alignment</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button class="btn primary" onclick="startSIMD()">▶️ Start SIMD</button>
+                    <button class="btn" onclick="generateRandomPrices()">🎲 Random Prices</button>
+                    <button class="btn" onclick="resetSIMD()">🔄 Reset</button>
+                </div>
+
+                <div class="visualization-area">
+                    <div class="step-indicator" id="simdStep">Step 1: Load Vectors</div>
+                    
+                    <div class="simd-container">
+                        <div class="vector-operation">
+                            <h3>Price Vector</h3>
+                            <div class="vector-row" id="priceVector"></div>
+                        </div>
+                        <div class="vector-operation">
+                            <h3>Amount Vector</h3>
+                            <div class="vector-row" id="amountVector"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 2rem 0;">
+                        <div class="vector-operator">⊕ VECTORIZED COMPARISON ⊕</div>
+                    </div>
+                    
+                    <div class="vector-operation">
+                        <h3>Match Results</h3>
+                        <div class="vector-row" id="resultVector"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sharded Architecture -->
+            <div id="sharding" class="algorithm-content">
+                <h2>🏗️ Sharded Orderbook Architecture <span class="complexity-badge">O(n/s)</span></h2>
+                
+                <div class="complexity-section">
+                    <strong>Sharding Benefits:</strong>
+                    <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+                        <li><strong>Parallel Processing:</strong> s concurrent shards reduce contention</li>
+                        <li><strong>Cache Locality:</strong> Price-based partitioning improves cache hits</li>
+                        <li><strong>Scalability:</strong> Linear performance scaling with shard count</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button class="btn primary" onclick="startSharding()">▶️ Distribute Orders</button>
+                    <button class="btn" onclick="addOrderToShard()">➕ Add Order</button>
+                    <button class="btn" onclick="resetSharding()">🔄 Reset</button>
+                </div>
+
+                <div class="visualization-area">
+                    <div class="step-indicator" id="shardingStep">Step 1: Hash Price</div>
+                    
+                    <h3 style="text-align: center; margin-bottom: 1rem;">Price Range Sharding</h3>
+                    <div class="shard-container" id="shardContainer">
+                        <div class="shard">
+                            <div class="shard-header">Shard 0</div>
+                            <div class="shard-orders">$9000-9250</div>
+                            <div id="shard-0-orders">0 orders</div>
+                        </div>
+                        <div class="shard">
+                            <div class="shard-header">Shard 1</div>
+                            <div class="shard-orders">$9250-9500</div>
+                            <div id="shard-1-orders">0 orders</div>
+                        </div>
+                        <div class="shard">
+                            <div class="shard-header">Shard 2</div>
+                            <div class="shard-orders">$9500-9750</div>
+                            <div id="shard-2-orders">0 orders</div>
+                        </div>
+                        <div class="shard">
+                            <div class="shard-header">Shard 3</div>
+                            <div class="shard-orders">$9750-10000</div>
+                            <div id="shard-3-orders">0 orders</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TWAP Execution -->
+            <div id="twap" class="algorithm-content">
+                <h2>📊 TWAP Order Execution <span class="complexity-badge">O(t)</span></h2>
+                
+                <div class="complexity-section">
+                    <strong>TWAP Algorithm:</strong>
+                    <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+                        <li><strong>Time Complexity:</strong> O(t) where t is number of time intervals</li>
+                        <li><strong>Volume Distribution:</strong> Equal slices across time periods</li>
+                        <li><strong>Market Impact:</strong> Minimized through time-weighted execution</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button class="btn primary" onclick="startTWAP()">▶️ Execute TWAP</button>
+                    <button class="btn" onclick="adjustTWAPParams()">⚙️ Adjust Parameters</button>
+                    <button class="btn" onclick="resetTWAP()">🔄 Reset</button>
+                </div>
+
+                <div class="visualization-area">
+                    <div class="step-indicator" id="twapStep">Interval 1/10</div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div>
+                            <h3>📋 TWAP Parameters</h3>
+                            <div style="background: var(--paper-bg); padding: 1rem; border-radius: 5px; font-family: 'Courier New', monospace;">
+                                <div>Total Amount: <span id="twapTotalAmount">10,000</span></div>
+                                <div>Duration: <span id="twapDuration">60</span> seconds</div>
+                                <div>Intervals: <span id="twapIntervals">10</span></div>
+                                <div>Per Interval: <span id="twapPerInterval">1,000</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3>📈 Execution Progress</h3>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="twapProgress"></div>
+                            </div>
+                            <div style="font-family: 'Courier New', monospace; margin-top: 1rem;">
+                                <div>Executed: <span id="twapExecuted">0</span> / <span id="twapTotal">10,000</span></div>
+                                <div>Average Price: $<span id="twapAvgPrice">0.00</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state for visualizations
+        let currentAlgorithm = 'matching';
+        let animationRunning = false;
+
+        // Show/hide algorithms
+        function showAlgorithm(algorithm) {
+            // Update tabs
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.algorithm-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(algorithm).classList.add('active');
+            
+            currentAlgorithm = algorithm;
+        }
+
+        // Order Matching Visualization
+        class OrderMatchingVisualizer {
+            constructor() {
+                this.buyOrders = [];
+                this.sellOrders = [];
+                this.step = 1;
+                this.isRunning = false;
+            }
+
+            addOrder(side, price, amount) {
+                const order = { price, amount, id: Date.now() };
+                if (side === 'buy') {
+                    this.buyOrders.push(order);
+                    this.buyOrders.sort((a, b) => b.price - a.price);
+                } else {
+                    this.sellOrders.push(order);
+                    this.sellOrders.sort((a, b) => a.price - b.price);
+                }
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                this.updateOrderQueue('buyOrders', this.buyOrders, 'buy');
+                this.updateOrderQueue('sellOrders', this.sellOrders, 'sell');
+            }
+
+            updateOrderQueue(elementId, orders, side) {
+                const container = document.getElementById(elementId);
+                container.innerHTML = orders.slice(0, 8).map(order => `
+                    <div class="order-item ${side}" data-id="${order.id}">
+                        <span>$${order.price.toFixed(2)}</span>
+                        <span>${order.amount}</span>
+                        <span>ID: ${order.id}</span>
+                    </div>
+                `).join('');
+            }
+
+            async startMatching() {
+                if (this.isRunning) return;
+                this.isRunning = true;
+                this.step = 1;
+
+                while (this.buyOrders.length > 0 && this.sellOrders.length > 0 && this.isRunning) {
+                    const bestBid = this.buyOrders[0];
+                    const bestAsk = this.sellOrders[0];
+
+                    if (bestBid.price >= bestAsk.price) {
+                        await this.matchOrders(bestBid, bestAsk);
+                    } else {
+                        break;
+                    }
+                }
+
+                this.isRunning = false;
+            }
+
+            async matchOrders(bid, ask) {
+                // Highlight processing orders with animation
+                this.highlightOrder(bid.id, 'processing');
+                this.highlightOrder(ask.id, 'processing');
+                
+                const stepIndicator = document.getElementById('matchingStep');
+                stepIndicator.textContent = `Step ${this.step}: Matching ${bid.price} ≥ ${ask.price}`;
+                stepIndicator.classList.add('updated');
+                setTimeout(() => stepIndicator.classList.remove('updated'), 600);
+                
+                await this.sleep(1000);
+
+                const matchedAmount = Math.min(bid.amount, ask.amount);
+                const matchPrice = ask.price;
+
+                // Update amounts
+                bid.amount -= matchedAmount;
+                ask.amount -= matchedAmount;
+
+                // Remove filled orders
+                if (bid.amount === 0) {
+                    this.buyOrders.shift();
+                    this.highlightOrder(bid.id, 'matched');
+                }
+                if (ask.amount === 0) {
+                    this.sellOrders.shift();
+                    this.highlightOrder(ask.id, 'matched');
+                }
+
+                this.updateDisplay();
+                this.updateProgress();
+                this.step++;
+
+                await this.sleep(500);
+            }
+
+            highlightOrder(orderId, className) {
+                const orderElement = document.querySelector(`[data-id="${orderId}"]`);
+                if (orderElement) {
+                    orderElement.classList.add(className);
+                    setTimeout(() => {
+                        orderElement.classList.remove(className);
+                    }, 1500);
+                }
+            }
+
+            updateProgress() {
+                const totalOrders = this.buyOrders.length + this.sellOrders.length;
+                const progress = Math.max(0, 100 - (totalOrders / 16) * 100);
+                document.getElementById('matchingProgress').style.width = `${progress}%`;
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            reset() {
+                this.buyOrders = [];
+                this.sellOrders = [];
+                this.step = 1;
+                this.isRunning = false;
+                this.generateInitialOrders();
+                document.getElementById('matchingProgress').style.width = '0%';
+                document.getElementById('matchingStep').textContent = 'Step 1: Initialize';
+            }
+
+            generateInitialOrders() {
+                // Generate sample orders
+                for (let i = 0; i < 8; i++) {
+                    this.addOrder('buy', 9500 - i * 5, Math.floor(Math.random() * 100) + 10);
+                    this.addOrder('sell', 9505 + i * 5, Math.floor(Math.random() * 100) + 10);
+                }
+            }
+        }
+
+        // SIMD Visualization
+        class SIMDVisualizer {
+            constructor() {
+                this.prices = [];
+                this.amounts = [];
+                this.results = [];
+                this.step = 1;
+                this.isRunning = false;
+            }
+
+            generateRandomData() {
+                this.prices = Array.from({length: 8}, () => Math.floor(Math.random() * 1000) + 9000);
+                this.amounts = Array.from({length: 8}, () => Math.floor(Math.random() * 100) + 10);
+                this.results = new Array(8).fill(0);
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                this.updateVector('priceVector', this.prices);
+                this.updateVector('amountVector', this.amounts);
+                this.updateVector('resultVector', this.results);
+            }
+
+            updateVector(elementId, data) {
+                const container = document.getElementById(elementId);
+                container.innerHTML = data.map((value, index) => `
+                    <div class="vector-element" data-index="${index}">
+                        ${typeof value === 'number' ? value.toFixed(0) : value}
+                    </div>
+                `).join('');
+            }
+
+            async startSIMD() {
+                if (this.isRunning) return;
+                this.isRunning = true;
+                this.step = 1;
+
+                const stepIndicator = document.getElementById('simdStep');
+                stepIndicator.textContent = 'Step 1: Load Vectors';
+                stepIndicator.classList.add('updated');
+                setTimeout(() => stepIndicator.classList.remove('updated'), 600);
+                await this.sleep(1000);
+
+                // Simulate vectorized comparison with enhanced animations
+                stepIndicator.textContent = 'Step 2: Vectorized Compare';
+                stepIndicator.classList.add('updated');
+                setTimeout(() => stepIndicator.classList.remove('updated'), 600);
+                
+                for (let i = 0; i < 8; i++) {
+                    this.highlightElement('priceVector', i);
+                    this.highlightElement('amountVector', i);
+                    await this.sleep(200);
+                    
+                    this.results[i] = this.prices[i] > 9500 ? 1 : 0;
+                    this.updateVector('resultVector', this.results);
+                    
+                    // Highlight the result
+                    this.highlightElement('resultVector', i);
+                }
+
+                stepIndicator.textContent = 'Step 3: Store Results';
+                stepIndicator.classList.add('updated');
+                setTimeout(() => stepIndicator.classList.remove('updated'), 600);
+                this.isRunning = false;
+            }
+
+            highlightElement(vectorId, index) {
+                const element = document.querySelector(`#${vectorId} [data-index="${index}"]`);
+                if (element) {
+                    element.classList.add('processing');
+                    setTimeout(() => {
+                        element.classList.remove('processing');
+                    }, 500);
+                }
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            reset() {
+                this.generateRandomData();
+                document.getElementById('simdStep').textContent = 'Step 1: Load Vectors';
+                this.isRunning = false;
+            }
+        }
+
+        // Initialize visualizers
+        const matchingViz = new OrderMatchingVisualizer();
+        const simdViz = new SIMDVisualizer();
+
+        // Initialize with sample data
+        matchingViz.generateInitialOrders();
+        simdViz.generateRandomData();
+
+        // Control functions with loading states
+        function startOrderMatching() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '▶️ Starting...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                matchingViz.startMatching();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 300);
+        }
+        
+        function addRandomOrder() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '➕ Adding...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                const side = Math.random() > 0.5 ? 'buy' : 'sell';
+                const price = side === 'buy' ? 9500 - Math.random() * 50 : 9505 + Math.random() * 50;
+                const amount = Math.floor(Math.random() * 100) + 10;
+                matchingViz.addOrder(side, price, amount);
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 200);
+        }
+        
+        function resetMatching() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🔄 Resetting...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                matchingViz.reset();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 500);
+        }
+
+        function startSIMD() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '▶️ Computing...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                simdViz.startSIMD().then(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+            }, 200);
+        }
+        
+        function generateRandomPrices() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🎲 Generating...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                simdViz.generateRandomData();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 300);
+        }
+        
+        function resetSIMD() { 
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🔄 Resetting...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                simdViz.reset();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 400);
+        }
+
+        // Sharding visualization functions
+        let shardOrders = [0, 0, 0, 0];
+
+        function startSharding() {
+            const orders = [
+                { price: 9125, amount: 25 },
+                { price: 9375, amount: 50 },
+                { price: 9625, amount: 30 },
+                { price: 9875, amount: 40 }
+            ];
+
+            let index = 0;
+            const interval = setInterval(() => {
+                if (index >= orders.length) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                const order = orders[index];
+                const shardIndex = Math.floor((order.price - 9000) / 250);
+                
+                // Highlight active shard
+                document.querySelectorAll('.shard').forEach(s => s.classList.remove('active'));
+                document.querySelectorAll('.shard')[shardIndex].classList.add('active');
+                
+                shardOrders[shardIndex]++;
+                document.getElementById(`shard-${shardIndex}-orders`).textContent = `${shardOrders[shardIndex]} orders`;
+                document.getElementById('shardingStep').textContent = `Step ${index + 1}: Route $${order.price} → Shard ${shardIndex}`;
+                
+                index++;
+            }, 1000);
+        }
+
+        function addOrderToShard() {
+            const price = 9000 + Math.random() * 1000;
+            const shardIndex = Math.floor((price - 9000) / 250);
+            shardOrders[shardIndex]++;
+            document.getElementById(`shard-${shardIndex}-orders`).textContent = `${shardOrders[shardIndex]} orders`;
+        }
+
+        function resetSharding() {
+            shardOrders = [0, 0, 0, 0];
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`shard-${i}-orders`).textContent = '0 orders';
+            }
+            document.querySelectorAll('.shard').forEach(s => s.classList.remove('active'));
+            document.getElementById('shardingStep').textContent = 'Step 1: Hash Price';
+        }
+
+        // TWAP visualization functions
+        let twapInterval = 1;
+        let twapExecuted = 0;
+        let twapTotal = 10000;
+
+        function startTWAP() {
+            twapInterval = 1;
+            twapExecuted = 0;
+            
+            const interval = setInterval(() => {
+                if (twapInterval > 10) {
+                    clearInterval(interval);
+                    return;
+                }
+
+                const amountThisInterval = 1000;
+                twapExecuted += amountThisInterval;
+                
+                const progress = (twapExecuted / twapTotal) * 100;
+                document.getElementById('twapProgress').style.width = `${progress}%`;
+                document.getElementById('twapStep').textContent = `Interval ${twapInterval}/10`;
+                document.getElementById('twapExecuted').textContent = twapExecuted.toLocaleString();
+                
+                const avgPrice = 9500 + (Math.random() - 0.5) * 10;
+                document.getElementById('twapAvgPrice').textContent = avgPrice.toFixed(2);
+                
+                twapInterval++;
+            }, 800);
+        }
+
+        function resetTWAP() {
+            twapInterval = 1;
+            twapExecuted = 0;
+            document.getElementById('twapProgress').style.width = '0%';
+            document.getElementById('twapStep').textContent = 'Interval 1/10';
+            document.getElementById('twapExecuted').textContent = '0';
+            document.getElementById('twapAvgPrice').textContent = '0.00';
+        }
+
+        function adjustTWAPParams() {
+            // Simple parameter adjustment simulation
+            twapTotal = Math.floor(Math.random() * 20000) + 5000;
+            document.getElementById('twapTotalAmount').textContent = twapTotal.toLocaleString();
+            document.getElementById('twapTotal').textContent = twapTotal.toLocaleString();
+            document.getElementById('twapPerInterval').textContent = (twapTotal / 10).toLocaleString();
+        }
+
+        // Tab switching with animations
+        function showAlgorithm(algorithmName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Hide all algorithm contents with fade out
+            document.querySelectorAll('.algorithm-content').forEach(content => {
+                if (content.classList.contains('active')) {
+                    content.style.opacity = '0';
+                    content.style.transform = 'translateY(10px)';
+                    setTimeout(() => {
+                        content.classList.remove('active');
+                        content.style.display = 'none';
+                    }, 200);
+                }
+            });
+
+            // Show selected algorithm content with fade in
+            setTimeout(() => {
+                const targetContent = document.getElementById(algorithmName);
+                targetContent.style.display = 'block';
+                targetContent.classList.add('active');
+                
+                // Trigger reflow
+                targetContent.offsetHeight;
+                
+                targetContent.style.opacity = '1';
+                targetContent.style.transform = 'translateY(0)';
+            }, 250);
+        }
+
+        // Add CSS transitions for algorithm content switching
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.algorithm-content').forEach(content => {
+                content.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                content.style.opacity = content.classList.contains('active') ? '1' : '0';
+                content.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html>

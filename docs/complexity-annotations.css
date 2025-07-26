@@ -1,0 +1,279 @@
+/* Algorithmic Complexity Annotations CSS Component */
+/* Include this in any documentation page to add complexity annotations */
+
+.complexity-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-family: 'Courier New', monospace;
+    margin-left: 0.5rem;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.complexity-badge::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.5s;
+}
+
+.complexity-badge:hover::before {
+    left: 100%;
+}
+
+.complexity-badge.time { background: linear-gradient(135deg, #059669, #10b981); }
+.complexity-badge.space { background: linear-gradient(135deg, #dc2626, #ef4444); }
+.complexity-badge.optimal { background: linear-gradient(135deg, #166534, #22c55e); }
+.complexity-badge.linear { background: linear-gradient(135deg, #ea580c, #f97316); }
+.complexity-badge.logarithmic { background: linear-gradient(135deg, #0891b2, #06b6d4); }
+
+.complexity-section {
+    background: rgba(124, 58, 237, 0.05);
+    border: 1px solid #a855f7;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.complexity-section::before {
+    content: '🧮';
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    background: #faf9f7;
+    padding: 0 0.5rem;
+    font-size: 1.2rem;
+}
+
+.complexity-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #7c3aed;
+    margin-bottom: 1rem;
+}
+
+.complexity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.complexity-item {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Courier New', monospace;
+}
+
+.complexity-operation {
+    font-weight: bold;
+    color: #374151;
+}
+
+.complexity-value {
+    font-weight: bold;
+    color: #7c3aed;
+}
+
+.complexity-explanation {
+    background: rgba(30, 58, 138, 0.05);
+    border-left: 4px solid #1e3a8a;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 0 6px 6px 0;
+}
+
+.complexity-explanation h4 {
+    color: #1e3a8a;
+    margin-bottom: 0.5rem;
+}
+
+.complexity-variables {
+    background: rgba(22, 101, 52, 0.05);
+    border: 1px solid #166534;
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.complexity-variables h4 {
+    color: #166534;
+    margin-bottom: 0.5rem;
+}
+
+.complexity-variables ul {
+    margin-left: 1.5rem;
+}
+
+.complexity-variables li {
+    margin-bottom: 0.25rem;
+    font-family: 'Courier New', monospace;
+}
+
+.complexity-tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.complexity-tooltip .tooltip-content {
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #374151;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 1000;
+}
+
+.complexity-tooltip:hover .tooltip-content {
+    opacity: 1;
+}
+
+.complexity-comparison {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.complexity-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.complexity-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.complexity-card.best {
+    border-color: #22c55e;
+    background: rgba(22, 101, 52, 0.02);
+}
+
+.complexity-card.worst {
+    border-color: #ef4444;
+    background: rgba(220, 38, 38, 0.02);
+}
+
+.complexity-card h4 {
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.complexity-card .big-o {
+    font-size: 1.5rem;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    margin: 0.5rem 0;
+}
+
+.complexity-card.best .big-o { color: #166534; }
+.complexity-card.worst .big-o { color: #dc2626; }
+.complexity-card .big-o { color: #7c3aed; }
+
+.complexity-performance {
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border: 1px solid #0891b2;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+}
+
+.complexity-performance h3 {
+    color: #0891b2;
+    margin-bottom: 1rem;
+}
+
+.performance-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.performance-metric {
+    text-align: center;
+    padding: 1rem;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #0891b2;
+    font-family: 'Courier New', monospace;
+}
+
+.metric-label {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .complexity-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .complexity-comparison {
+        grid-template-columns: 1fr;
+    }
+    
+    .performance-metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Animation for interactive elements */
+@keyframes complexityPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.complexity-badge.animate {
+    animation: complexityPulse 2s infinite;
+}
+
+/* Print styles */
+@media print {
+    .complexity-tooltip .tooltip-content {
+        position: static;
+        opacity: 1;
+        background: none;
+        color: inherit;
+        display: block;
+        margin-top: 0.25rem;
+        font-style: italic;
+    }
+}
