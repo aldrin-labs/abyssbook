@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AbyssBook - Interactive Orderbook Visualizer</title>
+    <style>
+        :root {
+            --paper-bg: #faf9f7;
+            --paper-surface: #f5f4f2;
+            --ink-dark: #2c2c2c;
+            --ink-medium: #555555;
+            --ink-light: #777777;
+            --accent-blue: #1e3a8a;
+            --accent-green: #166534;
+            --accent-red: #dc2626;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --grain-opacity: 0.03;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: var(--paper-bg);
+            background-image: 
+                radial-gradient(circle at 1px 1px, var(--ink-dark) 0.5px, transparent 0),
+                radial-gradient(circle at 3px 7px, var(--ink-dark) 0.3px, transparent 0),
+                radial-gradient(circle at 7px 3px, var(--ink-dark) 0.2px, transparent 0);
+            background-size: 15px 15px, 25px 25px, 35px 35px;
+            background-blend-mode: multiply;
+            color: var(--ink-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .paper-section {
+            background: var(--paper-surface);
+            background-image: 
+                linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 3px;
+            box-shadow: 0 2px 8px var(--shadow);
+            margin-bottom: 2rem;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .paper-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,var(--grain-opacity)) 2px,
+                    rgba(0,0,0,var(--grain-opacity)) 4px
+                );
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: normal;
+            color: var(--ink-dark);
+            text-align: center;
+            margin-bottom: 1rem;
+            text-shadow: 1px 1px 2px var(--shadow);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--ink-medium);
+            font-style: italic;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+        }
+
+        .orderbook-container {
+            display: grid;
+            grid-template-columns: 1fr 400px 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .orderbook-side {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-light);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: inset 0 1px 3px var(--shadow);
+        }
+
+        .orderbook-side h3 {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-weight: normal;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .bids h3 { color: var(--accent-green); }
+        .asks h3 { color: var(--accent-red); }
+
+        .order-level {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            position: relative;
+            font-family: 'Courier New', monospace;
+        }
+
+        .order-level:hover {
+            transform: translateX(2px);
+            box-shadow: 2px 2px 4px var(--shadow);
+        }
+
+        .bid-level {
+            background: linear-gradient(90deg, rgba(22, 101, 52, 0.1) 0%, transparent 100%);
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .ask-level {
+            background: linear-gradient(90deg, rgba(220, 38, 38, 0.1) 0%, transparent 100%);
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .price { font-weight: bold; }
+        .amount { color: var(--ink-medium); }
+        .total { font-size: 0.9em; color: var(--ink-light); }
+
+        .spread-info {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spread-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .spread-label {
+            color: var(--ink-medium);
+            font-style: italic;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-medium);
+            color: var(--ink-dark);
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
+            box-shadow: 2px 2px 4px var(--shadow);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 6px var(--shadow);
+            background: var(--ink-dark);
+            color: var(--paper-surface);
+        }
+
+        .btn.buy { border-color: var(--accent-green); }
+        .btn.sell { border-color: var(--accent-red); }
+        .btn.buy:hover { background: var(--accent-green); }
+        .btn.sell:hover { background: var(--accent-red); }
+
+        .trade-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 0.5rem;
+            color: var(--ink-medium);
+            font-weight: bold;
+        }
+
+        .form-group input {
+            padding: 0.75rem;
+            border: 2px solid var(--ink-light);
+            border-radius: 3px;
+            background: var(--paper-surface);
+            color: var(--ink-dark);
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
+        }
+
+        .market-data {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 1rem;
+            background: var(--paper-surface);
+            border: 1px solid var(--ink-light);
+            border-radius: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            font-family: 'Courier New', monospace;
+        }
+
+        .metric-label {
+            color: var(--ink-medium);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .animation-indicator {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            opacity: 0;
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0; transform: translateY(-50%) scale(1); }
+            50% { opacity: 1; transform: translateY(-50%) scale(1.5); }
+        }
+
+        .trade-history {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--ink-light);
+            border-radius: 3px;
+            background: var(--paper-surface);
+        }
+
+        .trade-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .trade-entry:last-child { border-bottom: none; }
+        .trade-entry.buy { border-left: 3px solid var(--accent-green); }
+        .trade-entry.sell { border-left: 3px solid var(--accent-red); }
+
+        /* Micro animations */
+        .order-level {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(0);
+            will-change: transform, box-shadow;
+        }
+
+        .order-level:hover {
+            transform: translate3d(5px, 0, 0);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            background: rgba(255,255,255,0.1);
+        }
+
+        .order-level.updated {
+            animation: levelUpdate 0.6s ease-out;
+        }
+
+        @keyframes levelUpdate {
+            0% { background: rgba(255, 215, 0, 0.3); transform: scale3d(1.02, 1.02, 1); }
+            100% { background: transparent; transform: scale3d(1, 1, 1); }
+        }
+
+        .trade-entry {
+            animation: tradeSlideIn 0.4s ease-out;
+            transition: all 0.2s ease;
+        }
+
+        .trade-entry:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        @keyframes tradeSlideIn {
+            0% { opacity: 0; transform: translateX(-20px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        .metric-value {
+            transition: all 0.3s ease;
+        }
+
+        .metric-value.updated {
+            animation: valueFlash 0.5s ease-out;
+        }
+
+        @keyframes valueFlash {
+            0% { color: var(--accent-blue); transform: scale(1.05); }
+            100% { color: var(--ink-dark); transform: scale(1); }
+        }
+
+        .btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: width 0.3s, height 0.3s, top 0.3s, left 0.3s;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translate3d(0, -2px, 0);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn:active {
+            transform: translate3d(0, 0, 0);
+        }
+
+        .spread-value {
+            transition: all 0.4s ease;
+        }
+
+        .spread-value.changed {
+            animation: spreadPulse 0.8s ease-out;
+        }
+
+        @keyframes spreadPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); color: var(--accent-purple); }
+            100% { transform: scale(1); }
+        }
+
+        .orderbook-side {
+            transition: transform 0.2s ease;
+        }
+
+        .orderbook-side:hover {
+            transform: translateY(-2px);
+        }
+
+        .animation-indicator {
+            position: absolute;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            animation: executionPulse 1s ease-out;
+        }
+
+        @keyframes executionPulse {
+            0% { opacity: 0; transform: translateY(-50%) scale(0); }
+            50% { opacity: 1; transform: translateY(-50%) scale(1.5); }
+            100% { opacity: 0; transform: translateY(-50%) scale(0); }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid transparent;
+            border-top: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Algorithm Execution Monitor Styles */
+        .execution-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .stat-card.updated::before {
+            left: 100%;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .stat-value.incrementing {
+            animation: counterIncrement 0.4s ease-out;
+        }
+
+        @keyframes counterIncrement {
+            0% { transform: scale(1); color: var(--accent-blue); }
+            50% { transform: scale(1.1); color: var(--accent-green); }
+            100% { transform: scale(1); color: var(--accent-blue); }
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--ink-medium);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .algorithm-steps {
+            margin: 2rem 0;
+        }
+
+        .steps-container {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .execution-step {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 4px;
+            border-left: 3px solid var(--accent-blue);
+            animation: stepAppear 0.3s ease-out;
+        }
+
+        .execution-step.active {
+            border-left-color: var(--accent-green);
+            background: rgba(22, 101, 52, 0.1);
+        }
+
+        .execution-step.completed {
+            border-left-color: var(--ink-light);
+            opacity: 0.7;
+        }
+
+        @keyframes stepAppear {
+            0% { opacity: 0; transform: translateX(-20px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        .step-icon {
+            margin-right: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .step-details {
+            flex: 1;
+        }
+
+        .step-operation {
+            font-weight: bold;
+            color: var(--ink-dark);
+        }
+
+        .step-description {
+            font-size: 0.9rem;
+            color: var(--ink-medium);
+            margin-top: 0.2rem;
+        }
+
+        .skip-list-visualization {
+            margin: 2rem 0;
+        }
+
+        .skip-list-container {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            min-height: 200px;
+            overflow-x: auto;
+        }
+
+        .skip-list-level {
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 0;
+            min-height: 40px;
+        }
+
+        .level-label {
+            width: 60px;
+            font-weight: bold;
+            color: var(--ink-medium);
+            font-size: 0.9rem;
+        }
+
+        .skip-list-nodes {
+            display: flex;
+            flex: 1;
+            align-items: center;
+        }
+
+        .skip-node {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-light);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            min-width: 80px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .skip-node.current {
+            border-color: var(--accent-blue);
+            background: rgba(30, 58, 138, 0.1);
+            transform: scale(1.05);
+        }
+
+        .skip-node.matched {
+            border-color: var(--accent-green);
+            background: rgba(22, 101, 52, 0.1);
+            animation: nodeMatch 0.6s ease-out;
+        }
+
+        .skip-node.comparing {
+            border-color: var(--accent-red);
+            background: rgba(220, 38, 38, 0.1);
+            animation: nodeCompare 0.4s ease-out;
+        }
+
+        @keyframes nodeMatch {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1.05); }
+        }
+
+        @keyframes nodeCompare {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .node-connector {
+            width: 20px;
+            height: 2px;
+            background: var(--ink-light);
+            position: relative;
+        }
+
+        .node-connector.active {
+            background: var(--accent-blue);
+            animation: connectorPulse 0.8s ease-in-out;
+        }
+
+        @keyframes connectorPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 768px) {
+            .orderbook-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .trade-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .execution-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            /* Reduce animation intensity on mobile for better performance */
+            .order-level:hover {
+                transform: translateX(3px);
+            }
+            
+            .btn:hover {
+                transform: translateY(-1px);
+            }
+            
+            .skip-list-container {
+                overflow-x: scroll;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="paper-section">
+            <h1>📊 Interactive Orderbook Visualizer</h1>
+            <p class="subtitle">Experience AbyssBook's sub-microsecond orderbook in real-time</p>
+
+            <div class="market-data">
+                <div class="metric">
+                    <div class="metric-value" id="lastPrice">9,525.00</div>
+                    <div class="metric-label">Last Price</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="volume">1,247,893</div>
+                    <div class="metric-label">24h Volume</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="totalOrders">2,847</div>
+                    <div class="metric-label">Active Orders</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="latency">0.3μs</div>
+                    <div class="metric-label">Avg Latency</div>
+                </div>
+            </div>
+
+            <div class="orderbook-container">
+                <div class="orderbook-side bids">
+                    <h3>🟢 Bids</h3>
+                    <div id="bidLevels"></div>
+                </div>
+
+                <div class="spread-info">
+                    <div class="spread-value" id="spreadValue">$2.50</div>
+                    <div class="spread-label">Bid-Ask Spread</div>
+                    <div style="margin-top: 1rem;">
+                        <div class="metric-value" id="midPrice">9,523.75</div>
+                        <div class="metric-label">Mid Price</div>
+                    </div>
+                </div>
+
+                <div class="orderbook-side asks">
+                    <h3>🔴 Asks</h3>
+                    <div id="askLevels"></div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn" onclick="generateRandomTrade()">🎲 Random Trade</button>
+                <button class="btn buy" onclick="simulateBuyOrder()">📈 Market Buy</button>
+                <button class="btn sell" onclick="simulateSellOrder()">📉 Market Sell</button>
+                <button class="btn" onclick="resetOrderbook()">🔄 Reset</button>
+                <button class="btn" onclick="toggleAnimation()">⏸️ Pause</button>
+            </div>
+
+            <div class="trade-form">
+                <div class="form-group">
+                    <label for="orderSide">Order Side</label>
+                    <select id="orderSide">
+                        <option value="buy">Buy</option>
+                        <option value="sell">Sell</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="orderPrice">Price ($)</label>
+                    <input type="number" id="orderPrice" value="9525" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="orderAmount">Amount</label>
+                    <input type="number" id="orderAmount" value="10" step="0.1">
+                </div>
+                <div class="form-group">
+                    <button class="btn" onclick="placeCustomOrder()" style="margin-top: 1.5rem;">Place Order</button>
+                </div>
+            </div>
+
+            <div class="paper-section">
+                <h3>⚡ Algorithm Execution Monitor</h3>
+                <p class="subtitle">Watch AbyssBook's skip list algorithm process orders in real-time</p>
+                
+                <div class="execution-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="computeOps">0</div>
+                        <div class="stat-label">Compute Operations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="memoryAllocs">0</div>
+                        <div class="stat-label">Memory Allocations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="comparisons">0</div>
+                        <div class="stat-label">Node Comparisons</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="skipListLevel">0</div>
+                        <div class="stat-label">Current Skip Level</div>
+                    </div>
+                </div>
+
+                <div class="algorithm-steps">
+                    <h4>🔍 Current Execution Steps</h4>
+                    <div class="steps-container" id="executionSteps"></div>
+                </div>
+
+                <div class="skip-list-visualization">
+                    <h4>📊 Skip List Structure</h4>
+                    <div class="skip-list-container" id="skipListContainer"></div>
+                </div>
+            </div>
+
+            <div class="paper-section">
+                <h3>📈 Recent Trades</h3>
+                <div class="trade-history" id="tradeHistory"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class OrderbookVisualizer {
+            constructor() {
+                this.bids = new Map();
+                this.asks = new Map();
+                this.trades = [];
+                this.animationRunning = true;
+                
+                // Algorithm execution tracking
+                this.computeOps = 0;
+                this.memoryAllocs = 0;
+                this.comparisons = 0;
+                this.currentLevel = 0;
+                this.executionSteps = [];
+                this.skipListLevels = 4; // Typical skip list height
+                
+                this.initializeOrderbook();
+                this.initializeSkipList();
+                this.startAnimation();
+            }
+
+            initializeSkipList() {
+                // Initialize skip list visualization with sample nodes
+                this.skipListNodes = [
+                    { price: 9520.00, levels: [true, true, false, false] },
+                    { price: 9522.50, levels: [true, false, false, false] },
+                    { price: 9525.00, levels: [true, true, true, false] },
+                    { price: 9527.50, levels: [true, false, false, false] },
+                    { price: 9530.00, levels: [true, true, false, false] }
+                ];
+                this.updateSkipListDisplay();
+                this.updateExecutionStats();
+            }
+
+            updateExecutionStats() {
+                // Update stat counters with animations
+                const updateStat = (id, value) => {
+                    const element = document.getElementById(id);
+                    const oldValue = parseInt(element.textContent) || 0;
+                    if (value !== oldValue) {
+                        element.textContent = value;
+                        element.classList.add('incrementing');
+                        element.parentElement.classList.add('updated');
+                        setTimeout(() => {
+                            element.classList.remove('incrementing');
+                            element.parentElement.classList.remove('updated');
+                        }, 400);
+                    }
+                };
+
+                updateStat('computeOps', this.computeOps);
+                updateStat('memoryAllocs', this.memoryAllocs);
+                updateStat('comparisons', this.comparisons);
+                updateStat('skipListLevel', this.currentLevel);
+            }
+
+            addExecutionStep(operation, description, icon = '⚡') {
+                const step = {
+                    id: Date.now(),
+                    operation,
+                    description,
+                    icon,
+                    timestamp: new Date().toLocaleTimeString(),
+                    active: true
+                };
+
+                this.executionSteps.unshift(step);
+                
+                // Keep only last 10 steps
+                if (this.executionSteps.length > 10) {
+                    this.executionSteps.pop();
+                }
+
+                this.updateExecutionStepsDisplay();
+
+                // Mark step as completed after a delay
+                setTimeout(() => {
+                    step.active = false;
+                    this.updateExecutionStepsDisplay();
+                }, 2000);
+            }
+
+            updateExecutionStepsDisplay() {
+                const container = document.getElementById('executionSteps');
+                container.innerHTML = this.executionSteps.map(step => `
+                    <div class="execution-step ${step.active ? 'active' : 'completed'}">
+                        <div class="step-icon">${step.icon}</div>
+                        <div class="step-details">
+                            <div class="step-operation">${step.operation}</div>
+                            <div class="step-description">${step.description}</div>
+                        </div>
+                        <div class="step-time">${step.timestamp}</div>
+                    </div>
+                `).join('');
+            }
+
+            updateSkipListDisplay() {
+                const container = document.getElementById('skipListContainer');
+                let html = '';
+
+                for (let level = this.skipListLevels - 1; level >= 0; level--) {
+                    html += `<div class="skip-list-level">`;
+                    html += `<div class="level-label">Level ${level}</div>`;
+                    html += `<div class="skip-list-nodes">`;
+
+                    let first = true;
+                    this.skipListNodes.forEach((node, index) => {
+                        if (node.levels[level]) {
+                            if (!first) {
+                                html += `<div class="node-connector"></div>`;
+                            }
+                            html += `
+                                <div class="skip-node" data-price="${node.price}" data-level="${level}">
+                                    $${node.price.toFixed(2)}
+                                </div>
+                            `;
+                            first = false;
+                        }
+                    });
+
+                    html += `</div></div>`;
+                }
+
+                container.innerHTML = html;
+            }
+
+            animateSkipListTraversal(targetPrice, side) {
+                this.addExecutionStep(
+                    'Skip List Traversal Started',
+                    `Searching for ${side} order at price $${targetPrice.toFixed(2)}`,
+                    '🔍'
+                );
+
+                let currentLevel = this.skipListLevels - 1;
+                let stepDelay = 0;
+
+                const traverseLevel = (level) => {
+                    setTimeout(() => {
+                        this.currentLevel = level;
+                        this.updateExecutionStats();
+
+                        // Highlight current level
+                        document.querySelectorAll('.skip-node').forEach(node => {
+                            node.classList.remove('current', 'comparing', 'matched');
+                        });
+
+                        // Find nodes to compare at this level
+                        const levelNodes = document.querySelectorAll(`[data-level="${level}"]`);
+                        let nodeFound = false;
+
+                        levelNodes.forEach((node, index) => {
+                            setTimeout(() => {
+                                const nodePrice = parseFloat(node.dataset.price);
+                                node.classList.add('current');
+                                
+                                this.comparisons++;
+                                this.computeOps++;
+                                this.updateExecutionStats();
+
+                                this.addExecutionStep(
+                                    'Node Comparison',
+                                    `Comparing target $${targetPrice.toFixed(2)} with node $${nodePrice.toFixed(2)} at level ${level}`,
+                                    '🔍'
+                                );
+
+                                setTimeout(() => {
+                                    if (Math.abs(nodePrice - targetPrice) < 0.01) {
+                                        node.classList.remove('current');
+                                        node.classList.add('matched');
+                                        nodeFound = true;
+                                        
+                                        this.addExecutionStep(
+                                            'Match Found',
+                                            `Exact price match found at $${nodePrice.toFixed(2)}`,
+                                            '✅'
+                                        );
+                                    } else {
+                                        node.classList.remove('current');
+                                        node.classList.add('comparing');
+                                        
+                                        setTimeout(() => {
+                                            node.classList.remove('comparing');
+                                        }, 500);
+                                    }
+                                }, 300);
+
+                            }, index * 200);
+                        });
+
+                        // Continue to next level
+                        if (level > 0 && !nodeFound) {
+                            setTimeout(() => {
+                                traverseLevel(level - 1);
+                            }, levelNodes.length * 200 + 500);
+                        } else {
+                            // Insertion/matching complete
+                            setTimeout(() => {
+                                this.completeOrderExecution(targetPrice, side);
+                            }, levelNodes.length * 200 + 800);
+                        }
+
+                    }, stepDelay);
+                };
+
+                traverseLevel(currentLevel);
+            }
+
+            completeOrderExecution(price, side) {
+                // Simulate memory allocation for new order
+                this.memoryAllocs++;
+                this.computeOps += 2; // Insert operation + rebalance
+                this.updateExecutionStats();
+
+                this.addExecutionStep(
+                    'Order Execution Complete',
+                    `${side === 'buy' ? 'Buy' : 'Sell'} order processed with O(log n) complexity`,
+                    '✅'
+                );
+
+                // Add new node to skip list if it's a new price level
+                const existingNode = this.skipListNodes.find(node => Math.abs(node.price - price) < 0.01);
+                if (!existingNode) {
+                    // Simulate probabilistic level assignment
+                    const levels = [true]; // Level 0 always true
+                    for (let i = 1; i < this.skipListLevels; i++) {
+                        levels.push(Math.random() < 0.5); // 50% probability for each level
+                    }
+
+                    this.skipListNodes.push({ price, levels });
+                    this.skipListNodes.sort((a, b) => a.price - b.price);
+                    
+                    this.memoryAllocs++;
+                    this.updateExecutionStats();
+                    this.updateSkipListDisplay();
+
+                    this.addExecutionStep(
+                        'New Price Level Created', 
+                        `Allocated new skip list node at $${price.toFixed(2)}`,
+                        '🆕'
+                    );
+                }
+            }
+            initializeOrderbook() {
+                // Initialize with sample data
+                const basePrice = 9525;
+                
+                // Create bid levels
+                for (let i = 0; i < 15; i++) {
+                    const price = basePrice - (i * 0.25);
+                    const amount = Math.random() * 100 + 10;
+                    this.bids.set(price, amount);
+                }
+                
+                // Create ask levels
+                for (let i = 0; i < 15; i++) {
+                    const price = basePrice + 2.5 + (i * 0.25);
+                    const amount = Math.random() * 100 + 10;
+                    this.asks.set(price, amount);
+                }
+                
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                this.updateBidLevels();
+                this.updateAskLevels();
+                this.updateSpread();
+                this.updateMetrics();
+            }
+
+            updateBidLevels() {
+                const bidLevels = document.getElementById('bidLevels');
+                const sortedBids = Array.from(this.bids.entries())
+                    .sort((a, b) => b[0] - a[0])
+                    .slice(0, 10);
+                
+                let totalAmount = 0;
+                const newContent = sortedBids.map(([price, amount]) => {
+                    totalAmount += amount;
+                    return `
+                        <div class="order-level bid-level" data-price="${price}">
+                            <span class="price">$${price.toFixed(2)}</span>
+                            <span class="amount">${amount.toFixed(1)}</span>
+                            <span class="total">${totalAmount.toFixed(1)}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Check for changes and animate
+                if (bidLevels.innerHTML !== newContent) {
+                    bidLevels.innerHTML = newContent;
+                    // Add update animation to new levels
+                    bidLevels.querySelectorAll('.order-level').forEach((level, index) => {
+                        setTimeout(() => {
+                            level.classList.add('updated');
+                            setTimeout(() => level.classList.remove('updated'), 600);
+                        }, index * 50);
+                    });
+                }
+            }
+
+            updateAskLevels() {
+                const askLevels = document.getElementById('askLevels');
+                const sortedAsks = Array.from(this.asks.entries())
+                    .sort((a, b) => a[0] - b[0])
+                    .slice(0, 10);
+                
+                let totalAmount = 0;
+                const newContent = sortedAsks.map(([price, amount]) => {
+                    totalAmount += amount;
+                    return `
+                        <div class="order-level ask-level" data-price="${price}">
+                            <span class="price">$${price.toFixed(2)}</span>
+                            <span class="amount">${amount.toFixed(1)}</span>
+                            <span class="total">${totalAmount.toFixed(1)}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Check for changes and animate
+                if (askLevels.innerHTML !== newContent) {
+                    askLevels.innerHTML = newContent;
+                    // Add update animation to new levels
+                    askLevels.querySelectorAll('.order-level').forEach((level, index) => {
+                        setTimeout(() => {
+                            level.classList.add('updated');
+                            setTimeout(() => level.classList.remove('updated'), 600);
+                        }, index * 50);
+                    });
+                }
+            }
+
+            updateSpread() {
+                const bestBid = Math.max(...this.bids.keys());
+                const bestAsk = Math.min(...this.asks.keys());
+                const spread = bestAsk - bestBid;
+                const midPrice = (bestBid + bestAsk) / 2;
+                
+                const spreadElement = document.getElementById('spreadValue');
+                const midPriceElement = document.getElementById('midPrice');
+                
+                // Check if spread changed and animate
+                const oldSpread = spreadElement.textContent;
+                const newSpread = `$${spread.toFixed(2)}`;
+                if (oldSpread !== newSpread) {
+                    spreadElement.classList.add('changed');
+                    setTimeout(() => spreadElement.classList.remove('changed'), 800);
+                }
+                
+                spreadElement.textContent = newSpread;
+                
+                // Animate mid price changes
+                const oldMidPrice = midPriceElement.textContent;
+                const newMidPrice = midPrice.toFixed(2);
+                if (oldMidPrice !== newMidPrice) {
+                    midPriceElement.classList.add('updated');
+                    setTimeout(() => midPriceElement.classList.remove('updated'), 500);
+                }
+                
+                midPriceElement.textContent = newMidPrice;
+            }
+
+            updateMetrics() {
+                const totalOrders = this.bids.size + this.asks.size;
+                const totalOrdersElement = document.getElementById('totalOrders');
+                const oldValue = totalOrdersElement.textContent;
+                const newValue = totalOrders.toLocaleString();
+                
+                if (oldValue !== newValue) {
+                    totalOrdersElement.classList.add('updated');
+                    setTimeout(() => totalOrdersElement.classList.remove('updated'), 500);
+                    totalOrdersElement.textContent = newValue;
+                }
+                
+                // Simulate volume update with animation
+                const volumeElement = document.getElementById('volume');
+                const currentVolume = parseInt(volumeElement.textContent.replace(/,/g, ''));
+                const newVolume = currentVolume + Math.floor(Math.random() * 100);
+                
+                volumeElement.classList.add('updated');
+                setTimeout(() => volumeElement.classList.remove('updated'), 500);
+                volumeElement.textContent = newVolume.toLocaleString();
+            }
+
+            simulateTrade(side, price, amount) {
+                const timestamp = new Date().toLocaleTimeString();
+                const trade = { side, price, amount, timestamp };
+                this.trades.unshift(trade);
+                
+                if (this.trades.length > 50) {
+                    this.trades.pop();
+                }
+                
+                this.updateTradeHistory();
+                this.animateOrderExecution(side, price);
+                
+                // Update last price with animation
+                const lastPriceElement = document.getElementById('lastPrice');
+                lastPriceElement.classList.add('updated');
+                setTimeout(() => lastPriceElement.classList.remove('updated'), 500);
+                lastPriceElement.textContent = price.toFixed(2);
+            }
+
+            updateTradeHistory() {
+                const tradeHistory = document.getElementById('tradeHistory');
+                tradeHistory.innerHTML = this.trades.slice(0, 20).map(trade => `
+                    <div class="trade-entry ${trade.side}">
+                        <span>${trade.timestamp}</span>
+                        <span class="price">$${trade.price.toFixed(2)}</span>
+                        <span class="amount">${trade.amount.toFixed(1)}</span>
+                    </div>
+                `).join('');
+            }
+
+            animateOrderExecution(side, price) {
+                const levels = document.querySelectorAll(`.${side === 'buy' ? 'ask' : 'bid'}-level`);
+                levels.forEach(level => {
+                    const priceSpan = level.querySelector('.price');
+                    const levelPrice = parseFloat(priceSpan.textContent.replace('$', ''));
+                    
+                    if ((side === 'buy' && levelPrice <= price) || (side === 'sell' && levelPrice >= price)) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'animation-indicator';
+                        level.appendChild(indicator);
+                        
+                        setTimeout(() => {
+                            if (indicator.parentNode) {
+                                indicator.parentNode.removeChild(indicator);
+                            }
+                        }, 1000);
+                    }
+                });
+            }
+
+            executeMarketOrder(side, amount) {
+                // Start algorithm execution animation
+                this.addExecutionStep(
+                    'Market Order Received',
+                    `Processing ${side} order for ${amount.toFixed(1)} units`,
+                    '📨'
+                );
+
+                if (side === 'buy') {
+                    // Execute against asks
+                    let remainingAmount = amount;
+                    const sortedAsks = Array.from(this.asks.entries()).sort((a, b) => a[0] - b[0]);
+                    
+                    for (const [price, availableAmount] of sortedAsks) {
+                        if (remainingAmount <= 0) break;
+                        
+                        // Animate skip list traversal for this price
+                        this.animateSkipListTraversal(price, 'buy');
+                        
+                        const tradeAmount = Math.min(remainingAmount, availableAmount);
+                        this.simulateTrade('buy', price, tradeAmount);
+                        
+                        if (availableAmount <= tradeAmount) {
+                            this.asks.delete(price);
+                            this.addExecutionStep(
+                                'Price Level Removed',
+                                `Deleted ask level at $${price.toFixed(2)} - fully consumed`,
+                                '🗑️'
+                            );
+                        } else {
+                            this.asks.set(price, availableAmount - tradeAmount);
+                            this.addExecutionStep(
+                                'Price Level Updated',
+                                `Updated ask level at $${price.toFixed(2)} - remaining: ${(availableAmount - tradeAmount).toFixed(1)}`,
+                                '📝'
+                            );
+                        }
+                        
+                        remainingAmount -= tradeAmount;
+                        
+                        // Only process one level for visual clarity
+                        break;
+                    }
+                } else {
+                    // Execute against bids
+                    let remainingAmount = amount;
+                    const sortedBids = Array.from(this.bids.entries()).sort((a, b) => b[0] - a[0]);
+                    
+                    for (const [price, availableAmount] of sortedBids) {
+                        if (remainingAmount <= 0) break;
+                        
+                        // Animate skip list traversal for this price
+                        this.animateSkipListTraversal(price, 'sell');
+                        
+                        const tradeAmount = Math.min(remainingAmount, availableAmount);
+                        this.simulateTrade('sell', price, tradeAmount);
+                        
+                        if (availableAmount <= tradeAmount) {
+                            this.bids.delete(price);
+                            this.addExecutionStep(
+                                'Price Level Removed',
+                                `Deleted bid level at $${price.toFixed(2)} - fully consumed`,
+                                '🗑️'
+                            );
+                        } else {
+                            this.bids.set(price, availableAmount - tradeAmount);
+                            this.addExecutionStep(
+                                'Price Level Updated',
+                                `Updated bid level at $${price.toFixed(2)} - remaining: ${(availableAmount - tradeAmount).toFixed(1)}`,
+                                '📝'
+                            );
+                        }
+                        
+                        remainingAmount -= tradeAmount;
+                        
+                        // Only process one level for visual clarity
+                        break;
+                    }
+                }
+                
+                this.updateDisplay();
+            }
+
+            addRandomOrders() {
+                // Add random bid
+                if (Math.random() > 0.5) {
+                    const bestBid = Math.max(...this.bids.keys());
+                    const price = bestBid - Math.random() * 5;
+                    const amount = Math.random() * 50 + 5;
+                    this.bids.set(price, amount);
+                    
+                    // Track operations for random order addition
+                    this.computeOps++;
+                    this.memoryAllocs++;
+                    this.updateExecutionStats();
+                }
+                
+                // Add random ask
+                if (Math.random() > 0.5) {
+                    const bestAsk = Math.min(...this.asks.keys());
+                    const price = bestAsk + Math.random() * 5;
+                    const amount = Math.random() * 50 + 5;
+                    this.asks.set(price, amount);
+                    
+                    // Track operations for random order addition
+                    this.computeOps++;
+                    this.memoryAllocs++;
+                    this.updateExecutionStats();
+                }
+            }
+
+            startAnimation() {
+                setInterval(() => {
+                    if (this.animationRunning) {
+                        this.addRandomOrders();
+                        
+                        // Random small trades
+                        if (Math.random() > 0.7) {
+                            const side = Math.random() > 0.5 ? 'buy' : 'sell';
+                            const amount = Math.random() * 20 + 1;
+                            this.executeMarketOrder(side, amount);
+                        }
+                        
+                        this.updateDisplay();
+                    }
+                }, 2000);
+            }
+        }
+
+        // Initialize visualizer
+        const visualizer = new OrderbookVisualizer();
+
+        // Control functions
+        function generateRandomTrade() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🎲 Trading...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                const side = Math.random() > 0.5 ? 'buy' : 'sell';
+                const amount = Math.random() * 50 + 10;
+                visualizer.executeMarketOrder(side, amount);
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 500);
+        }
+
+        function simulateBuyOrder() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '📈 Buying...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                const amount = Math.random() * 30 + 20;
+                visualizer.executeMarketOrder('buy', amount);
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 400);
+        }
+
+        function simulateSellOrder() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '📉 Selling...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                const amount = Math.random() * 30 + 20;
+                visualizer.executeMarketOrder('sell', amount);
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 400);
+        }
+
+        function resetOrderbook() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '🔄 Resetting...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                visualizer.bids.clear();
+                visualizer.asks.clear();
+                visualizer.trades = [];
+                visualizer.initializeOrderbook();
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 600);
+        }
+
+        function toggleAnimation() {
+            visualizer.animationRunning = !visualizer.animationRunning;
+            const btn = event.target;
+            btn.textContent = visualizer.animationRunning ? '⏸️ Pause' : '▶️ Play';
+        }
+
+        function placeCustomOrder() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Placing...<span class="loading-spinner"></span>';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                const side = document.getElementById('orderSide').value;
+                const price = parseFloat(document.getElementById('orderPrice').value);
+                const amount = parseFloat(document.getElementById('orderAmount').value);
+                
+                // Trigger algorithm visualization for custom orders
+                visualizer.addExecutionStep(
+                    'Limit Order Received',
+                    `Processing ${side} limit order: ${amount} @ $${price.toFixed(2)}`,
+                    '📋'
+                );
+                
+                visualizer.animateSkipListTraversal(price, side);
+                
+                if (side === 'buy') {
+                    visualizer.bids.set(price, amount);
+                } else {
+                    visualizer.asks.set(price, amount);
+                }
+                
+                visualizer.updateDisplay();
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 300);
+        }
+    </script>
+</body>
+</html>

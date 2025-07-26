@@ -7,18 +7,31 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
         :root {
-            --primary: #2563eb;
+            --paper-bg: #faf9f7;
+            --paper-surface: #f5f4f2;
+            --ink-dark: #2c2c2c;
+            --ink-medium: #555555;
+            --ink-light: #777777;
+            --accent-blue: #1e3a8a;
+            --accent-green: #166534;
+            --accent-red: #dc2626;
+            --accent-cyan: #0891b2;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --grain-opacity: 0.03;
+            
+            /* Legacy mappings for compatibility */
+            --primary: var(--accent-blue);
             --primary-dark: #1d4ed8;
-            --secondary: #64748b;
-            --background: #0f172a;
-            --surface: #1e293b;
-            --surface-light: #334155;
-            --text: #f1f5f9;
-            --text-muted: #94a3b8;
-            --accent: #06b6d4;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --border: #475569;
+            --secondary: var(--ink-medium);
+            --background: var(--paper-bg);
+            --surface: var(--paper-surface);
+            --surface-light: #e2e1de;
+            --text: var(--ink-dark);
+            --text-muted: var(--ink-medium);
+            --accent: var(--accent-cyan);
+            --success: var(--accent-green);
+            --warning: #ea580c;
+            --border: var(--ink-light);
         }
 
         * {
@@ -28,8 +41,14 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--background);
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: var(--paper-bg);
+            background-image: 
+                radial-gradient(circle at 1px 1px, var(--ink-dark) 0.5px, transparent 0),
+                radial-gradient(circle at 3px 7px, var(--ink-dark) 0.3px, transparent 0),
+                radial-gradient(circle at 7px 3px, var(--ink-dark) 0.2px, transparent 0);
+            background-size: 15px 15px, 25px 25px, 35px 35px;
+            background-blend-mode: multiply;
             color: var(--text);
             line-height: 1.6;
         }
@@ -257,10 +276,34 @@
 
         .card {
             background: var(--surface);
+            background-image: 
+                linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px),
+                linear-gradient(180deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
             border: 1px solid var(--border);
             border-radius: 0.75rem;
             padding: 2rem;
             transition: all 0.2s;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,var(--grain-opacity)) 2px,
+                    rgba(0,0,0,var(--grain-opacity)) 4px
+                );
+            pointer-events: none;
+            border-radius: inherit;
         }
 
         .card:hover {
@@ -407,6 +450,7 @@
                 </div>
                 <nav>
                     <a href="#docs">Docs</a>
+                    <a href="#visualizations">Visualizations</a>
                     <a href="#api">API</a>
                     <a href="#examples">Examples</a>
                     <a href="https://github.com/aldrin-labs/abyssbook">GitHub</a>
@@ -442,6 +486,41 @@
                 </div>
             </section>
 
+            <section class="section" id="visualizations">
+                <h2 class="section-title">🎨 Interactive Visualizations</h2>
+                <p class="section-subtitle">Experience AbyssBook's algorithms and performance through interactive visual demonstrations</p>
+                
+                <div class="grid grid-2">
+                    <div class="card">
+                        <div class="card-icon">📊</div>
+                        <h3 class="card-title">Live Orderbook Simulator</h3>
+                        <p class="card-description">Watch orders flow through the book in real-time, simulate trades, and see the impact of different order types</p>
+                        <a href="orderbook-visualizer.html" class="card-link">Launch Simulator →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">⚡</div>
+                        <h3 class="card-title">Algorithm Animations</h3>
+                        <p class="card-description">Step-by-step visualizations of SIMD matching, order routing, and TWAP execution</p>
+                        <a href="algorithm-visualizations.html" class="card-link">Watch Animations →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">📈</div>
+                        <h3 class="card-title">Performance Dashboard</h3>
+                        <p class="card-description">Interactive charts and comparisons showing latency, throughput, and efficiency metrics</p>
+                        <a href="benchmark-comparisons.html" class="card-link">View Dashboard →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">🧮</div>
+                        <h3 class="card-title">Complexity Analysis</h3>
+                        <p class="card-description">Visual breakdown of algorithmic complexity for all core operations</p>
+                        <a href="benchmark-comparisons.html#complexity" class="card-link">Analyze Complexity →</a>
+                    </div>
+                </div>
+            </section>
+
             <section class="section" id="docs">
                 <h2 class="section-title">📚 Documentation</h2>
                 <p class="section-subtitle">Everything you need to understand and implement AbyssBook</p>
@@ -470,6 +549,27 @@
                     
                     <div class="card">
                         <div class="card-icon">📊</div>
+                        <h3 class="card-title">Interactive Orderbook</h3>
+                        <p class="card-description">Visualize and simulate real-time orderbook operations</p>
+                        <a href="orderbook-visualizer.html" class="card-link">Try Visualizer →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">🧠</div>
+                        <h3 class="card-title">Algorithm Animations</h3>
+                        <p class="card-description">Step-by-step visualizations of core matching algorithms</p>
+                        <a href="algorithm-visualizations.html" class="card-link">Watch Animations →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">📈</div>
+                        <h3 class="card-title">Performance Benchmarks</h3>
+                        <p class="card-description">Interactive charts comparing performance across platforms</p>
+                        <a href="benchmark-comparisons.html" class="card-link">View Benchmarks →</a>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">📋</div>
                         <h3 class="card-title">Use Cases & Benefits</h3>
                         <p class="card-description">Detailed applications, problems solved, and quantified benefits</p>
                         <a href="use-cases.md" class="card-link">View Use Cases →</a>
