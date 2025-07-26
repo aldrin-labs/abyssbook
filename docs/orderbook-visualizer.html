@@ -101,8 +101,8 @@
 
         .orderbook-container {
             display: grid;
-            grid-template-columns: 1fr 200px 1fr;
-            gap: 1rem;
+            grid-template-columns: 1fr 150px 1fr;
+            gap: 0.75rem;
             flex: 1;
             min-height: 300px;
         }
@@ -111,7 +111,7 @@
             background: var(--paper-surface);
             border: 2px solid var(--ink-light);
             border-radius: 8px;
-            padding: 1rem;
+            padding: 0.75rem;
             box-shadow: inset 0 1px 3px var(--shadow);
             min-height: 0;
             display: flex;
@@ -140,12 +140,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem;
-            margin-bottom: 0.25rem;
+            padding: 0.4rem 0.5rem;
+            margin-bottom: 0.2rem;
             border-radius: 3px;
             transition: all 0.3s ease;
             position: relative;
             font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
         }
 
         .order-level:hover {
@@ -169,30 +170,30 @@
 
         .spread-info {
             text-align: center;
-            padding: 1rem;
+            padding: 0.75rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
 
         .spread-value {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: bold;
             color: var(--accent-blue);
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.2rem;
         }
 
         .spread-label {
             color: var(--ink-medium);
             font-style: italic;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
 
         .controls {
             display: flex;
             justify-content: center;
-            gap: 0.5rem;
-            margin: 1rem 0;
+            gap: 0.4rem;
+            margin: 0.75rem 0;
             flex-wrap: wrap;
         }
 
@@ -224,8 +225,8 @@
         .trade-form {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.5rem;
-            margin: 1rem 0;
+            gap: 0.4rem;
+            margin: 0.75rem 0;
         }
 
         .form-group {
@@ -324,7 +325,7 @@
         }
 
         .trade-history {
-            max-height: 150px;
+            max-height: 200px;
             overflow-y: auto;
             border: 1px solid var(--ink-light);
             border-radius: 3px;
@@ -489,15 +490,15 @@
         .execution-stats {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+            gap: 0.4rem;
+            margin-bottom: 0.75rem;
         }
 
         .stat-card {
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 0.75rem;
+            border-radius: 6px;
+            padding: 0.5rem;
             text-align: center;
             transition: all 0.3s ease;
             position: relative;
@@ -525,10 +526,10 @@
         }
 
         .stat-value {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: bold;
             color: var(--accent-blue);
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.15rem;
             transition: all 0.3s ease;
         }
 
@@ -543,14 +544,15 @@
         }
 
         .stat-label {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--ink-medium);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            line-height: 1.2;
         }
 
         .algorithm-steps {
-            margin: 1rem 0;
+            margin: 0.75rem 0;
             flex: 1;
             min-height: 0;
         }
@@ -558,10 +560,10 @@
         .steps-container {
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 0.5rem;
-            min-height: 100px;
-            max-height: 150px;
+            border-radius: 6px;
+            padding: 0.4rem;
+            min-height: 80px;
+            max-height: 120px;
             overflow-y: auto;
         }
 
@@ -612,7 +614,7 @@
         }
 
         .skip-list-visualization {
-            margin: 1rem 0;
+            margin: 0.75rem 0;
             flex: 1;
             min-height: 0;
         }
@@ -620,10 +622,10 @@
         .skip-list-container {
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            padding: 0.75rem;
-            min-height: 120px;
-            max-height: 200px;
+            border-radius: 6px;
+            padding: 0.5rem;
+            min-height: 100px;
+            max-height: 160px;
             overflow: auto;
         }
 
@@ -650,13 +652,14 @@
         .skip-node {
             background: var(--paper-surface);
             border: 2px solid var(--ink-light);
-            border-radius: 6px;
-            padding: 0.5rem 1rem;
-            margin: 0 0.5rem;
-            min-width: 80px;
+            border-radius: 4px;
+            padding: 0.3rem 0.6rem;
+            margin: 0 0.3rem;
+            min-width: 60px;
             text-align: center;
             transition: all 0.3s ease;
             position: relative;
+            font-size: 0.8rem;
         }
 
         .skip-node.current {
@@ -792,9 +795,9 @@
                         <div class="spread-info">
                             <div class="spread-value" id="spreadValue">$2.50</div>
                             <div class="spread-label">Bid-Ask Spread</div>
-                            <div style="margin-top: 0.5rem;">
-                                <div class="metric-value" id="midPrice" style="font-size: 1.2rem;">9,523.75</div>
-                                <div class="metric-label">Mid Price</div>
+                            <div style="margin-top: 0.4rem;">
+                                <div class="metric-value" id="midPrice" style="font-size: 1rem;">9,523.75</div>
+                                <div class="metric-label" style="font-size: 0.75rem;">Mid Price</div>
                             </div>
                         </div>
 
@@ -836,7 +839,7 @@
             </div>
 
             <div class="right-panel">
-                <div class="paper-section" style="flex: 1;">
+                <div class="paper-section" style="flex: 2;">
                     <h3>⚡ Algorithm Execution Monitor</h3>
                     <p class="subtitle">Watch AbyssBook's skip list algorithm process orders in real-time</p>
                     
@@ -870,7 +873,7 @@
                     </div>
                 </div>
 
-                <div class="paper-section" style="flex: 0 0 auto;">
+                <div class="paper-section" style="flex: 1;">
                     <h3>📈 Recent Trades</h3>
                     <div class="trade-history" id="tradeHistory"></div>
                 </div>
