@@ -722,6 +722,163 @@
             50% { opacity: 0.3; }
         }
 
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-dark);
+            border-radius: 8px;
+            padding: 1rem;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+            animation: modalSlideIn 0.3s ease-out;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--ink-light);
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--ink-dark);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--ink-medium);
+            padding: 0.2rem;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--accent-red);
+            transform: scale(1.1);
+        }
+
+        .modal-body {
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .expand-btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.65rem;
+            margin-left: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .expand-btn:hover {
+            background: var(--ink-dark);
+            transform: translateY(-1px);
+        }
+
+        .export-btn {
+            background: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .export-btn:hover {
+            background: var(--ink-dark);
+            transform: translateY(-1px);
+        }
+
+        .modal-list-item {
+            padding: 0.3rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-list-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .modal-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-stat-card {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--ink-light);
+            border-radius: 6px;
+            padding: 0.5rem;
+            text-align: center;
+        }
+
+        .modal-stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 0.2rem;
+        }
+
+        .modal-stat-label {
+            font-size: 0.8rem;
+            color: var(--ink-medium);
+        }
+
+        @media (max-width: 1400px) {
+            .main-layout {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+
         @media (max-width: 1200px) {
             .main-layout {
                 grid-template-columns: 1fr;
@@ -758,6 +915,26 @@
                 grid-template-columns: repeat(2, 1fr);
             }
             
+            /* Improve touch targets on mobile */
+            .btn {
+                padding: 0.4rem 0.7rem;
+                font-size: 0.75rem;
+                min-height: 44px;
+            }
+            
+            .expand-btn, .export-btn {
+                padding: 0.3rem 0.5rem;
+                font-size: 0.7rem;
+                min-height: 36px;
+                min-width: 60px;
+            }
+            
+            .order-level {
+                padding: 0.2rem 0.4rem;
+                margin-bottom: 0.15rem;
+                font-size: 0.7rem;
+            }
+            
             /* Reduce animation intensity on mobile for better performance */
             .order-level:hover {
                 transform: translateX(3px);
@@ -769,6 +946,17 @@
             
             .skip-list-container {
                 overflow-x: scroll;
+            }
+            
+            /* Modal adjustments for mobile */
+            .modal-content {
+                margin: 1rem;
+                max-width: calc(100vw - 2rem);
+                max-height: calc(100vh - 2rem);
+            }
+            
+            .modal-stats-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -854,7 +1042,9 @@
 
             <div class="right-panel">
                 <div class="paper-section" style="flex: 2;">
-                    <h3>⚡ Algorithm Execution Monitor</h3>
+                    <h3>⚡ Algorithm Execution Monitor
+                        <button class="export-btn" onclick="exportMetricsToCSV()">📋 Export Metrics CSV</button>
+                    </h3>
                     <p class="subtitle">Watch AbyssBook's skip list algorithm process orders in real-time</p>
                     
                     <div class="execution-stats">
@@ -877,20 +1067,40 @@
                     </div>
 
                     <div class="algorithm-steps">
-                        <h4>🔍 Current Execution Steps</h4>
+                        <h4>🔍 Current Execution Steps
+                            <button class="expand-btn" onclick="expandExecutionSteps()">↗️ Expand</button>
+                        </h4>
                         <div class="steps-container" id="executionSteps"></div>
                     </div>
 
                     <div class="skip-list-visualization">
-                        <h4>📊 Skip List Structure</h4>
+                        <h4>📊 Skip List Structure
+                            <button class="expand-btn" onclick="expandSkipList()">↗️ Expand</button>
+                        </h4>
                         <div class="skip-list-container" id="skipListContainer"></div>
                     </div>
                 </div>
 
                 <div class="paper-section" style="flex: 1;">
-                    <h3>📈 Recent Trades</h3>
+                    <h3>📈 Recent Trades
+                        <button class="expand-btn" onclick="expandTradeHistory()">↗️ Expand</button>
+                        <button class="export-btn" onclick="exportTradesToCSV()">📋 Export CSV</button>
+                    </h3>
                     <div class="trade-history" id="tradeHistory"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for expanded views -->
+    <div id="expandModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Expanded View</div>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content will be inserted here -->
             </div>
         </div>
     </div>
@@ -1136,6 +1346,42 @@
                         '🆕'
                     );
                 }
+            }
+
+            // Export functionality
+            getAllMetrics() {
+                return {
+                    timestamp: new Date().toISOString(),
+                    computeOps: this.computeOps,
+                    memoryAllocs: this.memoryAllocs,
+                    comparisons: this.comparisons,
+                    currentLevel: this.currentLevel,
+                    totalOrders: this.bids.size + this.asks.size,
+                    bidLevels: this.bids.size,
+                    askLevels: this.asks.size,
+                    spread: Math.min(...this.asks.keys()) - Math.max(...this.bids.keys()),
+                    midPrice: (Math.max(...this.bids.keys()) + Math.min(...this.asks.keys())) / 2,
+                    totalTrades: this.trades.length
+                };
+            }
+
+            getAllExecutionSteps() {
+                return this.executionSteps.map(step => ({
+                    timestamp: step.timestamp,
+                    operation: step.operation,
+                    description: step.description,
+                    icon: step.icon,
+                    active: step.active
+                }));
+            }
+
+            getAllTrades() {
+                return this.trades.map(trade => ({
+                    timestamp: trade.timestamp,
+                    side: trade.side,
+                    price: trade.price,
+                    amount: trade.amount
+                }));
             }
             initializeOrderbook() {
                 // Initialize with sample data
@@ -1563,6 +1809,240 @@
                 btn.disabled = false;
             }, 300);
         }
+
+        // Modal functionality
+        function closeModal() {
+            const modal = document.getElementById('expandModal');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        function openModal(title, content) {
+            const modal = document.getElementById('expandModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            modalTitle.textContent = title;
+            modalBody.innerHTML = content;
+            
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+        }
+
+        function expandTradeHistory() {
+            const trades = visualizer.getAllTrades();
+            let content = `
+                <div class="modal-stats-grid">
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${trades.length}</div>
+                        <div class="modal-stat-label">Total Trades</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${trades.filter(t => t.side === 'buy').length}</div>
+                        <div class="modal-stat-label">Buy Orders</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${trades.filter(t => t.side === 'sell').length}</div>
+                        <div class="modal-stat-label">Sell Orders</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">$${trades.reduce((sum, t) => sum + (t.price * t.amount), 0).toLocaleString()}</div>
+                        <div class="modal-stat-label">Total Volume</div>
+                    </div>
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+            `;
+            
+            trades.forEach(trade => {
+                content += `
+                    <div class="modal-list-item">
+                        <span>${trade.timestamp}</span>
+                        <span style="color: ${trade.side === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                            ${trade.side.toUpperCase()}
+                        </span>
+                        <span>$${trade.price.toFixed(2)}</span>
+                        <span>${trade.amount.toFixed(1)}</span>
+                        <span>$${(trade.price * trade.amount).toFixed(2)}</span>
+                    </div>
+                `;
+            });
+            
+            content += '</div>';
+            openModal('📈 Trade History - Full View', content);
+        }
+
+        function expandExecutionSteps() {
+            const steps = visualizer.getAllExecutionSteps();
+            let content = `
+                <div class="modal-stats-grid">
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${steps.length}</div>
+                        <div class="modal-stat-label">Total Steps</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${steps.filter(s => s.active).length}</div>
+                        <div class="modal-stat-label">Active Steps</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${visualizer.computeOps}</div>
+                        <div class="modal-stat-label">Compute Operations</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${visualizer.comparisons}</div>
+                        <div class="modal-stat-label">Node Comparisons</div>
+                    </div>
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+            `;
+            
+            steps.forEach(step => {
+                content += `
+                    <div class="modal-list-item">
+                        <div>
+                            <div style="font-weight: bold; color: ${step.active ? 'var(--accent-green)' : 'var(--ink-medium)'}">
+                                ${step.icon} ${step.operation}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--ink-medium); margin-top: 0.2rem;">
+                                ${step.description}
+                            </div>
+                        </div>
+                        <span>${step.timestamp}</span>
+                    </div>
+                `;
+            });
+            
+            content += '</div>';
+            openModal('🔍 Algorithm Execution Steps - Full View', content);
+        }
+
+        function expandSkipList() {
+            const nodes = visualizer.skipListNodes;
+            let content = `
+                <div class="modal-stats-grid">
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${nodes.length}</div>
+                        <div class="modal-stat-label">Skip List Nodes</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${visualizer.skipListLevels}</div>
+                        <div class="modal-stat-label">Skip List Levels</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">${visualizer.currentLevel}</div>
+                        <div class="modal-stat-label">Current Level</div>
+                    </div>
+                    <div class="modal-stat-card">
+                        <div class="modal-stat-value">O(log n)</div>
+                        <div class="modal-stat-label">Search Complexity</div>
+                    </div>
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+            `;
+            
+            for (let level = visualizer.skipListLevels - 1; level >= 0; level--) {
+                content += `<h4 style="margin: 1rem 0 0.5rem 0;">Level ${level}</h4>`;
+                nodes.forEach(node => {
+                    if (node.levels[level]) {
+                        content += `
+                            <div class="modal-list-item">
+                                <span style="font-weight: bold;">$${node.price.toFixed(2)}</span>
+                                <span>Present at ${node.levels.filter(l => l).length} levels</span>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            content += '</div>';
+            openModal('📊 Skip List Structure - Full View', content);
+        }
+
+        // CSV Export functions
+        function exportTradesToCSV() {
+            const trades = visualizer.getAllTrades();
+            const csvContent = [
+                ['Timestamp', 'Side', 'Price', 'Amount', 'Total Value'].join(','),
+                ...trades.map(trade => [
+                    trade.timestamp,
+                    trade.side,
+                    trade.price.toFixed(2),
+                    trade.amount.toFixed(1),
+                    (trade.price * trade.amount).toFixed(2)
+                ].join(','))
+            ].join('\n');
+            
+            downloadCSV(csvContent, 'abyssbook-trades.csv');
+        }
+
+        function exportMetricsToCSV() {
+            const metrics = visualizer.getAllMetrics();
+            const steps = visualizer.getAllExecutionSteps();
+            
+            // Export metrics summary
+            const metricsCSV = [
+                ['Metric', 'Value'].join(','),
+                ['Timestamp', metrics.timestamp],
+                ['Compute Operations', metrics.computeOps],
+                ['Memory Allocations', metrics.memoryAllocs],
+                ['Node Comparisons', metrics.comparisons],
+                ['Current Skip Level', metrics.currentLevel],
+                ['Total Orders', metrics.totalOrders],
+                ['Bid Levels', metrics.bidLevels],
+                ['Ask Levels', metrics.askLevels],
+                ['Spread', metrics.spread.toFixed(2)],
+                ['Mid Price', metrics.midPrice.toFixed(2)],
+                ['Total Trades', metrics.totalTrades]
+            ].map(row => row.join(',')).join('\n');
+            
+            downloadCSV(metricsCSV, 'abyssbook-metrics.csv');
+            
+            // Export execution steps
+            const stepsCSV = [
+                ['Timestamp', 'Operation', 'Description', 'Status'].join(','),
+                ...steps.map(step => [
+                    step.timestamp,
+                    `"${step.operation}"`,
+                    `"${step.description}"`,
+                    step.active ? 'Active' : 'Completed'
+                ].join(','))
+            ].join('\n');
+            
+            downloadCSV(stepsCSV, 'abyssbook-execution-steps.csv');
+        }
+
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('expandModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
