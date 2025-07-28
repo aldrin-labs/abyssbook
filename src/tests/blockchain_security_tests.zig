@@ -48,7 +48,7 @@ test "Blockchain client - API key security" {
 
     for (invalid_keys) |key| {
         var client = blockchain_client.BlockchainClient.init(allocator, key, "https://api.example.com") catch continue;
-        defer client.disconnect();
+        defer client.deinit();
 
         // Client should handle invalid keys gracefully
         try testing.expect(client.api_key.len >= 0);
@@ -59,7 +59,7 @@ test "Blockchain client - input sanitization" {
     const allocator = testing.allocator;
 
     var client = blockchain_client.BlockchainClient.init(allocator, "test-key", "https://api.example.com") catch return;
-    defer client.disconnect();
+    defer client.deinit();
 
     // Test market parameter injection attempts
     const injection_attempts = [_][]const u8{
@@ -92,7 +92,7 @@ test "Blockchain client - HTTPS enforcement" {
 
     for (secure_urls) |url| {
         var client = blockchain_client.BlockchainClient.init(allocator, "test-key", url) catch continue;
-        defer client.disconnect();
+        defer client.deinit();
 
         // In production, only HTTPS URLs should be accepted
         // This test verifies HTTPS enforcement
@@ -124,7 +124,7 @@ test "Blockchain client - rate limiting protection" {
     const allocator = testing.allocator;
 
     var client = blockchain_client.BlockchainClient.init(allocator, "test-key", "https://api.example.com") catch return;
-    defer client.disconnect();
+    defer client.deinit();
 
     // Test rapid sequential requests (should be rate limited)
     const rapid_requests = 10;

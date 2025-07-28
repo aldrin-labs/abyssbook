@@ -9,7 +9,7 @@ const BlockchainConstants = @import("constants.zig").BlockchainConstants;
 /// This implementation is thread-safe and includes comprehensive security measures.
 pub const BlockchainClient = struct {
     allocator: std.mem.Allocator,
-    api_key: []const u8,
+    api_key: []u8, // Owned mutable copy for secure zeroing
     base_url: []const u8,
     client: ?http.Client,
     mutex: Thread.Mutex,
@@ -27,9 +27,14 @@ pub const BlockchainClient = struct {
         if (std.mem.indexOf(u8, base_url, "../") != null) {
             return error.InvalidUrl;
         }
+        
+        // Create owned copy of api_key for secure memory management
+        const owned_api_key = try allocator.dupe(u8, api_key);
+        errdefer allocator.free(owned_api_key);
+        
         return BlockchainClient{
             .allocator = allocator,
-            .api_key = api_key,
+            .api_key = owned_api_key,
             .base_url = base_url,
             .client = null,
             .mutex = Thread.Mutex{},
@@ -292,8 +297,9 @@ pub const BlockchainClient = struct {
     pub fn deinit(self: *BlockchainClient) void {
         self.disconnect();
         
-        // Clear sensitive data
-        std.crypto.utils.secureZero(u8, @constCast(self.api_key));
+        // Securely clear and free owned api_key memory
+        std.crypto.utils.secureZero(u8, self.api_key);
+        self.allocator.free(self.api_key);
     }
     
     /// Get connection statistics for monitoring
