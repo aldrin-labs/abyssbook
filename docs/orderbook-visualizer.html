@@ -1632,7 +1632,14 @@
                     ].sort((a, b) => a - b);
 
                     if (allPrices.length === 0) {
+                        // If no prices, clear the data structure and show empty state
+                        this.skipListNodes = [];
+                        this.btreeNodes = [];
+                        this.hashmapBuckets = [];
+                        this.sortedArray = [];
+                        this.rbTreeNodes = [];
                         this._generatingDataStructure = false;
+                        this.updateDataStructureDisplay();
                         return;
                     }
 
@@ -1873,11 +1880,6 @@
 
             initializeSkipList() {
                 // Generate skip list nodes from actual orderbook data
-                this.generateDataStructureFromOrderbook();
-            }
-
-            generateSkipListFromOrderbook() {
-                // Use the new unified method
                 this.generateDataStructureFromOrderbook();
             }
 
