@@ -6,7 +6,20 @@ const orderbook = @import("orderbook.zig");
 const market = @import("market.zig");
 const fees = @import("fees.zig");
 
+// Import security tests
+const security_test = @import("tests/security_test.zig");
+const integration_security_test = @import("tests/integration_security_test.zig");
+
 // ... existing tests ...
+
+// Run security tests
+test "security tests" {
+    try security_test.runSecurityTests();
+}
+
+test "integration security tests" {
+    try integration_security_test.runIntegrationTests();
+}
 
 test "fee structure" {
     var allocator = testing.allocator;

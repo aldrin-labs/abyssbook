@@ -610,21 +610,27 @@
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 6px;
-            padding: 0.2rem;
-            min-height: 50px;
-            max-height: 60px;
+            padding: 0.3rem;
+            min-height: 120px;
+            max-height: 200px;
             overflow-y: auto;
+            font-size: 0.7rem;
+            line-height: 1.2;
         }
 
         .execution-step {
             display: flex;
             align-items: center;
-            padding: 0.2rem;
-            margin: 0.1rem 0;
+            padding: 0.15rem 0.2rem;
+            margin: 0.05rem 0;
             background: rgba(255, 255, 255, 0.8);
-            border-radius: 4px;
-            border-left: 3px solid var(--accent-blue);
-            animation: stepAppear 0.3s ease-out;
+            border-radius: 3px;
+            border-left: 2px solid var(--accent-blue);
+            animation: stepAppear 0.5s ease-out;
+            font-size: 0.65rem;
+            line-height: 1.1;
+            min-height: 18px;
+            transition: all 0.3s ease;
         }
 
         .execution-step.active {
@@ -638,29 +644,63 @@
         }
 
         @keyframes stepAppear {
-            0% { opacity: 0; transform: translateX(-20px); }
-            100% { opacity: 1; transform: translateX(0); }
+            0% { 
+                opacity: 0; 
+                transform: translateY(-10px) scale(0.95);
+                max-height: 0;
+                padding-top: 0;
+                padding-bottom: 0;
+                margin-top: 0;
+                margin-bottom: 0;
+            }
+            50% {
+                max-height: 50px;
+                padding-top: 0.15rem;
+                padding-bottom: 0.15rem;
+                margin-top: 0.05rem;
+                margin-bottom: 0.05rem;
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateY(0) scale(1);
+                max-height: 50px;
+            }
         }
 
         .step-icon {
-            margin-right: 0.3rem;
-            font-size: 1rem;
+            margin-right: 0.2rem;
+            font-size: 0.7rem;
+            flex-shrink: 0;
         }
 
         .step-details {
             flex: 1;
+            min-width: 0;
         }
 
         .step-operation {
             font-weight: bold;
             color: var(--ink-dark);
-            font-size: 0.7rem;
+            font-size: 0.6rem;
+            line-height: 1.1;
+            margin-bottom: 0.05rem;
         }
 
         .step-description {
-            font-size: 0.65rem;
+            font-size: 0.55rem;
             color: var(--ink-medium);
-            margin-top: 0.05rem;
+            line-height: 1;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .step-time {
+            font-size: 0.5rem;
+            color: var(--ink-light);
+            margin-left: 0.2rem;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
 
         .skip-list-visualization {
@@ -909,9 +949,191 @@
             color: var(--ink-medium);
         }
 
+        /* Implementation Controls */
+        .implementation-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.4rem;
+            align-items: end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .control-group label {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: var(--ink-medium);
+        }
+
+        .control-group select {
+            padding: 0.3rem;
+            border: 2px solid var(--ink-light);
+            border-radius: 4px;
+            background: var(--paper-surface);
+            color: var(--ink-dark);
+            font-family: inherit;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        .control-group select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
+        }
+
+        /* Data Structure Specific Visualizations */
+        .data-structure-viz {
+            margin: 0.3rem 0;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .data-structure-container {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 6px;
+            padding: 0.3rem;
+            min-height: 60px;
+            max-height: 120px;
+            overflow: auto;
+        }
+
+        /* BTree Visualization */
+        .btree-level {
+            display: flex;
+            justify-content: center;
+            margin: 0.2rem 0;
+            gap: 0.2rem;
+        }
+
+        .btree-node {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-light);
+            border-radius: 4px;
+            padding: 0.1rem 0.2rem;
+            min-width: 35px;
+            text-align: center;
+            font-size: 0.6rem;
+            transition: all 0.3s ease;
+        }
+
+        .btree-node.current {
+            border-color: var(--accent-blue);
+            background: rgba(30, 58, 138, 0.1);
+        }
+
+        /* HashMap Visualization */
+        .hashmap-buckets {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 0.2rem;
+        }
+
+        .hashmap-bucket {
+            background: var(--paper-surface);
+            border: 1px solid var(--ink-light);
+            border-radius: 4px;
+            padding: 0.2rem;
+            min-height: 40px;
+            font-size: 0.6rem;
+        }
+
+        .hashmap-bucket.active {
+            border-color: var(--accent-blue);
+            background: rgba(30, 58, 138, 0.1);
+        }
+
+        /* Array Visualization */
+        .array-container {
+            display: flex;
+            gap: 0.1rem;
+            overflow-x: auto;
+            padding: 0.2rem;
+        }
+
+        .array-element {
+            background: var(--paper-surface);
+            border: 1px solid var(--ink-light);
+            border-radius: 3px;
+            padding: 0.2rem;
+            min-width: 50px;
+            text-align: center;
+            font-size: 0.6rem;
+            transition: all 0.3s ease;
+        }
+
+        .array-element.comparing {
+            border-color: var(--accent-red);
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        /* Red-Black Tree Visualization */
+        .rbtree-node {
+            background: var(--paper-surface);
+            border: 2px solid var(--ink-light);
+            border-radius: 50%;
+            padding: 0.1rem;
+            min-width: 30px;
+            min-height: 30px;
+            text-align: center;
+            font-size: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rbtree-node.red {
+            border-color: var(--accent-red);
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        .rbtree-node.black {
+            border-color: var(--ink-dark);
+            background: rgba(44, 44, 44, 0.1);
+        }
+
+        /* Performance indicators */
+        .performance-indicator {
+            display: inline-block;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.6rem;
+            font-weight: bold;
+            margin-left: 0.3rem;
+        }
+
+        .performance-indicator.excellent {
+            background: rgba(22, 101, 52, 0.2);
+            color: var(--accent-green);
+        }
+
+        .performance-indicator.good {
+            background: rgba(30, 58, 138, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .performance-indicator.moderate {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .performance-indicator.poor {
+            background: rgba(220, 38, 38, 0.2);
+            color: var(--accent-red);
+        }
+
         @media (max-width: 1400px) {
             .main-layout {
                 grid-template-columns: 1fr 2fr;
+            }
+            
+            .implementation-controls {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
@@ -926,6 +1148,10 @@
             
             .execution-stats {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .implementation-controls {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -953,6 +1179,28 @@
             
             .market-data {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .implementation-controls {
+                grid-template-columns: 1fr;
+                gap: 0.3rem;
+            }
+            
+            .control-group {
+                flex-direction: row;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .control-group label {
+                min-width: 80px;
+                font-size: 0.65rem;
+            }
+            
+            .control-group select {
+                flex: 1;
+                font-size: 0.65rem;
+                padding: 0.25rem;
             }
             
             /* Improve touch targets on mobile */
@@ -984,8 +1232,35 @@
                 transform: translateY(-1px);
             }
             
-            .skip-list-container {
+            .data-structure-container, .skip-list-container {
                 overflow-x: scroll;
+                padding: 0.2rem;
+            }
+            
+            .array-container {
+                gap: 0.05rem;
+            }
+            
+            .array-element {
+                min-width: 40px;
+                font-size: 0.55rem;
+                padding: 0.15rem;
+            }
+            
+            .hashmap-buckets {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .btree-level {
+                flex-wrap: wrap;
+                gap: 0.1rem;
+            }
+            
+            .btree-node, .rbtree-node {
+                font-size: 0.55rem;
+                min-width: 25px;
+                min-height: 25px;
+                padding: 0.05rem;
             }
             
             /* Modal adjustments for mobile */
@@ -998,6 +1273,90 @@
             .modal-stats-grid {
                 grid-template-columns: 1fr;
             }
+        }
+
+        /* Additional responsive breakpoints */
+        @media (max-width: 480px) {
+            .market-data {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 0.3rem;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .implementation-controls .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group label {
+                min-width: auto;
+                text-align: center;
+            }
+        }
+
+        /* Prevent horizontal scroll */
+        body, html {
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+
+        .main-layout {
+            overflow-x: hidden;
+        }
+
+        .data-structure-container {
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        /* Compact mode styles */
+        .compact-mode .paper-section {
+            padding: 0.3rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .compact-mode .orderbook-side {
+            padding: 0.2rem;
+        }
+
+        .compact-mode .order-level {
+            padding: 0.1rem 0.2rem;
+            font-size: 0.6rem;
+        }
+
+        .compact-mode .metric-value {
+            font-size: 0.85rem;
+        }
+
+        .compact-mode .stat-value {
+            font-size: 0.75rem;
+        }
+
+        /* Performance mode styles */
+        .performance-mode .execution-stats {
+            order: -1;
+        }
+
+        .performance-mode .data-structure-viz {
+            background: rgba(124, 58, 237, 0.05);
+            border-color: var(--accent-purple);
+        }
+
+        .performance-mode .performance-indicator {
+            font-size: 0.7rem;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -1022,6 +1381,39 @@
             <div class="metric">
                 <div class="metric-value" id="latency">0.3μs</div>
                 <div class="metric-label">Avg Latency</div>
+            </div>
+        </div>
+
+        <!-- Implementation and Data Structure Selectors -->
+        <div class="paper-section" style="margin-bottom: 0.4rem; padding: 0.4rem;">
+            <div class="implementation-controls">
+                <div class="control-group">
+                    <label for="implementationSelect">📚 Implementation:</label>
+                    <select id="implementationSelect" onchange="updateImplementation()">
+                        <option value="abyssbook">AbyssBook (Zig)</option>
+                        <option value="traditional">Traditional C++</option>
+                        <option value="rust">Rust-based</option>
+                        <option value="hft">HFT Optimized</option>
+                    </select>
+                </div>
+                <div class="control-group" id="dataStructureGroup">
+                    <label for="dataStructureSelect">🗂️ Data Structure:</label>
+                    <select id="dataStructureSelect" onchange="updateDataStructure()">
+                        <option value="skip-list">Skip List (O(log n))</option>
+                        <option value="btreemap">BTreeMap (O(log n))</option>
+                        <option value="hashmap">HashMap (O(1) avg)</option>
+                        <option value="sorted-array">Sorted Array (O(n))</option>
+                        <option value="red-black">Red-Black Tree (O(log n))</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="visualizationMode">👁️ View Mode:</label>
+                    <select id="visualizationMode" onchange="updateVisualizationMode()">
+                        <option value="compact">Compact</option>
+                        <option value="detailed">Detailed</option>
+                        <option value="performance">Performance Focus</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -1160,10 +1552,15 @@
                     </div>
 
                     <div class="skip-list-visualization">
-                        <h4>📊 Skip List Structure
-                            <button class="expand-btn" onclick="expandSkipList()">↗️ Expand</button>
+                        <h4>📊 Data Structure Visualization
+                            <span id="dataStructurePerformance" class="performance-indicator good">O(log n)</span>
+                            <button class="expand-btn" onclick="expandDataStructure()">↗️ Expand</button>
                         </h4>
-                        <div class="skip-list-container" id="skipListContainer"></div>
+                        <div class="data-structure-viz">
+                            <div class="data-structure-container" id="dataStructureContainer">
+                                <!-- Dynamic content based on selected data structure -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1207,23 +1604,64 @@
                 this.executionSteps = [];
                 this.skipListLevels = 4; // Typical skip list height
                 
+                // Implementation and data structure settings
+                this.currentImplementation = 'abyssbook';
+                this.currentDataStructure = 'skip-list';
+                this.visualizationMode = 'compact';
+                
                 this.initializeOrderbook();
-                this.initializeSkipList();
+                this.initializeDataStructure();
                 this.startAnimation();
             }
 
-            initializeSkipList() {
-                // Generate skip list nodes from actual orderbook data
-                this.generateSkipListFromOrderbook();
+            initializeDataStructure() {
+                // Initialize based on selected data structure
+                this.generateDataStructureFromOrderbook();
             }
 
-            generateSkipListFromOrderbook() {
-                // Collect all price levels from bids and asks
-                const allPrices = [
-                    ...Array.from(this.bids.keys()),
-                    ...Array.from(this.asks.keys())
-                ].sort((a, b) => a - b);
+            generateDataStructureFromOrderbook() {
+                // Prevent infinite recursion
+                if (this._generatingDataStructure) return;
+                this._generatingDataStructure = true;
 
+                try {
+                    // Collect all price levels from bids and asks
+                    const allPrices = [
+                        ...Array.from(this.bids.keys()),
+                        ...Array.from(this.asks.keys())
+                    ].sort((a, b) => a - b);
+
+                    if (allPrices.length === 0) {
+                        this._generatingDataStructure = false;
+                        return;
+                    }
+
+                    switch (this.currentDataStructure) {
+                        case 'skip-list':
+                            this.generateSkipListFromOrderbook(allPrices);
+                            break;
+                        case 'btreemap':
+                            this.generateBTreeFromOrderbook(allPrices);
+                            break;
+                        case 'hashmap':
+                            this.generateHashMapFromOrderbook(allPrices);
+                            break;
+                        case 'sorted-array':
+                            this.generateSortedArrayFromOrderbook(allPrices);
+                            break;
+                        case 'red-black':
+                            this.generateRedBlackTreeFromOrderbook(allPrices);
+                            break;
+                    }
+
+                    this.updateDataStructureDisplay();
+                    this.updateExecutionStats();
+                } finally {
+                    this._generatingDataStructure = false;
+                }
+            }
+
+            generateSkipListFromOrderbook(allPrices) {
                 // Generate skip list nodes with probabilistic level assignment
                 this.skipListNodes = allPrices.map(price => {
                     const levels = [true]; // Level 0 always true
@@ -1232,9 +1670,220 @@
                     }
                     return { price, levels };
                 });
+            }
 
-                this.updateSkipListDisplay();
-                this.updateExecutionStats();
+            generateBTreeFromOrderbook(allPrices) {
+                // Generate B-tree structure (simplified 2-3 tree for visualization)
+                this.btreeNodes = [];
+                const nodeCapacity = 3; // Max 3 keys per node for visualization
+                
+                for (let i = 0; i < allPrices.length; i += nodeCapacity) {
+                    const nodeKeys = allPrices.slice(i, i + nodeCapacity);
+                    this.btreeNodes.push({
+                        keys: nodeKeys,
+                        level: Math.floor(i / nodeCapacity / 3), // Simplified level calculation
+                        isLeaf: true
+                    });
+                }
+            }
+
+            generateHashMapFromOrderbook(allPrices) {
+                // Generate hash map buckets
+                this.hashmapBuckets = new Array(8).fill(null).map(() => []);
+                
+                allPrices.forEach(price => {
+                    const bucket = Math.floor(price) % 8; // Simple hash function
+                    if (this.hashmapBuckets[bucket]) {
+                        this.hashmapBuckets[bucket].push(price);
+                    }
+                });
+            }
+
+            generateSortedArrayFromOrderbook(allPrices) {
+                // Simple sorted array
+                this.sortedArray = [...allPrices];
+            }
+
+            generateRedBlackTreeFromOrderbook(allPrices) {
+                // Simplified red-black tree representation
+                this.rbTreeNodes = allPrices.map((price, index) => ({
+                    price,
+                    color: index % 2 === 0 ? 'black' : 'red', // Simplified coloring
+                    level: Math.floor(Math.log2(index + 1))
+                }));
+            }
+
+            updateDataStructureDisplay() {
+                const container = document.getElementById('dataStructureContainer');
+                
+                switch (this.currentDataStructure) {
+                    case 'skip-list':
+                        this.displaySkipList(container);
+                        break;
+                    case 'btreemap':
+                        this.displayBTree(container);
+                        break;
+                    case 'hashmap':
+                        this.displayHashMap(container);
+                        break;
+                    case 'sorted-array':
+                        this.displaySortedArray(container);
+                        break;
+                    case 'red-black':
+                        this.displayRedBlackTree(container);
+                        break;
+                }
+                
+                this.updatePerformanceIndicator();
+            }
+
+            displaySkipList(container) {
+                if (!this.skipListNodes || this.skipListNodes.length === 0) {
+                    container.innerHTML = '<div class="skip-list-level"><div style="text-align: center; color: var(--ink-light);">No data available</div></div>';
+                    return;
+                }
+
+                let html = '';
+                for (let level = this.skipListLevels - 1; level >= 0; level--) {
+                    html += `<div class="skip-list-level">`;
+                    html += `<div class="level-label">L${level}</div>`;
+                    html += `<div class="skip-list-nodes">`;
+
+                    let first = true;
+                    this.skipListNodes.forEach((node, index) => {
+                        if (node.levels && node.levels[level]) {
+                            if (!first) {
+                                html += `<div class="node-connector"></div>`;
+                            }
+                            html += `
+                                <div class="skip-node" data-price="${node.price}" data-level="${level}">
+                                    $${node.price.toFixed(0)}
+                                </div>
+                            `;
+                            first = false;
+                        }
+                    });
+
+                    html += `</div></div>`;
+                }
+                container.innerHTML = html;
+            }
+
+            displayBTree(container) {
+                if (!this.btreeNodes || this.btreeNodes.length === 0) {
+                    container.innerHTML = '<div class="btree-level"><div class="btree-node">No data available</div></div>';
+                    return;
+                }
+
+                const levels = {};
+                this.btreeNodes.forEach(node => {
+                    if (!levels[node.level]) levels[node.level] = [];
+                    levels[node.level].push(node);
+                });
+
+                let html = '';
+                Object.keys(levels).sort((a, b) => a - b).forEach(level => {
+                    html += `<div class="btree-level">`;
+                    levels[level].forEach(node => {
+                        html += `<div class="btree-node">`;
+                        html += node.keys.map(key => `$${key.toFixed(0)}`).join(' | ');
+                        html += `</div>`;
+                    });
+                    html += `</div>`;
+                });
+                
+                container.innerHTML = html || '<div class="btree-level"><div class="btree-node">Empty</div></div>';
+            }
+
+            displayHashMap(container) {
+                if (!this.hashmapBuckets || this.hashmapBuckets.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: var(--ink-light);">No data available</div>';
+                    return;
+                }
+
+                let html = '<div class="hashmap-buckets">';
+                this.hashmapBuckets.forEach((bucket, index) => {
+                    html += `<div class="hashmap-bucket">`;
+                    html += `<div style="font-weight: bold; margin-bottom: 0.2rem;">B${index}</div>`;
+                    if (bucket && bucket.length > 0) {
+                        html += bucket.map(price => `$${price.toFixed(0)}`).join('<br>');
+                    } else {
+                        html += '<span style="color: var(--ink-light);">Empty</span>';
+                    }
+                    html += `</div>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            displaySortedArray(container) {
+                if (!this.sortedArray || this.sortedArray.length === 0) {
+                    container.innerHTML = '<div class="array-container"><div class="array-element">No data</div></div>';
+                    return;
+                }
+
+                let html = '<div class="array-container">';
+                this.sortedArray.forEach(price => {
+                    html += `<div class="array-element">$${price.toFixed(0)}</div>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+
+            displayRedBlackTree(container) {
+                if (!this.rbTreeNodes || this.rbTreeNodes.length === 0) {
+                    container.innerHTML = '<div class="btree-level"><div class="rbtree-node black">No data</div></div>';
+                    return;
+                }
+
+                const levels = {};
+                this.rbTreeNodes.forEach(node => {
+                    if (!levels[node.level]) levels[node.level] = [];
+                    levels[node.level].push(node);
+                });
+
+                let html = '';
+                Object.keys(levels).sort((a, b) => a - b).forEach(level => {
+                    html += `<div class="btree-level">`;
+                    levels[level].forEach(node => {
+                        html += `<div class="rbtree-node ${node.color}">$${node.price.toFixed(0)}</div>`;
+                    });
+                    html += `</div>`;
+                });
+                
+                container.innerHTML = html || '<div class="btree-level"><div class="rbtree-node black">Empty</div></div>';
+            }
+
+            updatePerformanceIndicator() {
+                const indicator = document.getElementById('dataStructurePerformance');
+                const complexityMap = {
+                    'skip-list': { complexity: 'O(log n)', class: 'good' },
+                    'btreemap': { complexity: 'O(log n)', class: 'good' },
+                    'hashmap': { complexity: 'O(1) avg', class: 'excellent' },
+                    'sorted-array': { complexity: 'O(n)', class: 'poor' },
+                    'red-black': { complexity: 'O(log n)', class: 'good' }
+                };
+                
+                const info = complexityMap[this.currentDataStructure];
+                if (indicator && info) {
+                    indicator.textContent = info.complexity;
+                    indicator.className = `performance-indicator ${info.class}`;
+                }
+            }
+
+            initializeSkipList() {
+                // Generate skip list nodes from actual orderbook data
+                this.generateDataStructureFromOrderbook();
+            }
+
+            generateSkipListFromOrderbook() {
+                // Use the new unified method
+                this.generateDataStructureFromOrderbook();
+            }
+
+            updateSkipListDisplay() {
+                // Use the new unified method
+                this.updateDataStructureDisplay();
             }
 
             updateExecutionStats() {
@@ -1271,24 +1920,24 @@
 
                 this.executionSteps.unshift(step);
                 
-                // Keep only last 10 steps
-                if (this.executionSteps.length > 10) {
+                // Keep only last 15 steps for better history
+                if (this.executionSteps.length > 15) {
                     this.executionSteps.pop();
                 }
 
-                this.updateExecutionStepsDisplay();
+                this.appendExecutionStep(step);
 
                 // Mark step as completed after a delay
                 setTimeout(() => {
                     step.active = false;
-                    this.updateExecutionStepsDisplay();
+                    this.updateStepStatus(step.id, false);
                 }, 2000);
             }
 
             updateExecutionStepsDisplay() {
                 const container = document.getElementById('executionSteps');
                 container.innerHTML = this.executionSteps.map(step => `
-                    <div class="execution-step ${step.active ? 'active' : 'completed'}">
+                    <div class="execution-step ${step.active ? 'active' : 'completed'}" data-step-id="${step.id}">
                         <div class="step-icon">${step.icon}</div>
                         <div class="step-details">
                             <div class="step-operation">${step.operation}</div>
@@ -1297,6 +1946,41 @@
                         <div class="step-time">${step.timestamp}</div>
                     </div>
                 `).join('');
+            }
+
+            appendExecutionStep(step) {
+                const container = document.getElementById('executionSteps');
+                
+                // Create new step element
+                const stepElement = document.createElement('div');
+                stepElement.className = `execution-step ${step.active ? 'active' : 'completed'}`;
+                stepElement.setAttribute('data-step-id', step.id);
+                stepElement.innerHTML = `
+                    <div class="step-icon">${step.icon}</div>
+                    <div class="step-details">
+                        <div class="step-operation">${step.operation}</div>
+                        <div class="step-description">${step.description}</div>
+                    </div>
+                    <div class="step-time">${step.timestamp}</div>
+                `;
+
+                // Insert at the top
+                container.insertBefore(stepElement, container.firstChild);
+
+                // Remove excess steps from the bottom
+                while (container.children.length > 15) {
+                    container.removeChild(container.lastChild);
+                }
+
+                // Smooth scroll to show the new step
+                container.scrollTop = 0;
+            }
+
+            updateStepStatus(stepId, active) {
+                const stepElement = document.querySelector(`[data-step-id="${stepId}"]`);
+                if (stepElement) {
+                    stepElement.className = `execution-step ${active ? 'active' : 'completed'}`;
+                }
             }
 
             updateSkipListDisplay() {
@@ -1330,6 +2014,27 @@
             }
 
             animateSkipListTraversal(targetPrice, side) {
+                // Dispatch to appropriate animation based on data structure
+                switch (this.currentDataStructure) {
+                    case 'skip-list':
+                        this.animateSkipListSearch(targetPrice, side);
+                        break;
+                    case 'btreemap':
+                        this.animateBTreeSearch(targetPrice, side);
+                        break;
+                    case 'hashmap':
+                        this.animateHashMapSearch(targetPrice, side);
+                        break;
+                    case 'sorted-array':
+                        this.animateArraySearch(targetPrice, side);
+                        break;
+                    case 'red-black':
+                        this.animateRedBlackTreeSearch(targetPrice, side);
+                        break;
+                }
+            }
+
+            animateSkipListSearch(targetPrice, side) {
                 this.addExecutionStep(
                     'Skip List Traversal Started',
                     `Searching for ${side} order at price $${targetPrice.toFixed(2)}`,
@@ -1410,6 +2115,165 @@
                 traverseLevel(currentLevel);
             }
 
+            animateBTreeSearch(targetPrice, side) {
+                this.addExecutionStep(
+                    'B-Tree Search Started',
+                    `Searching for ${side} order at price $${targetPrice.toFixed(2)} in B-Tree`,
+                    '🌳'
+                );
+
+                const nodes = document.querySelectorAll('.btree-node');
+                let delay = 0;
+
+                nodes.forEach((node, index) => {
+                    setTimeout(() => {
+                        node.classList.add('current');
+                        this.comparisons++;
+                        this.computeOps++;
+                        this.updateExecutionStats();
+
+                        setTimeout(() => {
+                            node.classList.remove('current');
+                        }, 500);
+
+                        if (index === nodes.length - 1) {
+                            setTimeout(() => {
+                                this.completeOrderExecution(targetPrice, side);
+                            }, 500);
+                        }
+                    }, delay);
+                    delay += 300;
+                });
+            }
+
+            animateHashMapSearch(targetPrice, side) {
+                this.addExecutionStep(
+                    'Hash Map Lookup Started',
+                    `Computing hash for price $${targetPrice.toFixed(2)}`,
+                    '🔑'
+                );
+
+                const bucket = targetPrice % 8;
+                const bucketElement = document.querySelectorAll('.hashmap-bucket')[bucket];
+                
+                setTimeout(() => {
+                    if (bucketElement) {
+                        bucketElement.classList.add('active');
+                        this.computeOps++;
+                        this.updateExecutionStats();
+
+                        this.addExecutionStep(
+                            'Hash Bucket Located',
+                            `Price maps to bucket ${bucket} - direct O(1) access`,
+                            '🎯'
+                        );
+
+                        setTimeout(() => {
+                            bucketElement.classList.remove('active');
+                            this.completeOrderExecution(targetPrice, side);
+                        }, 1000);
+                    }
+                }, 500);
+            }
+
+            animateArraySearch(targetPrice, side) {
+                this.addExecutionStep(
+                    'Binary Search Started',
+                    `Searching sorted array for price $${targetPrice.toFixed(2)}`,
+                    '🔍'
+                );
+
+                const elements = document.querySelectorAll('.array-element');
+                let left = 0;
+                let right = elements.length - 1;
+                let comparisons = 0;
+
+                const binarySearch = () => {
+                    if (left <= right) {
+                        const mid = Math.floor((left + right) / 2);
+                        const midElement = elements[mid];
+                        
+                        if (midElement) {
+                            midElement.classList.add('comparing');
+                            comparisons++;
+                            this.comparisons++;
+                            this.computeOps++;
+                            this.updateExecutionStats();
+
+                            this.addExecutionStep(
+                                'Array Comparison',
+                                `Comparing with element at index ${mid}`,
+                                '🔍'
+                            );
+
+                            setTimeout(() => {
+                                midElement.classList.remove('comparing');
+                                
+                                // Simulate binary search logic
+                                if (Math.random() > 0.5) {
+                                    left = mid + 1;
+                                } else {
+                                    right = mid - 1;
+                                }
+
+                                if (comparisons < 3) { // Limit iterations for demo
+                                    setTimeout(binarySearch, 500);
+                                } else {
+                                    this.completeOrderExecution(targetPrice, side);
+                                }
+                            }, 500);
+                        }
+                    } else {
+                        this.completeOrderExecution(targetPrice, side);
+                    }
+                };
+
+                binarySearch();
+            }
+
+            animateRedBlackTreeSearch(targetPrice, side) {
+                this.addExecutionStep(
+                    'Red-Black Tree Search Started',
+                    `Traversing balanced tree for price $${targetPrice.toFixed(2)}`,
+                    '🔴'
+                );
+
+                const nodes = document.querySelectorAll('.rbtree-node');
+                let delay = 0;
+
+                // Simulate tree traversal
+                const path = Array.from({length: Math.min(4, nodes.length)}, () => 
+                    Math.floor(Math.random() * nodes.length)
+                );
+
+                path.forEach((nodeIndex, step) => {
+                    setTimeout(() => {
+                        const node = nodes[nodeIndex];
+                        if (node) {
+                            node.classList.add('current');
+                            this.comparisons++;
+                            this.computeOps++;
+                            this.updateExecutionStats();
+
+                            this.addExecutionStep(
+                                'Tree Node Visit',
+                                `Visiting ${node.classList.contains('red') ? 'red' : 'black'} node`,
+                                node.classList.contains('red') ? '🔴' : '⚫'
+                            );
+
+                            setTimeout(() => {
+                                node.classList.remove('current');
+                                
+                                if (step === path.length - 1) {
+                                    this.completeOrderExecution(targetPrice, side);
+                                }
+                            }, 500);
+                        }
+                    }, delay);
+                    delay += 600;
+                });
+            }
+
             completeOrderExecution(price, side) {
                 // Simulate memory allocation for new order
                 this.memoryAllocs++;
@@ -1422,12 +2286,23 @@
                     '✅'
                 );
 
-                // Skip list is automatically updated via generateSkipListFromOrderbook() in updateDisplay()
+                // Skip list is automatically updated via generateDataStructureFromOrderbook() in updateDisplay()
                 this.addExecutionStep(
-                    'Skip List Updated', 
-                    `Skip list synchronized with orderbook price levels`,
+                    'Data Structure Updated', 
+                    `${this.getDataStructureName()} synchronized with orderbook price levels`,
                     '🔄'
                 );
+            }
+
+            getDataStructureName() {
+                const names = {
+                    'skip-list': 'Skip List',
+                    'btreemap': 'BTree Map',
+                    'hashmap': 'Hash Map',
+                    'sorted-array': 'Sorted Array',
+                    'red-black': 'Red-Black Tree'
+                };
+                return names[this.currentDataStructure] || 'Data Structure';
             }
 
             // Export functionality
@@ -1465,6 +2340,88 @@
                     amount: trade.amount
                 }));
             }
+
+            getSkipListDetails() {
+                if (!this.skipListNodes) return '<p>No skip list data available</p>';
+                
+                let content = '';
+                for (let level = this.skipListLevels - 1; level >= 0; level--) {
+                    content += `<h4 style="margin: 1rem 0 0.5rem 0;">Level ${level}</h4>`;
+                    this.skipListNodes.forEach(node => {
+                        if (node.levels[level]) {
+                            content += `
+                                <div class="modal-list-item">
+                                    <span style="font-weight: bold;">$${node.price.toFixed(2)}</span>
+                                    <span>Present at ${node.levels.filter(l => l).length} levels</span>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+                return content;
+            }
+
+            getBTreeDetails() {
+                if (!this.btreeNodes) return '<p>No B-tree data available</p>';
+                
+                let content = '<h4>B-Tree Node Structure</h4>';
+                this.btreeNodes.forEach((node, index) => {
+                    content += `
+                        <div class="modal-list-item">
+                            <span style="font-weight: bold;">Node ${index} (Level ${node.level})</span>
+                            <span>Keys: ${node.keys.map(k => `$${k.toFixed(2)}`).join(', ')}</span>
+                        </div>
+                    `;
+                });
+                return content;
+            }
+
+            getHashMapDetails() {
+                if (!this.hashmapBuckets) return '<p>No hash map data available</p>';
+                
+                let content = '<h4>Hash Map Bucket Distribution</h4>';
+                this.hashmapBuckets.forEach((bucket, index) => {
+                    content += `
+                        <div class="modal-list-item">
+                            <span style="font-weight: bold;">Bucket ${index}</span>
+                            <span>
+                                ${bucket.length} items: ${bucket.map(price => `$${price.toFixed(2)}`).join(', ') || 'Empty'}
+                            </span>
+                        </div>
+                    `;
+                });
+                return content;
+            }
+
+            getSortedArrayDetails() {
+                if (!this.sortedArray) return '<p>No sorted array data available</p>';
+                
+                let content = '<h4>Sorted Array Elements</h4>';
+                this.sortedArray.forEach((price, index) => {
+                    content += `
+                        <div class="modal-list-item">
+                            <span style="font-weight: bold;">Index ${index}</span>
+                            <span>$${price.toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+                return content;
+            }
+
+            getRedBlackTreeDetails() {
+                if (!this.rbTreeNodes) return '<p>No red-black tree data available</p>';
+                
+                let content = '<h4>Red-Black Tree Nodes</h4>';
+                this.rbTreeNodes.forEach((node, index) => {
+                    content += `
+                        <div class="modal-list-item">
+                            <span style="font-weight: bold;">$${node.price.toFixed(2)} (${node.color})</span>
+                            <span>Level ${node.level}</span>
+                        </div>
+                    `;
+                });
+                return content;
+            }
             initializeOrderbook() {
                 // Initialize with sample data
                 const basePrice = 9525;
@@ -1491,7 +2448,10 @@
                 this.updateAskLevels();
                 this.updateSpread();
                 this.updateMetrics();
-                this.generateSkipListFromOrderbook();
+                // Only update data structure if we have the necessary data
+                if (this.bids.size > 0 || this.asks.size > 0) {
+                    this.generateDataStructureFromOrderbook();
+                }
             }
 
             updateBidLevels() {
@@ -2012,6 +2972,57 @@
         // Initialize visualizer
         const visualizer = new OrderbookVisualizer();
 
+        // Implementation and data structure control functions
+        function updateImplementation() {
+            const implementation = document.getElementById('implementationSelect').value;
+            visualizer.currentImplementation = implementation;
+            
+            // Show/hide data structure selector based on implementation
+            const dataStructureGroup = document.getElementById('dataStructureGroup');
+            if (implementation === 'abyssbook') {
+                dataStructureGroup.style.display = 'flex';
+            } else {
+                dataStructureGroup.style.display = 'none';
+                // Set default data structure for other implementations
+                visualizer.currentDataStructure = implementation === 'traditional' ? 'btreemap' : 'hashmap';
+                visualizer.generateDataStructureFromOrderbook();
+            }
+            
+            visualizer.addExecutionStep(
+                'Implementation Changed',
+                `Switched to ${implementation} implementation`,
+                '🔧'
+            );
+        }
+
+        function updateDataStructure() {
+            const dataStructure = document.getElementById('dataStructureSelect').value;
+            visualizer.currentDataStructure = dataStructure;
+            visualizer.generateDataStructureFromOrderbook();
+            
+            visualizer.addExecutionStep(
+                'Data Structure Changed',
+                `Switched to ${visualizer.getDataStructureName()} for price level storage`,
+                '🗂️'
+            );
+        }
+
+        function updateVisualizationMode() {
+            const mode = document.getElementById('visualizationMode').value;
+            visualizer.visualizationMode = mode;
+            
+            // Update display based on mode
+            const container = document.querySelector('.container');
+            container.classList.remove('compact-mode', 'detailed-mode', 'performance-mode');
+            container.classList.add(`${mode}-mode`);
+            
+            visualizer.addExecutionStep(
+                'View Mode Changed',
+                `Switched to ${mode} visualization mode`,
+                '👁️'
+            );
+        }
+
         // Order type management
         function updateOrderTypeFields() {
             const orderType = document.getElementById('orderType').value;
@@ -2405,46 +3416,55 @@
             openModal('🔍 Algorithm Execution Steps - Full View', content);
         }
 
-        function expandSkipList() {
-            const nodes = visualizer.skipListNodes;
+        function expandDataStructure() {
+            const dataStructureName = visualizer.getDataStructureName();
             let content = `
                 <div class="modal-stats-grid">
                     <div class="modal-stat-card">
-                        <div class="modal-stat-value">${nodes.length}</div>
-                        <div class="modal-stat-label">Skip List Nodes</div>
+                        <div class="modal-stat-value">${visualizer.currentImplementation}</div>
+                        <div class="modal-stat-label">Implementation</div>
                     </div>
                     <div class="modal-stat-card">
-                        <div class="modal-stat-value">${visualizer.skipListLevels}</div>
-                        <div class="modal-stat-label">Skip List Levels</div>
+                        <div class="modal-stat-value">${dataStructureName}</div>
+                        <div class="modal-stat-label">Data Structure</div>
                     </div>
                     <div class="modal-stat-card">
                         <div class="modal-stat-value">${visualizer.currentLevel}</div>
                         <div class="modal-stat-label">Current Level</div>
                     </div>
                     <div class="modal-stat-card">
-                        <div class="modal-stat-value">O(log n)</div>
-                        <div class="modal-stat-label">Search Complexity</div>
+                        <div class="modal-stat-value">${document.getElementById('dataStructurePerformance').textContent}</div>
+                        <div class="modal-stat-label">Complexity</div>
                     </div>
                 </div>
                 <div style="max-height: 400px; overflow-y: auto;">
             `;
             
-            for (let level = visualizer.skipListLevels - 1; level >= 0; level--) {
-                content += `<h4 style="margin: 1rem 0 0.5rem 0;">Level ${level}</h4>`;
-                nodes.forEach(node => {
-                    if (node.levels[level]) {
-                        content += `
-                            <div class="modal-list-item">
-                                <span style="font-weight: bold;">$${node.price.toFixed(2)}</span>
-                                <span>Present at ${node.levels.filter(l => l).length} levels</span>
-                            </div>
-                        `;
-                    }
-                });
+            switch (visualizer.currentDataStructure) {
+                case 'skip-list':
+                    content += visualizer.getSkipListDetails();
+                    break;
+                case 'btreemap':
+                    content += visualizer.getBTreeDetails();
+                    break;
+                case 'hashmap':
+                    content += visualizer.getHashMapDetails();
+                    break;
+                case 'sorted-array':
+                    content += visualizer.getSortedArrayDetails();
+                    break;
+                case 'red-black':
+                    content += visualizer.getRedBlackTreeDetails();
+                    break;
             }
             
             content += '</div>';
-            openModal('📊 Skip List Structure - Full View', content);
+            openModal(`🗂️ ${dataStructureName} Structure - Full View`, content);
+        }
+
+        function expandSkipList() {
+            // Redirect to the new unified function
+            expandDataStructure();
         }
 
         // CSV Export functions

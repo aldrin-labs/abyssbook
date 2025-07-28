@@ -1,17 +1,74 @@
-# Abyssbook Onchain Integration
+# Abyssbook Secure Onchain Integration
 
-This document describes the integration of real blockchain data into the Abyssbook application, replacing all mocked data with actual onchain calls.
+This document describes the secure integration of real blockchain data into the Abyssbook application, replacing all mocked data with actual onchain calls while implementing comprehensive security measures.
 
-## Architecture Overview
+## 🔒 Security Architecture Overview
 
-The onchain integration follows a layered architecture:
+The secure onchain integration follows a layered security architecture with multiple defense mechanisms:
 
-1. **Blockchain Client Layer** - Handles direct communication with the Solana blockchain
-2. **Service Layer** - Provides business logic and interfaces between CLI and blockchain
-3. **CLI Layer** - User interface for interacting with the blockchain
-4. **Wallet Layer** - Manages keys and transaction signing
-5. **Error Handling Layer** - Provides robust error handling with retry logic
-6. **Caching Layer** - Optimizes performance by caching frequently accessed data
+1. **Secure Blockchain Client Layer** - Thread-safe communication with comprehensive validation
+2. **Enhanced Service Layer** - Business logic with atomic operations and error recovery
+3. **Secure CLI Layer** - User interface with input sanitization
+4. **Cryptographic Wallet Layer** - Secure key management and transaction signing
+5. **Comprehensive Error Handling Layer** - Robust error handling with retry logic and security validation
+6. **Performance-Optimized Caching Layer** - Secure caching with data integrity checks
+
+## 🛡️ Security Features
+
+### Thread Safety & Concurrency Control
+- **Granular Mutex Protection**: Separate read/write/config mutexes to prevent bottlenecks
+  - `read_mutex`: For read operations (listing orders) - allows concurrent reads
+  - `write_mutex`: For write operations (place/cancel orders) - serializes writes
+  - `config_mutex`: For configuration changes - protects system settings
+- **Atomic Operations**: Connection counts and operation tracking use atomic variables
+- **Rate Limiting**: Built-in rate limiting to prevent DoS attacks (configurable via constants)
+- **Connection Management**: Thread-safe connection pooling with proper cleanup
+- **Non-blocking Design**: Improved rate limiting with precise timing to avoid thread blocking
+
+### Input Validation & Sanitization
+- **Market Name Validation**: Only alphanumeric characters, '/', '-', and '_' allowed (max 64 chars)
+- **Price/Size Bounds**: Maximum values enforced via centralized constants (1 billion USD/shares)
+- **Order ID Format**: Hexadecimal validation for order IDs (max 64 chars)
+- **URL Security**: Only HTTPS URLs accepted for API endpoints
+- **Parameter Length Limits**: All input parameters have configurable maximum length restrictions
+- **Comprehensive Business Logic Validation**: NaN and Infinity checks for numeric values
+- **Character Set Validation**: Strict whitelisting of allowed characters in all inputs
+
+### Memory Safety
+- **Secure Memory Clearing**: Sensitive data is securely zeroed after use
+- **Resource Management**: Proper cleanup of HTTP connections and allocated memory
+- **Buffer Overflow Protection**: Response size limited to 10MB to prevent attacks
+- **Memory Leak Prevention**: Comprehensive resource deinitialization
+
+### Error Handling & Recovery
+- **Comprehensive Retry Logic**: Fixed retry mechanism with proper error classification
+- **Exponential Backoff**: Configurable retry mechanism with exponential backoff for transient errors
+- **Error Classification**: Different retry strategies for different error types (network vs. auth errors)
+- **Enhanced Error Messages**: User-friendly error messages with emojis and context
+- **Graceful Degradation**: System continues operating even with partial failures
+- **Security-Focused Error Handling**: Error messages don't leak sensitive information
+- **Centralized Error Management**: All error types defined in a single comprehensive enum
+
+### Centralized Configuration Management
+- **Constants Module**: All configuration values centralized in `blockchain/constants.zig`
+- **Type Safety**: Compile-time configuration validation
+- **Maintainability**: Single source of truth for all limits and timeouts
+- **Performance**: Optimized constants for rate limiting and retry logic
+- **Security**: Centralized security limits and validation thresholds
+
+## 🏗️ Architecture Improvements
+
+### Performance Optimizations
+- **Granular Locking**: Separate mutexes for read/write operations reduce contention
+- **Non-blocking Rate Limiting**: Precise timing control without unnecessary thread blocking
+- **Centralized Constants**: Compile-time optimization of frequently used values
+- **Atomic Operations**: Lock-free counters for performance-critical metrics
+
+### Code Quality Enhancements
+- **Eliminated TODOs**: All placeholder code replaced with proper implementations
+- **Improved Logging**: Enhanced log formatting with visual indicators and context
+- **Comprehensive Error Coverage**: All possible error conditions properly handled
+- **Documentation Updates**: Synchronization of docs with implementation changes
 
 ## Components
 

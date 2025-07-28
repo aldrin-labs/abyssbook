@@ -6,17 +6,17 @@ pub const TransactionSigner = struct {
     allocator: std.mem.Allocator,
     keypair: ed25519.KeyPair,
 
-    /// Initialize a new transaction signer with the provided keypair
+    /// Initialize a new transaction signer with the provided secret key
     pub fn init(allocator: std.mem.Allocator, secret_key: []const u8) !TransactionSigner {
-        if (secret_key.len < 64) {
+        if (secret_key.len != 32) {
             return error.InvalidSecretKeyLength;
         }
 
-        var secret_key_bytes: [64]u8 = undefined;
-        @memcpy(&secret_key_bytes, secret_key[0..64]);
+        // Create Ed25519 keypair from 32-byte seed
+        var seed: [32]u8 = undefined;
+        @memcpy(&seed, secret_key[0..32]);
 
-        const secret_key_struct = try ed25519.SecretKey.fromBytes(secret_key_bytes);
-        const keypair = try ed25519.KeyPair.fromSecretKey(secret_key_struct);
+        const keypair = try ed25519.KeyPair.create(seed);
 
         return TransactionSigner{
             .allocator = allocator,
@@ -38,38 +38,85 @@ pub const TransactionSigner = struct {
 
     /// Create a transaction for placing an order
     pub fn createPlaceOrderTransaction(self: *TransactionSigner, market: []const u8, side: []const u8, price: f64, size: f64) ![]const u8 {
-        // In a real implementation, this would construct a proper Solana transaction
-        // with the appropriate instructions for placing an order
+        // Create a structured transaction message that mimics Solana transaction format
+        // While this is still simplified, it's more realistic than the previous stub
+        
+        const timestamp = std.time.timestamp();
+        const nonce = std.crypto.random.int(u64);
+        
+        // Create transaction message with proper structure
+        var message_buf: [2048]u8 = undefined;
+        const message = try std.fmt.bufPrint(&message_buf, 
+            "{{\"instruction\":\"place_order\",\"market\":\"{s}\",\"side\":\"{s}\",\"price\":{d:.6},\"size\":{d:.6},\"timestamp\":{d},\"nonce\":{d},\"pubkey\":\"{s}\"}}",
+            .{
+                market,
+                side,
+                price,
+                size,
+                timestamp,
+                nonce,
+                std.fmt.fmtSliceHexLower(&self.keypair.public_key.bytes),
+            }
+        );
 
-        // For now, we'll create a simplified transaction message
-        var message_buf: [1024]u8 = undefined;
-        const message = try std.fmt.bufPrint(&message_buf, "place_order:{s}:{s}:{d}:{d}:{d}", .{
-            market,
-            side,
-            price,
-            size,
-            std.time.timestamp(),
-        });
+        // Create message hash for signing (more realistic than signing the full JSON)
+        var hasher = std.crypto.hash.Blake3.init(.{});
+        hasher.update(message);
+        var message_hash: [32]u8 = undefined;
+        hasher.final(&message_hash);
 
-        // Sign the message
-        return try self.signTransaction(message);
+        // Sign the message hash
+        const signature = try self.keypair.sign(&message_hash, null);
+        
+        // Return signature as hex string for easier handling
+        const signature_bytes = signature.toBytes();
+        const hex_signature = try self.allocator.alloc(u8, signature_bytes.len * 2);
+        
+        for (signature_bytes, 0..) |byte, i| {
+            _ = try std.fmt.bufPrint(hex_signature[i*2..i*2+2], "{X:0>2}", .{byte});
+        }
+        
+        return hex_signature;
     }
 
     /// Create a transaction for canceling an order
     pub fn createCancelOrderTransaction(self: *TransactionSigner, market: []const u8, order_id: []const u8) ![]const u8 {
-        // In a real implementation, this would construct a proper Solana transaction
-        // with the appropriate instructions for canceling an order
+        // Create a structured transaction message for order cancellation
+        
+        const timestamp = std.time.timestamp();
+        const nonce = std.crypto.random.int(u64);
+        
+        // Create transaction message with proper structure
+        var message_buf: [2048]u8 = undefined;
+        const message = try std.fmt.bufPrint(&message_buf, 
+            "{{\"instruction\":\"cancel_order\",\"market\":\"{s}\",\"order_id\":\"{s}\",\"timestamp\":{d},\"nonce\":{d},\"pubkey\":\"{s}\"}}",
+            .{
+                market,
+                order_id,
+                timestamp,
+                nonce,
+                std.fmt.fmtSliceHexLower(&self.keypair.public_key.bytes),
+            }
+        );
 
-        // For now, we'll create a simplified transaction message
-        var message_buf: [1024]u8 = undefined;
-        const message = try std.fmt.bufPrint(&message_buf, "cancel_order:{s}:{s}:{d}", .{
-            market,
-            order_id,
-            std.time.timestamp(),
-        });
+        // Create message hash for signing
+        var hasher = std.crypto.hash.Blake3.init(.{});
+        hasher.update(message);
+        var message_hash: [32]u8 = undefined;
+        hasher.final(&message_hash);
 
-        // Sign the message
-        return try self.signTransaction(message);
+        // Sign the message hash
+        const signature = try self.keypair.sign(&message_hash, null);
+        
+        // Return signature as hex string
+        const signature_bytes = signature.toBytes();
+        const hex_signature = try self.allocator.alloc(u8, signature_bytes.len * 2);
+        
+        for (signature_bytes, 0..) |byte, i| {
+            _ = try std.fmt.bufPrint(hex_signature[i*2..i*2+2], "{X:0>2}", .{byte});
+        }
+        
+        return hex_signature;
     }
 
     /// Deinitialize the signer and free resources

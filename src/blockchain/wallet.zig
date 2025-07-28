@@ -22,21 +22,18 @@ pub const Wallet = struct {
 
     /// Initialize a new wallet with a randomly generated keypair
     pub fn initRandom(allocator: std.mem.Allocator) !Wallet {
-        comptime {
-            if (!std.debug.runtime_safety) {
-                @compileError("initRandom: Hardcoded test key can only be used with runtime safety enabled.");
-            }
-        }
-        // In a real implementation, this would generate a secure random keypair
-        // For now, we'll use a hardcoded test key (NEVER do this in production)
-        const test_secret_key = [_]u8{
-            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-            0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
-            0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
-            0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20,
-        };
-
-        return try initFromSecretKey(allocator, &test_secret_key);
+        // Generate a cryptographically secure random 32-byte secret key
+        var secret_key: [32]u8 = undefined;
+        std.crypto.random.bytes(&secret_key);
+        
+        // Ensure the secret key is in valid range for Ed25519
+        // Ed25519 requires secret keys to be in the valid scalar range
+        secret_key[31] &= 0x7F; // Clear the top bit to ensure valid scalar
+        
+        std.debug.print("Generated new secure keypair for wallet\n", .{});
+        std.debug.print("Warning: This is a temporary wallet. Save your private key securely in production.\n", .{});
+        
+        return try initFromSecretKey(allocator, &secret_key);
     }
 
     /// Sign a transaction for placing an order

@@ -171,9 +171,52 @@ pub const ShardedOrderbook = struct {
     }
 
     pub fn generatePerformanceReport(self: *const ShardedOrderbook, output_path: []const u8) !void {
-        _ = self;
-        _ = output_path;
-        // TODO: Implement performance report generation
+        const file = std.fs.cwd().createFile(output_path, .{}) catch |err| {
+            std.debug.print("Error creating performance report file: {}\n", .{err});
+            return err;
+        };
+        defer file.close();
+        
+        const writer = file.writer();
+        
+        // Write performance report header
+        try writer.print("# Abyssbook Sharded Orderbook Performance Report\n\n");
+        try writer.print("## Configuration\n");
+        try writer.print("- Shard Count: {}\n", .{self.shard_count});
+        try writer.print("- Total Global Orders: {}\n", .{self.global_order_index.count()});
+        
+        // Analyze per-shard metrics
+        try writer.print("\n## Shard Distribution\n");
+        for (0..self.shard_count) |i| {
+            const order_count = self.shards[i].count();
+            const bid_levels = self.bid_levels[i].count();
+            const ask_levels = self.ask_levels[i].count();
+            const stop_orders = self.stop_orders[i].count();
+            
+            try writer.print("### Shard {}\n", .{i});
+            try writer.print("- Orders: {}\n", .{order_count});
+            try writer.print("- Bid Levels: {}\n", .{bid_levels});
+            try writer.print("- Ask Levels: {}\n", .{ask_levels});
+            try writer.print("- Stop Orders: {}\n", .{stop_orders});
+        }
+        
+        // Memory utilization analysis
+        try writer.print("\n## Memory Utilization\n");
+        const estimated_memory = self.shard_count * (
+            @sizeOf(maps.OrderMap) + 
+            @sizeOf(maps.PriceLevelMap) * 2 + 
+            @sizeOf(maps.StopOrderMap)
+        );
+        try writer.print("- Estimated Memory Usage: {} bytes\n", .{estimated_memory});
+        
+        // Cache effectiveness
+        try writer.print("\n## Cache Status\n");
+        try writer.print("- Best Bid Cached: {}\n", .{self.best_bid_cache != null});
+        try writer.print("- Best Ask Cached: {}\n", .{self.best_ask_cache != null});
+        
+        try writer.print("\n## Report Generated: {}\n", .{std.time.timestamp()});
+        
+        std.debug.print("Performance report written to: {s}\n", .{output_path});
     }
 
     pub fn matchOrder(self: *ShardedOrderbook, side: types.OrderSide, price: u64, amount: u64) !types.MatchResult {
