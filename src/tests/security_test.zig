@@ -265,7 +265,7 @@ fn testMemoryManagement() !void {
     std.debug.print("Memory management tests passed.\n", .{});
 }
 
-/// Test order data validation
+// Test order data validation
 test "order validation" {
     const Order = @import("../blockchain/client.zig").Order;
     
@@ -297,7 +297,7 @@ test "order validation" {
     try testing.expectError(error.InvalidPriceValue, invalid_order.validate());
 }
 
-/// Test orderbook validation
+// Test orderbook validation
 test "orderbook validation" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();

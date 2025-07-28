@@ -208,7 +208,7 @@ fn testSecurityBoundaries() !void {
     std.debug.print("Security boundaries test completed.\n", .{});
 }
 
-/// Test memory safety and cleanup
+// Test memory safety and cleanup
 test "memory safety" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
@@ -232,7 +232,7 @@ test "memory safety" {
     }
 }
 
-/// Test atomic operations
+// Test atomic operations
 test "atomic operations" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -254,7 +254,7 @@ test "atomic operations" {
     try testing.expect(client.getConnectionCount() == 0);
 }
 
-/// Test rate limiting functionality
+// Test rate limiting functionality
 test "rate limiting" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -278,7 +278,7 @@ test "rate limiting" {
     }
 }
 
-/// Stress test for concurrent access
+// Stress test for concurrent access
 test "stress test concurrent access" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
