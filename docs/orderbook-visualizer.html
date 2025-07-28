@@ -610,21 +610,27 @@
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 6px;
-            padding: 0.2rem;
-            min-height: 50px;
-            max-height: 60px;
+            padding: 0.3rem;
+            min-height: 120px;
+            max-height: 200px;
             overflow-y: auto;
+            font-size: 0.7rem;
+            line-height: 1.2;
         }
 
         .execution-step {
             display: flex;
             align-items: center;
-            padding: 0.2rem;
-            margin: 0.1rem 0;
+            padding: 0.15rem 0.2rem;
+            margin: 0.05rem 0;
             background: rgba(255, 255, 255, 0.8);
-            border-radius: 4px;
-            border-left: 3px solid var(--accent-blue);
-            animation: stepAppear 0.3s ease-out;
+            border-radius: 3px;
+            border-left: 2px solid var(--accent-blue);
+            animation: stepAppear 0.5s ease-out;
+            font-size: 0.65rem;
+            line-height: 1.1;
+            min-height: 18px;
+            transition: all 0.3s ease;
         }
 
         .execution-step.active {
@@ -638,29 +644,63 @@
         }
 
         @keyframes stepAppear {
-            0% { opacity: 0; transform: translateX(-20px); }
-            100% { opacity: 1; transform: translateX(0); }
+            0% { 
+                opacity: 0; 
+                transform: translateY(-10px) scale(0.95);
+                max-height: 0;
+                padding-top: 0;
+                padding-bottom: 0;
+                margin-top: 0;
+                margin-bottom: 0;
+            }
+            50% {
+                max-height: 50px;
+                padding-top: 0.15rem;
+                padding-bottom: 0.15rem;
+                margin-top: 0.05rem;
+                margin-bottom: 0.05rem;
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateY(0) scale(1);
+                max-height: 50px;
+            }
         }
 
         .step-icon {
-            margin-right: 0.3rem;
-            font-size: 1rem;
+            margin-right: 0.2rem;
+            font-size: 0.7rem;
+            flex-shrink: 0;
         }
 
         .step-details {
             flex: 1;
+            min-width: 0;
         }
 
         .step-operation {
             font-weight: bold;
             color: var(--ink-dark);
-            font-size: 0.7rem;
+            font-size: 0.6rem;
+            line-height: 1.1;
+            margin-bottom: 0.05rem;
         }
 
         .step-description {
-            font-size: 0.65rem;
+            font-size: 0.55rem;
             color: var(--ink-medium);
-            margin-top: 0.05rem;
+            line-height: 1;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .step-time {
+            font-size: 0.5rem;
+            color: var(--ink-light);
+            margin-left: 0.2rem;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
 
         .skip-list-visualization {
@@ -1880,24 +1920,24 @@
 
                 this.executionSteps.unshift(step);
                 
-                // Keep only last 10 steps
-                if (this.executionSteps.length > 10) {
+                // Keep only last 15 steps for better history
+                if (this.executionSteps.length > 15) {
                     this.executionSteps.pop();
                 }
 
-                this.updateExecutionStepsDisplay();
+                this.appendExecutionStep(step);
 
                 // Mark step as completed after a delay
                 setTimeout(() => {
                     step.active = false;
-                    this.updateExecutionStepsDisplay();
+                    this.updateStepStatus(step.id, false);
                 }, 2000);
             }
 
             updateExecutionStepsDisplay() {
                 const container = document.getElementById('executionSteps');
                 container.innerHTML = this.executionSteps.map(step => `
-                    <div class="execution-step ${step.active ? 'active' : 'completed'}">
+                    <div class="execution-step ${step.active ? 'active' : 'completed'}" data-step-id="${step.id}">
                         <div class="step-icon">${step.icon}</div>
                         <div class="step-details">
                             <div class="step-operation">${step.operation}</div>
@@ -1906,6 +1946,41 @@
                         <div class="step-time">${step.timestamp}</div>
                     </div>
                 `).join('');
+            }
+
+            appendExecutionStep(step) {
+                const container = document.getElementById('executionSteps');
+                
+                // Create new step element
+                const stepElement = document.createElement('div');
+                stepElement.className = `execution-step ${step.active ? 'active' : 'completed'}`;
+                stepElement.setAttribute('data-step-id', step.id);
+                stepElement.innerHTML = `
+                    <div class="step-icon">${step.icon}</div>
+                    <div class="step-details">
+                        <div class="step-operation">${step.operation}</div>
+                        <div class="step-description">${step.description}</div>
+                    </div>
+                    <div class="step-time">${step.timestamp}</div>
+                `;
+
+                // Insert at the top
+                container.insertBefore(stepElement, container.firstChild);
+
+                // Remove excess steps from the bottom
+                while (container.children.length > 15) {
+                    container.removeChild(container.lastChild);
+                }
+
+                // Smooth scroll to show the new step
+                container.scrollTop = 0;
+            }
+
+            updateStepStatus(stepId, active) {
+                const stepElement = document.querySelector(`[data-step-id="${stepId}"]`);
+                if (stepElement) {
+                    stepElement.className = `execution-step ${active ? 'active' : 'completed'}`;
+                }
             }
 
             updateSkipListDisplay() {
