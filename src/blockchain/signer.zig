@@ -12,11 +12,13 @@ pub const TransactionSigner = struct {
             return error.InvalidSecretKeyLength;
         }
 
-        // Create Ed25519 keypair from 32-byte seed
-        var seed: [32]u8 = undefined;
-        @memcpy(&seed, secret_key[0..32]);
-
-        const keypair = try ed25519.KeyPair.create(seed);
+        // Create Ed25519 keypair from 32-byte seed - need to extend to 64 bytes for SecretKey
+        var full_seed: [64]u8 = undefined;
+        @memcpy(full_seed[0..32], secret_key[0..32]);
+        @memset(full_seed[32..64], 0); // Zero pad the rest
+        
+        const secret_key_obj = try ed25519.SecretKey.fromBytes(full_seed);
+        const keypair = try ed25519.KeyPair.fromSecretKey(secret_key_obj);
 
         return TransactionSigner{
             .allocator = allocator,

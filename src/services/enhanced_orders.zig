@@ -403,7 +403,7 @@ pub const EnhancedOrderService = struct {
     pub fn deinit(self: *EnhancedOrderService) void {
         // Wait for all operations to complete with improved timing
         while (self.operation_count.load(.monotonic) > 0) {
-            std.time.sleep(BlockchainConstants.OPERATION_CLEANUP_SLEEP_MS * std.time.ns_per_ms);
+            std.Thread.sleep(BlockchainConstants.OPERATION_CLEANUP_SLEEP_MS * std.time.ns_per_ms);
         }
         
         self.order_service.deinit();

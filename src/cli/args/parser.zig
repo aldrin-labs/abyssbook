@@ -41,14 +41,14 @@ pub const ArgParser = struct {
         return .{
             .args = args,
             .allocator = allocator,
-            .definitions = std.ArrayList(ArgDef).init(allocator),
+            .definitions = std.ArrayList(ArgDef){},
             .parsed_args = std.StringHashMap(ParsedArg).init(allocator),
             .subcommand = if (args.len > 0) args[0] else null,
         };
     }
 
     pub fn deinit(self: *ArgParser) void {
-        self.definitions.deinit();
+        self.definitions.deinit(self.allocator);
 
         var it = self.parsed_args.iterator();
         while (it.next()) |entry| {
@@ -59,7 +59,7 @@ pub const ArgParser = struct {
     }
 
     pub fn addArg(self: *ArgParser, name: []const u8, description: []const u8, required: bool, default_value: ?[]const u8) !void {
-        try self.definitions.append(.{
+        try self.definitions.append(self.allocator, .{
             .name = name,
             .description = description,
             .required = required,

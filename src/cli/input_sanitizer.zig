@@ -50,8 +50,8 @@ pub const InputSanitizer = struct {
             }
 
             // Basic Unicode normalization (simplified for demo)
-            var normalized = std.ArrayList(u8).init(self.allocator);
-            defer normalized.deinit();
+            var normalized = std.ArrayList(u8){};
+            defer normalized.deinit(self.allocator);
 
             var i: usize = 0;
             while (i < input.len) {
@@ -59,7 +59,7 @@ pub const InputSanitizer = struct {
                 
                 // Handle basic ASCII - no normalization needed
                 if (byte < 128) {
-                    try normalized.append(byte);
+                    try normalized.append(self.allocator, byte);
                     i += 1;
                     continue;
                 }
@@ -134,8 +134,8 @@ pub const InputSanitizer = struct {
             for (self.blocked_patterns.items) |pattern| {
                 allocator.free(pattern);
             }
-            self.warnings.deinit();
-            self.blocked_patterns.deinit();
+            self.warnings.deinit(allocator);
+            self.blocked_patterns.deinit(allocator);
         }
     };
 
@@ -336,14 +336,14 @@ pub const InputSanitizer = struct {
     pub fn sanitize(self: *Self, input: []const u8, config: SanitizationConfig) !SanitizationResult {
         var result = SanitizationResult{
             .cleaned_input = undefined,
-            .warnings = std.ArrayList([]const u8).init(self.allocator),
-            .blocked_patterns = std.ArrayList([]const u8).init(self.allocator),
+            .warnings = std.ArrayList([]const u8){},
+            .blocked_patterns = std.ArrayList([]const u8){},
             .security_level = .SAFE,
         };
 
         // Stage 0: Dev mode bypass for testing
         if (self.dev_mode and config.dev_mode) {
-            try result.warnings.append(try self.allocator.dupe(u8, "Dev mode: Relaxed security filtering"));
+            try result.warnings.append(self.allocator, try self.allocator.dupe(u8, "Dev mode: Relaxed security filtering"));
             result.cleaned_input = try self.allocator.dupe(u8, input);
             return result;
         }
@@ -359,7 +359,7 @@ pub const InputSanitizer = struct {
 
         // Stage 2: Length validation
         if (normalized_input.len > config.max_length) {
-            try result.blocked_patterns.append(try std.fmt.allocPrint(self.allocator, "Input too long: {d} > {d}", .{ normalized_input.len, config.max_length }));
+            try result.blocked_patterns.append(self.allocator, try std.fmt.allocPrint(self.allocator, "Input too long: {d} > {d}", .{ normalized_input.len, config.max_length }));
             result.security_level = .BLOCKED;
             result.cleaned_input = try self.allocator.dupe(u8, "");
             return result;
@@ -367,7 +367,7 @@ pub const InputSanitizer = struct {
 
         // Stage 3: Null byte and control character detection
         if (std.mem.indexOf(u8, normalized_input, "\x00")) |_| {
-            try result.blocked_patterns.append(try self.allocator.dupe(u8, "Null byte detected"));
+            try result.blocked_patterns.append(self.allocator, try self.allocator.dupe(u8, "Null byte detected"));
             result.security_level = .BLOCKED;
             result.cleaned_input = try self.allocator.dupe(u8, "");
             return result;
@@ -398,14 +398,14 @@ pub const InputSanitizer = struct {
         }
 
         // Stage 6: Character filtering and normalization
-        var cleaned = std.ArrayList(u8).init(self.allocator);
-        defer cleaned.deinit();
+        var cleaned = std.ArrayList(u8){};
+        defer cleaned.deinit(self.allocator);
 
         for (input) |char| {
             if (self.isAllowedCharacter(char, config)) {
-                try cleaned.append(char);
+                try cleaned.append(self.allocator, char);
             } else {
-                try result.warnings.append(try std.fmt.allocPrint(self.allocator, "Filtered character: 0x{X:0>2}", .{char}));
+                try result.warnings.append(self.allocator, try std.fmt.allocPrint(self.allocator, "Filtered character: 0x{X:0>2}", .{char}));
                 if (result.security_level == .SAFE) {
                     result.security_level = .SUSPICIOUS;
                 }
@@ -418,7 +418,7 @@ pub const InputSanitizer = struct {
             if (command_result != .SAFE) {
                 result.security_level = command_result;
                 if (command_result == .BLOCKED) {
-                    try result.blocked_patterns.append(try self.allocator.dupe(u8, "Invalid command format"));
+                    try result.blocked_patterns.append(self.allocator, try self.allocator.dupe(u8, "Invalid command format"));
                     result.cleaned_input = try self.allocator.dupe(u8, "");
                     return result;
                 }
@@ -515,8 +515,8 @@ pub const InputSanitizer = struct {
 
     /// Escape input for safe logging
     pub fn escapeForLogging(self: *Self, input: []const u8) ![]const u8 {
-        var escaped = std.ArrayList(u8).init(self.allocator);
-        defer escaped.deinit();
+        var escaped = std.ArrayList(u8){};
+        defer escaped.deinit(self.allocator);
 
         for (input) |char| {
             switch (char) {
@@ -528,7 +528,7 @@ pub const InputSanitizer = struct {
                 0...8, 11...12, 14...31, 127...255 => {
                     try escaped.writer().print("\\x{X:0>2}", .{char});
                 },
-                else => try escaped.append(char),
+                else => try escaped.append(self.allocator, char),
             }
         }
 
@@ -542,7 +542,7 @@ pub const InputSanitizer = struct {
         // Phase 1: Direct pattern matching
         for (DANGEROUS_PATTERNS) |pattern| {
             if (std.ascii.indexOfIgnoreCase(input, pattern)) |_| {
-                try result.blocked_patterns.append(try std.fmt.allocPrint(self.allocator, "Dangerous pattern: {s}", .{pattern}));
+                try result.blocked_patterns.append(self.allocator, try std.fmt.allocPrint(self.allocator, "Dangerous pattern: {s}", .{pattern}));
                 return .BLOCKED;
             }
         }
@@ -551,7 +551,7 @@ pub const InputSanitizer = struct {
         var suspicion_score: f32 = 0.0;
         for (SUSPICIOUS_PATTERNS) |pattern| {
             if (std.ascii.indexOfIgnoreCase(input, pattern)) |_| {
-                try result.warnings.append(try std.fmt.allocPrint(self.allocator, "Suspicious pattern detected: {s}", .{pattern}));
+                try result.warnings.append(self.allocator, try std.fmt.allocPrint(self.allocator, "Suspicious pattern detected: {s}", .{pattern}));
                 suspicion_score += 1.0;
                 max_level = .SUSPICIOUS;
             }

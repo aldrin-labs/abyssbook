@@ -101,7 +101,7 @@ pub const BlockchainClient = struct {
         if (now - last_request < BlockchainConstants.RATE_LIMIT_DELAY_MS) {
             // Use nanosleep for more precise timing without blocking threads
             const sleep_time = BlockchainConstants.RATE_LIMIT_DELAY_MS * std.time.ns_per_ms;
-            std.time.sleep(sleep_time);
+            std.Thread.sleep(sleep_time);
         }
         
         _ = self.last_request_time.swap(now, .monotonic);
@@ -119,7 +119,7 @@ pub const BlockchainClient = struct {
                 if (attempt < BlockchainConstants.MAX_RETRIES - 1) {
                     // Exponential backoff
                     const delay = BlockchainConstants.BASE_RETRY_DELAY_MS * (@as(u64, 1) << @intCast(attempt));
-                    std.time.sleep(delay * std.time.ns_per_ms);
+                    std.Thread.sleep(delay * std.time.ns_per_ms);
                 }
                 continue;
             };
@@ -298,7 +298,7 @@ pub const BlockchainClient = struct {
         self.disconnect();
         
         // Securely clear and free owned api_key memory
-        std.crypto.utils.secureZero(u8, self.api_key);
+        @memset(self.api_key, 0);
         self.allocator.free(self.api_key);
     }
     
