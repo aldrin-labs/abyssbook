@@ -11,6 +11,37 @@ const BenchmarkResult = struct {
     latency_p50: u64 = 0,
     latency_p95: u64 = 0,
     latency_p99: u64 = 0,
+    latency_p999: u64 = 0,
+    min_latency: u64 = 0,
+    max_latency: u64 = 0,
+    std_deviation: f64 = 0,
+    
+    pub fn isWithinTarget(self: *const BenchmarkResult, target: PerformanceTarget) bool {
+        return self.latency_p99 <= target.max_p99_latency_ns and
+               self.throughput >= target.min_throughput_ops_sec;
+    }
+    
+    pub fn printSummary(self: *const BenchmarkResult) void {
+        std.debug.print("=== {s} Performance Summary ===\n", .{self.operation});
+        std.debug.print("  Iterations: {d}\n", .{self.iterations});
+        std.debug.print("  Total Time: {d:.2} ms\n", .{@as(f64, @floatFromInt(self.total_time_ns)) / 1_000_000.0});
+        std.debug.print("  Latency Stats (µs):\n");
+        std.debug.print("    Min: {d:.2}\n", .{@as(f64, @floatFromInt(self.min_latency)) / 1000.0});
+        std.debug.print("    Avg: {d:.2}\n", .{@as(f64, @floatFromInt(self.avg_time_ns)) / 1000.0});
+        std.debug.print("    P50: {d:.2}\n", .{@as(f64, @floatFromInt(self.latency_p50)) / 1000.0});
+        std.debug.print("    P95: {d:.2}\n", .{@as(f64, @floatFromInt(self.latency_p95)) / 1000.0});
+        std.debug.print("    P99: {d:.2}\n", .{@as(f64, @floatFromInt(self.latency_p99)) / 1000.0});
+        std.debug.print("    P99.9: {d:.2}\n", .{@as(f64, @floatFromInt(self.latency_p999)) / 1000.0});
+        std.debug.print("    Max: {d:.2}\n", .{@as(f64, @floatFromInt(self.max_latency)) / 1000.0});
+        std.debug.print("    StdDev: {d:.2}\n", .{self.std_deviation / 1000.0});
+        std.debug.print("  Throughput: {d:.0} ops/sec\n", .{self.throughput});
+        std.debug.print("\n");
+    }
+};
+
+const PerformanceTarget = struct {
+    max_p99_latency_ns: u64,
+    min_throughput_ops_sec: f64,
 };
 
 const BenchmarkConfig = struct {
@@ -49,6 +80,45 @@ const BenchmarkConfig = struct {
 
         return BenchmarkConfig{};
     }
+    
+    fn getPerformanceTargets(self: *const BenchmarkConfig) PerformanceTargets {
+        const is_ci = self.num_shards < 32;
+        
+        return PerformanceTargets{
+            .place_orders = .{
+                .max_p99_latency_ns = if (is_ci) 20_000 else 5_000, // 20µs CI, 5µs production
+                .min_throughput_ops_sec = if (is_ci) 10_000 else 200_000,
+            },
+            .cancel_orders = .{
+                .max_p99_latency_ns = if (is_ci) 15_000 else 4_000, // 15µs CI, 4µs production
+                .min_throughput_ops_sec = if (is_ci) 15_000 else 250_000,
+            },
+            .market_orders = .{
+                .max_p99_latency_ns = if (is_ci) 50_000 else 10_000, // 50µs CI, 10µs production
+                .min_throughput_ops_sec = if (is_ci) 5_000 else 100_000,
+            },
+            .bulk_operations = .{
+                .max_p99_latency_ns = if (is_ci) 10_000 else 3_000, // 10µs CI, 3µs production per order
+                .min_throughput_ops_sec = if (is_ci) 20_000 else 500_000,
+            },
+        };
+    }
+};
+
+const PerformanceTargets = struct {
+    place_orders: PerformanceTarget,
+    cancel_orders: PerformanceTarget,
+    market_orders: PerformanceTarget,
+    bulk_operations: PerformanceTarget,
+    
+    fn getTargetForOperation(self: *const PerformanceTargets, operation: []const u8) ?PerformanceTarget {
+        if (std.mem.eql(u8, operation, "Place Orders")) return self.place_orders;
+        if (std.mem.eql(u8, operation, "Cancel Orders")) return self.cancel_orders;
+        if (std.mem.eql(u8, operation, "Market Orders")) return self.market_orders;
+        if (std.mem.eql(u8, operation, "Burst Orders")) return self.bulk_operations;
+        if (std.mem.eql(u8, operation, "HFT Burst Pattern")) return self.bulk_operations;
+        return null;
+    }
 };
 
 // Global order ID counter to ensure uniqueness across all benchmarks
@@ -73,13 +143,28 @@ fn runBenchmark(
     try latencies.ensureTotalCapacity(sample_size);
 
     var total_time: u64 = 0;
+    var min_latency: u64 = std.math.maxInt(u64);
+    var max_latency: u64 = 0;
     var timer = try std.time.Timer.start();
 
+    // Warmup phase - 10% of iterations or 100, whichever is smaller
+    const warmup_iterations = @min(iterations / 10, 100);
+    var warmup_i: usize = 0;
+    while (warmup_i < warmup_iterations) : (warmup_i += 1) {
+        timer.reset();
+        try @call(.auto, func, args);
+        _ = timer.read(); // Discard warmup results
+    }
+
+    // Actual benchmark measurement
     var i: usize = 0;
     while (i < iterations) : (i += 1) {
         timer.reset();
         try @call(.auto, func, args);
         const elapsed = timer.read();
+
+        min_latency = @min(min_latency, elapsed);
+        max_latency = @max(max_latency, elapsed);
 
         // Only collect latency samples at intervals to reduce memory usage
         if (i % sample_interval == 0) {
@@ -94,6 +179,15 @@ fn runBenchmark(
     const avg_time = total_time / iterations;
     const throughput = @as(f64, @floatFromInt(iterations)) / (@as(f64, @floatFromInt(total_time)) / 1_000_000_000.0);
 
+    // Calculate standard deviation
+    var variance_sum: f64 = 0;
+    for (latencies.items) |latency| {
+        const diff = @as(f64, @floatFromInt(latency)) - @as(f64, @floatFromInt(avg_time));
+        variance_sum += diff * diff;
+    }
+    const variance = variance_sum / @as(f64, @floatFromInt(latencies.items.len));
+    const std_deviation = @sqrt(variance);
+
     const sample_count = latencies.items.len;
     return BenchmarkResult{
         .operation = operation,
@@ -104,6 +198,10 @@ fn runBenchmark(
         .latency_p50 = if (sample_count > 0) latencies.items[sample_count * 50 / 100] else 0,
         .latency_p95 = if (sample_count > 0) latencies.items[sample_count * 95 / 100] else 0,
         .latency_p99 = if (sample_count > 0) latencies.items[sample_count * 99 / 100] else 0,
+        .latency_p999 = if (sample_count > 0) latencies.items[@min(sample_count * 999 / 1000, sample_count - 1)] else 0,
+        .min_latency = min_latency,
+        .max_latency = max_latency,
+        .std_deviation = std_deviation,
     };
 }
 
@@ -368,6 +466,8 @@ pub fn main() !void {
 
 pub fn runBenchmarks() !void {
     const config = BenchmarkConfig.getConfig(); // Use CI-optimized config when detected
+    const targets = config.getPerformanceTargets();
+    
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
@@ -403,14 +503,28 @@ pub fn runBenchmarks() !void {
 
     // Print header with CI status
     const ci_detected = config.num_shards < 32;
-    std.debug.print("\nOrderbook Benchmark Results{s}:\n", .{if (ci_detected) " (CI Optimized)" else ""});
-    std.debug.print("Configuration:\n", .{});
+    std.debug.print("\nAbyssbook Orderbook Benchmark Results{s}:\n", .{if (ci_detected) " (CI Optimized)" else ""});
+    std.debug.print("=".** 60 ++ "\n");
+    std.debug.print("Configuration:\n");
     std.debug.print("  Shards: {d}\n", .{config.num_shards});
     std.debug.print("  Iterations: {d}\n", .{config.iterations});
     std.debug.print("  Order Count: {d}\n", .{config.order_count});
     std.debug.print("  Burst Size: {d}\n", .{config.burst_size});
     std.debug.print("  Price Levels: {d}\n", .{config.num_price_levels});
-    std.debug.print("\n{s:<25} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12}\n", .{ "Operation", "Avg (µs)", "P50 (µs)", "P95 (µs)", "P99 (µs)", "Ops/sec", "Total (ms)" });
+    std.debug.print("  Environment: {s}\n", .{if (ci_detected) "CI/Testing" else "Production"});
+    std.debug.print("\n");
+
+    // Print table header
+    std.debug.print("{s:<25} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12} {s:>10}\n", .{ 
+        "Operation", "Avg (µs)", "P50 (µs)", "P95 (µs)", "P99 (µs)", "Ops/sec", "Total (ms)", "Status" 
+    });
+    std.debug.print("-".** 105 ++ "\n");
+
+    var results = std.ArrayList(BenchmarkResult).init(allocator);
+    defer results.deinit();
+    
+    var passed_count: usize = 0;
+    var failed_count: usize = 0;
 
     // Run and print results with memory cleanup between benchmarks
     inline for (benchmarks) |bench| {
@@ -422,8 +536,8 @@ pub fn runBenchmarks() !void {
             book.ask_levels[i].clearRetainingCapacity();
             book.stop_orders[i].clearRetainingCapacity();
         }
-        book.best_bid = null;
-        book.best_ask = null;
+        book.best_bid_cache = null;
+        book.best_ask_cache = null;
         global_order_id.store(1, .seq_cst);
 
         const result = try runBenchmark(
@@ -433,7 +547,22 @@ pub fn runBenchmarks() !void {
             .{ &book, config },
         );
 
-        std.debug.print("{s:<25} {d:>12.2} {d:>12.2} {d:>12.2} {d:>12.2} {d:>12.2} {d:>12.2}\n", .{
+        try results.append(result);
+
+        // Check against performance targets
+        const target = targets.getTargetForOperation(bench.name);
+        const status = if (target) |t| 
+            if (result.isWithinTarget(t)) "PASS" else "FAIL"
+        else 
+            "N/A";
+            
+        if (target != null and result.isWithinTarget(target.?)) {
+            passed_count += 1;
+        } else if (target != null) {
+            failed_count += 1;
+        }
+
+        std.debug.print("{s:<25} {d:>12.2} {d:>12.2} {d:>12.2} {d:>12.2} {d:>12.0} {d:>12.2} {s:>10}\n", .{
             result.operation,
             @as(f64, @floatFromInt(result.avg_time_ns)) / 1000.0,
             @as(f64, @floatFromInt(result.latency_p50)) / 1000.0,
@@ -441,6 +570,100 @@ pub fn runBenchmarks() !void {
             @as(f64, @floatFromInt(result.latency_p99)) / 1000.0,
             result.throughput,
             @as(f64, @floatFromInt(result.total_time_ns)) / 1_000_000.0,
+            status,
         });
     }
+    
+    // Print summary
+    std.debug.print("\n" ++ "=".** 60 ++ "\n");
+    std.debug.print("Benchmark Summary:\n");
+    std.debug.print("  Total benchmarks: {d}\n", .{benchmarks.len});
+    std.debug.print("  Passed targets: {d}\n", .{passed_count});
+    std.debug.print("  Failed targets: {d}\n", .{failed_count});
+    std.debug.print("  Success rate: {d:.1}%\n", .{@as(f64, @floatFromInt(passed_count)) / @as(f64, @floatFromInt(passed_count + failed_count)) * 100.0});
+    
+    // Print detailed results for failed benchmarks
+    if (failed_count > 0) {
+        std.debug.print("\nDetailed Analysis for Failed Benchmarks:\n");
+        std.debug.print("-".** 60 ++ "\n");
+        for (results.items) |result| {
+            if (targets.getTargetForOperation(result.operation)) |target| {
+                if (!result.isWithinTarget(target)) {
+                    result.printSummary();
+                    std.debug.print("  Target P99: {d:.2} µs (Actual: {d:.2} µs)\n", .{
+                        @as(f64, @floatFromInt(target.max_p99_latency_ns)) / 1000.0,
+                        @as(f64, @floatFromInt(result.latency_p99)) / 1000.0,
+                    });
+                    std.debug.print("  Target Throughput: {d:.0} ops/sec (Actual: {d:.0} ops/sec)\n", .{
+                        target.min_throughput_ops_sec,
+                        result.throughput,
+                    });
+                    std.debug.print("\n");
+                }
+            }
+        }
+    }
+    
+    // Export results for CI integration (future enhancement)
+    try exportBenchmarkResults(allocator, results.items, config);
+}
+
+// Export benchmark results for CI integration and historical tracking
+fn exportBenchmarkResults(allocator: std.mem.Allocator, results: []const BenchmarkResult, config: BenchmarkConfig) !void {
+    // Create results directory if it doesn't exist
+    std.fs.cwd().makeDir("benchmark_results") catch |err| switch (err) {
+        error.PathAlreadyExists => {},
+        else => return err,
+    };
+    
+    // Generate timestamp for filename
+    const timestamp = std.time.timestamp();
+    const filename = try std.fmt.allocPrint(allocator, "benchmark_results/results_{d}.json", .{timestamp});
+    defer allocator.free(filename);
+    
+    const file = try std.fs.cwd().createFile(filename, .{});
+    defer file.close();
+    
+    var writer = file.writer();
+    
+    // Write JSON header
+    try writer.writeAll("{\n");
+    try writer.print("  \"timestamp\": {d},\n", .{timestamp});
+    try writer.print("  \"config\": {{\n");
+    try writer.print("    \"num_shards\": {d},\n", .{config.num_shards});
+    try writer.print("    \"iterations\": {d},\n", .{config.iterations});
+    try writer.print("    \"order_count\": {d},\n", .{config.order_count});
+    try writer.print("    \"price_range\": {d},\n", .{config.price_range});
+    try writer.print("    \"amount_range\": {d},\n", .{config.amount_range});
+    try writer.print("    \"burst_size\": {d},\n", .{config.burst_size});
+    try writer.print("    \"num_price_levels\": {d}\n", .{config.num_price_levels});
+    try writer.writeAll("  },\n");
+    try writer.writeAll("  \"results\": [\n");
+    
+    // Write benchmark results
+    for (results, 0..) |result, i| {
+        try writer.writeAll("    {\n");
+        try writer.print("      \"operation\": \"{s}\",\n", .{result.operation});
+        try writer.print("      \"iterations\": {d},\n", .{result.iterations});
+        try writer.print("      \"total_time_ns\": {d},\n", .{result.total_time_ns});
+        try writer.print("      \"avg_time_ns\": {d},\n", .{result.avg_time_ns});
+        try writer.print("      \"throughput\": {d:.2},\n", .{result.throughput});
+        try writer.print("      \"latency_p50\": {d},\n", .{result.latency_p50});
+        try writer.print("      \"latency_p95\": {d},\n", .{result.latency_p95});
+        try writer.print("      \"latency_p99\": {d},\n", .{result.latency_p99});
+        try writer.print("      \"latency_p999\": {d},\n", .{result.latency_p999});
+        try writer.print("      \"min_latency\": {d},\n", .{result.min_latency});
+        try writer.print("      \"max_latency\": {d},\n", .{result.max_latency});
+        try writer.print("      \"std_deviation\": {d:.2}\n", .{result.std_deviation});
+        if (i < results.len - 1) {
+            try writer.writeAll("    },\n");
+        } else {
+            try writer.writeAll("    }\n");
+        }
+    }
+    
+    try writer.writeAll("  ]\n");
+    try writer.writeAll("}\n");
+    
+    std.debug.print("Benchmark results exported to: {s}\n", .{filename});
 }
