@@ -260,7 +260,7 @@ pub const BlockchainClient = struct {
         
         // Convert to hex string
         var order_id_buffer: [BlockchainConstants.ORDER_ID_HEX_LENGTH]u8 = undefined;
-        const order_id = std.fmt.bufPrint(&order_id_buffer, "{}", .{std.fmt.fmtSliceHexLower(&order_id_bytes)}) catch return error.OrderIdGenerationFailed;
+        const order_id = std.fmt.bufPrint(&order_id_buffer, "{s}", .{std.fmt.bytesToHex(&order_id_bytes, .lower)}) catch return error.OrderIdGenerationFailed;
         
         return try self.allocator.dupe(u8, order_id);
     }
@@ -346,14 +346,14 @@ pub const Orderbook = struct {
     pub fn deinit(self: *Orderbook, allocator: std.mem.Allocator) void {
         // Clear and free order data securely
         for (self.bids) |bid| {
-            std.crypto.utils.secureZero(u8, @constCast(bid.order_id));
-            std.crypto.utils.secureZero(u8, @constCast(bid.owner_address));
+            @memset(@constCast(bid.order_id), 0);
+            @memset(@constCast(bid.owner_address), 0);
             allocator.free(bid.order_id);
             allocator.free(bid.owner_address);
         }
         for (self.asks) |ask| {
-            std.crypto.utils.secureZero(u8, @constCast(ask.order_id));
-            std.crypto.utils.secureZero(u8, @constCast(ask.owner_address));
+            @memset(@constCast(ask.order_id), 0);
+            @memset(@constCast(ask.owner_address), 0);
             allocator.free(ask.order_id);
             allocator.free(ask.owner_address);
         }
@@ -363,8 +363,8 @@ pub const Orderbook = struct {
         allocator.free(self.asks);
         
         // Clear and free market data
-        std.crypto.utils.secureZero(u8, @constCast(self.market));
-        std.crypto.utils.secureZero(u8, @constCast(self.market_address));
+        @memset(@constCast(self.market), 0);
+        @memset(@constCast(self.market_address), 0);
         allocator.free(self.market);
         allocator.free(self.market_address);
     }

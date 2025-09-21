@@ -241,7 +241,7 @@ pub const EnhancedOrderService = struct {
         };
         defer {
             // Secure cleanup of signature
-            std.crypto.utils.secureZero(u8, @constCast(signature));
+            @memset(@constCast(signature), 0);
             self.allocator.free(signature);
         }
         
@@ -353,7 +353,7 @@ pub const EnhancedOrderService = struct {
         };
         defer {
             // Secure cleanup of signature
-            std.crypto.utils.secureZero(u8, @constCast(signature));
+            @memset(@constCast(signature), 0);
             self.allocator.free(signature);
         }
         

@@ -101,7 +101,7 @@ pub const ErrorHandler = struct {
             // If this isn't the first attempt, apply exponential backoff
             if (retry_count > 0) {
                 const delay_ms = self.base_delay_ms * (@as(u32, 1) << @intCast(retry_count - 1));
-                std.time.sleep(delay_ms * std.time.ns_per_ms);
+                std.Thread.sleep(delay_ms * std.time.ns_per_ms);
 
                 // Log retry attempt
                 std.debug.print("Retrying operation (attempt {d}/{d})...\n", .{ retry_count, self.max_retries });
@@ -130,7 +130,7 @@ pub const ErrorHandler = struct {
                     // Rate limiting requires retry with backoff
                     BlockchainError.RateLimitExceeded => {
                         // Add extra delay for rate limit errors
-                        std.time.sleep(BlockchainConstants.RATE_LIMIT_EXTRA_DELAY_MS * std.time.ns_per_ms);
+                        std.Thread.sleep(BlockchainConstants.RATE_LIMIT_EXTRA_DELAY_MS * std.time.ns_per_ms);
                         if (retry_count < self.max_retries) {
                             continue;
                         } else {

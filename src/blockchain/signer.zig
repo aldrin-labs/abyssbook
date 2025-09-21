@@ -57,7 +57,7 @@ pub const TransactionSigner = struct {
                 size,
                 timestamp,
                 nonce,
-                std.fmt.fmtSliceHexLower(&self.keypair.public_key.bytes),
+                std.fmt.bytesToHex(&self.keypair.public_key.bytes, .lower),
             }
         );
 
@@ -97,7 +97,7 @@ pub const TransactionSigner = struct {
                 order_id,
                 timestamp,
                 nonce,
-                std.fmt.fmtSliceHexLower(&self.keypair.public_key.bytes),
+                std.fmt.bytesToHex(&self.keypair.public_key.bytes, .lower),
             }
         );
 

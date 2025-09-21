@@ -94,12 +94,12 @@ pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
     }
 
     // Stage 3: Sanitize command arguments
-    var sanitized_args = std.ArrayList([]const u8).init(std.heap.page_allocator);
+    var sanitized_args = std.ArrayList([]const u8){};
     defer {
         for (sanitized_args.items) |arg| {
             std.heap.page_allocator.free(arg);
         }
-        sanitized_args.deinit();
+        sanitized_args.deinit(std.heap.page_allocator);
     }
 
     for (command_args) |arg| {
@@ -128,7 +128,7 @@ pub fn execute(registry: *CommandRegistry, args: []const []const u8) !void {
             continue;
         }
 
-        try sanitized_args.append(try std.heap.page_allocator.dupe(u8, arg_result.cleaned_input));
+        try sanitized_args.append(std.heap.page_allocator, try std.heap.page_allocator.dupe(u8, arg_result.cleaned_input));
     }
 
     // Validate command name is not empty after sanitization
