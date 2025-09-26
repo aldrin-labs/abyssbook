@@ -69,6 +69,18 @@ pub fn build(b: *std.Build) void {
     const regression_test_cmd = b.addRunArtifact(regression_test_exe);
     const regression_test_step = b.step("regression-test", "Run performance regression tests");
     regression_test_step.dependOn(&regression_test_cmd.step);
+    
+    // Add metrics reporter test executable
+    const metrics_reporter_exe = b.addExecutable(.{
+        .name = "metrics_reporter",
+        .root_source_file = .{ .cwd_relative = "src/metrics_reporter.zig" },
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+
+    const metrics_reporter_cmd = b.addRunArtifact(metrics_reporter_exe);
+    const metrics_reporter_step = b.step("test-metrics", "Test metrics reporting formats");
+    metrics_reporter_step.dependOn(&metrics_reporter_cmd.step);
 
     // Unit tests
     const unit_tests = b.addTest(.{

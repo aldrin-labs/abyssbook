@@ -18,7 +18,11 @@ pub const OptimizedOrderStorage = struct {
     id_to_index: std.HashMap(u64, u32, std.hash_map.DefaultContext(u64), std.hash_map.default_max_load_percentage),
     price_indices: std.AutoArrayHashMap(u64, std.ArrayList(u32)), // Price -> list of indices
     
-    const SIMD_WIDTH = 8; // AVX2 64-bit elements
+    const SIMD_WIDTH = switch (@import("builtin").cpu.arch) {
+        .x86_64 => if (std.Target.x86.featureSetHas(@import("builtin").cpu.features, .avx2)) @as(usize, 8) else @as(usize, 4),
+        .aarch64 => @as(usize, 4), // NEON 128-bit vectors
+        else => @as(usize, 2), // Conservative fallback
+    };
     const CACHE_LINE_SIZE = 64;
     const PREFETCH_DISTANCE = 2;
     
@@ -170,43 +174,69 @@ pub const OptimizedOrderStorage = struct {
     // SIMD-optimized range queries
     pub fn getOrdersInPriceRange(self: *const OptimizedOrderStorage, min_price: u64, max_price: u64, output: []u32) usize {
         var result_count: usize = 0;
-        const PriceVector = @Vector(SIMD_WIDTH, u64);
-        const min_vec: PriceVector = @splat(min_price);
-        const max_vec: PriceVector = @splat(max_price);
         
-        var i: usize = 0;
-        // Process in SIMD chunks
-        while (i + SIMD_WIDTH <= self.count and result_count < output.len) {
-            // Prefetch next cache line
-            if (i + PREFETCH_DISTANCE * SIMD_WIDTH < self.count) {
-                const prefetch_addr = @intFromPtr(&self.prices[i + PREFETCH_DISTANCE * SIMD_WIDTH]);
-                asm volatile ("prefetcht0 (%[addr])"
-                    : // no outputs
-                    : [addr] "r" (prefetch_addr),
-                );
+        // Only use SIMD if we have enough width, otherwise fall back to scalar
+        if (SIMD_WIDTH >= 4) {
+            const PriceVector = @Vector(SIMD_WIDTH, u64);
+            const min_vec: PriceVector = @splat(min_price);
+            const max_vec: PriceVector = @splat(max_price);
+            
+            var i: usize = 0;
+            // Process in SIMD chunks
+            while (i + SIMD_WIDTH <= self.count and result_count < output.len) {
+                // Portable prefetch
+                if (i + PREFETCH_DISTANCE * SIMD_WIDTH < self.count) {
+                    const prefetch_addr = @intFromPtr(&self.prices[i + PREFETCH_DISTANCE * SIMD_WIDTH]);
+                    switch (@import("builtin").cpu.arch) {
+                        .x86_64 => {
+                            asm volatile ("prefetcht0 (%[addr])"
+                                : // no outputs
+                                : [addr] "r" (prefetch_addr),
+                            );
+                        },
+                        .aarch64 => {
+                            asm volatile ("prfm pldl1keep, [%[addr]]"
+                                : // no outputs
+                                : [addr] "r" (prefetch_addr),
+                            );
+                        },
+                        else => {
+                            _ = prefetch_addr;
+                        },
+                    }
+                }
+                
+                const price_vec: PriceVector = self.prices[i..i+SIMD_WIDTH][0..SIMD_WIDTH].*;
+                const in_range = (price_vec >= min_vec) & (price_vec <= max_vec);
+                
+                // Extract matching indices
+                for (0..SIMD_WIDTH) |j| {
+                    if (in_range[j] and result_count < output.len) {
+                        output[result_count] = @as(u32, @intCast(i + j));
+                        result_count += 1;
+                    }
+                }
+                
+                i += SIMD_WIDTH;
             }
             
-            const price_vec: PriceVector = self.prices[i..i+SIMD_WIDTH][0..SIMD_WIDTH].*;
-            const in_range = (price_vec >= min_vec) & (price_vec <= max_vec);
-            
-            // Extract matching indices
-            for (0..SIMD_WIDTH) |j| {
-                if (in_range[j] and result_count < output.len) {
-                    output[result_count] = @as(u32, @intCast(i + j));
+            // Handle remaining elements
+            while (i < self.count and result_count < output.len) {
+                if (self.prices[i] >= min_price and self.prices[i] <= max_price) {
+                    output[result_count] = @as(u32, @intCast(i));
+                    result_count += 1;
+                }
+                i += 1;
+            }
+        } else {
+            // Scalar fallback for architectures without sufficient SIMD support
+            for (0..self.count) |i| {
+                if (result_count >= output.len) break;
+                if (self.prices[i] >= min_price and self.prices[i] <= max_price) {
+                    output[result_count] = @as(u32, @intCast(i));
                     result_count += 1;
                 }
             }
-            
-            i += SIMD_WIDTH;
-        }
-        
-        // Handle remaining elements
-        while (i < self.count and result_count < output.len) {
-            if (self.prices[i] >= min_price and self.prices[i] <= max_price) {
-                output[result_count] = @as(u32, @intCast(i));
-                result_count += 1;
-            }
-            i += 1;
         }
         
         return result_count;
@@ -216,27 +246,44 @@ pub const OptimizedOrderStorage = struct {
     pub fn getTotalVolumeAtPrice(self: *const OptimizedOrderStorage, price: u64) u64 {
         if (self.price_indices.get(price)) |indices| {
             var total: u64 = 0;
-            const AmountVector = @Vector(SIMD_WIDTH, u64);
             
-            var i: usize = 0;
-            // Process in SIMD chunks
-            while (i + SIMD_WIDTH <= indices.items.len) {
-                const indices_chunk = indices.items[i..i+SIMD_WIDTH];
-                var amounts: [SIMD_WIDTH]u64 = undefined;
+            // Only use SIMD if we have sufficient width and indices
+            if (SIMD_WIDTH >= 4 and indices.items.len >= SIMD_WIDTH) {
+                const AmountVector = @Vector(SIMD_WIDTH, u64);
                 
-                // Gather amounts (this could be optimized with AVX2 gather instructions)
-                for (indices_chunk, 0..) |idx, j| {
-                    amounts[j] = self.amounts[idx];
+                var i: usize = 0;
+                // Process in SIMD chunks
+                while (i + SIMD_WIDTH <= indices.items.len) {
+                    const indices_chunk = indices.items[i..i+SIMD_WIDTH];
+                    var amounts: [SIMD_WIDTH]u64 = undefined;
+                    
+                    // Gather amounts with bounds checking
+                    for (indices_chunk, 0..) |idx, j| {
+                        if (idx < self.count) {
+                            amounts[j] = self.amounts[idx];
+                        } else {
+                            amounts[j] = 0; // Safety fallback
+                        }
+                    }
+                    
+                    const amount_vec: AmountVector = amounts;
+                    total += @reduce(.Add, amount_vec);
+                    i += SIMD_WIDTH;
                 }
                 
-                const amount_vec: AmountVector = amounts;
-                total += @reduce(.Add, amount_vec);
-                i += SIMD_WIDTH;
-            }
-            
-            // Handle remaining elements
-            while (i < indices.items.len) : (i += 1) {
-                total += self.amounts[indices.items[i]];
+                // Handle remaining elements
+                while (i < indices.items.len) : (i += 1) {
+                    if (indices.items[i] < self.count) {
+                        total += self.amounts[indices.items[i]];
+                    }
+                }
+            } else {
+                // Scalar fallback
+                for (indices.items) |idx| {
+                    if (idx < self.count) {
+                        total += self.amounts[idx];
+                    }
+                }
             }
             
             return total;
@@ -246,44 +293,77 @@ pub const OptimizedOrderStorage = struct {
     
     // Batch operations for better cache utilization
     pub fn updateAmounts(self: *OptimizedOrderStorage, updates: []const AmountUpdate) void {
-        const AmountVector = @Vector(SIMD_WIDTH, u64);
-        
-        var i: usize = 0;
-        while (i + SIMD_WIDTH <= updates.len) {
-            // Prefetch next batch
-            if (i + PREFETCH_DISTANCE * SIMD_WIDTH < updates.len) {
-                const prefetch_addr = @intFromPtr(&updates[i + PREFETCH_DISTANCE * SIMD_WIDTH]);
-                asm volatile ("prefetcht0 (%[addr])"
-                    : // no outputs
-                    : [addr] "r" (prefetch_addr),
-                );
+        if (SIMD_WIDTH >= 4 and updates.len >= SIMD_WIDTH) {
+            const AmountVector = @Vector(SIMD_WIDTH, u64);
+            
+            var i: usize = 0;
+            while (i + SIMD_WIDTH <= updates.len) {
+                // Portable prefetch for next batch
+                if (i + PREFETCH_DISTANCE * SIMD_WIDTH < updates.len) {
+                    const prefetch_addr = @intFromPtr(&updates[i + PREFETCH_DISTANCE * SIMD_WIDTH]);
+                    switch (@import("builtin").cpu.arch) {
+                        .x86_64 => {
+                            asm volatile ("prefetcht0 (%[addr])"
+                                : // no outputs
+                                : [addr] "r" (prefetch_addr),
+                            );
+                        },
+                        .aarch64 => {
+                            asm volatile ("prfm pldl1keep, [%[addr]]"
+                                : // no outputs
+                                : [addr] "r" (prefetch_addr),
+                            );
+                        },
+                        else => {
+                            _ = prefetch_addr;
+                        },
+                    }
+                }
+                
+                // Gather current amounts with bounds checking
+                var current_amounts: [SIMD_WIDTH]u64 = undefined;
+                var new_amounts: [SIMD_WIDTH]u64 = undefined;
+                
+                for (0..SIMD_WIDTH) |j| {
+                    const update = updates[i + j];
+                    if (update.index < self.count) {
+                        current_amounts[j] = self.amounts[update.index];
+                        new_amounts[j] = update.new_amount;
+                    } else {
+                        // Skip invalid indices
+                        current_amounts[j] = 0;
+                        new_amounts[j] = 0;
+                    }
+                }
+                
+                // Vectorized update
+                const new_vec: AmountVector = new_amounts;
+                
+                // Scatter back with bounds checking
+                for (0..SIMD_WIDTH) |j| {
+                    const update = updates[i + j];
+                    if (update.index < self.count) {
+                        self.amounts[update.index] = new_vec[j];
+                    }
+                }
+                
+                i += SIMD_WIDTH;
             }
             
-            // Gather current amounts
-            var current_amounts: [SIMD_WIDTH]u64 = undefined;
-            var new_amounts: [SIMD_WIDTH]u64 = undefined;
-            
-            for (0..SIMD_WIDTH) |j| {
-                const update = updates[i + j];
-                current_amounts[j] = self.amounts[update.index];
-                new_amounts[j] = update.new_amount;
+            // Handle remaining updates
+            while (i < updates.len) : (i += 1) {
+                const update = updates[i];
+                if (update.index < self.count) {
+                    self.amounts[update.index] = update.new_amount;
+                }
             }
-            
-            // Vectorized update
-            const new_vec: AmountVector = new_amounts;
-            
-            // Scatter back (this could be optimized with AVX2 scatter instructions)
-            for (0..SIMD_WIDTH) |j| {
-                self.amounts[updates[i + j].index] = new_vec[j];
+        } else {
+            // Scalar fallback
+            for (updates) |update| {
+                if (update.index < self.count) {
+                    self.amounts[update.index] = update.new_amount;
+                }
             }
-            
-            i += SIMD_WIDTH;
-        }
-        
-        // Handle remaining updates
-        while (i < updates.len) : (i += 1) {
-            const update = updates[i];
-            self.amounts[update.index] = update.new_amount;
         }
     }
     

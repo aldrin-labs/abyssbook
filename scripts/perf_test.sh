@@ -26,6 +26,8 @@ print_usage() {
     echo "  profile       Run performance profiler"
     echo "  load-test     Run load testing"
     echo "  regression    Run regression tests"
+    echo "  ci-regression Run CI regression check"
+    echo "  metrics       Test metrics reporting formats"
     echo "  all           Run all performance tests"
     echo "  build         Build all performance tools"
     echo "  clean         Clean build artifacts"
@@ -35,6 +37,8 @@ print_usage() {
     echo "  $0 bench          # Run benchmarks"
     echo "  $0 all            # Run all performance tests"
     echo "  $0 build          # Build performance tools"
+    echo "  $0 ci-regression  # Run CI regression check"
+    echo "  $0 metrics        # Test metrics formats"
     echo
 }
 
@@ -76,7 +80,31 @@ run_regression_test() {
     echo -e "${GREEN}Running regression tests...${NC}"
     echo "Checking for performance regressions..."
     echo
+    # Ensure regression test tool is available
+    if [ ! -f "zig-out/bin/regression_test" ]; then
+        echo "Building regression test tool..."
+        zig build regression-test
+    fi
     zig build regression-test
+}
+
+run_ci_regression() {
+    echo -e "${GREEN}Running CI regression check...${NC}"
+    echo "Comparing against baseline performance..."
+    echo
+    ./scripts/ci_regression_check.sh
+}
+
+test_metrics_formats() {
+    echo -e "${GREEN}Testing metrics reporting formats...${NC}"
+    echo "Generating sample reports in different formats..."
+    echo
+    # Ensure metrics reporter is available
+    if [ ! -f "zig-out/bin/metrics_reporter" ]; then
+        echo "Building metrics reporter..."
+        zig build test-metrics
+    fi
+    zig build test-metrics
 }
 
 run_all_tests() {
@@ -170,6 +198,16 @@ case "${1:-help}" in
         print_header
         check_zig
         run_regression_test
+        ;;
+    "ci-regression")
+        print_header
+        check_zig
+        run_ci_regression
+        ;;
+    "metrics")
+        print_header
+        check_zig
+        test_metrics_formats
         ;;
     "all")
         print_header
