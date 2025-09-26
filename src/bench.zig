@@ -613,7 +613,10 @@ fn exportBenchmarkResults(allocator: std.mem.Allocator, results: []const Benchma
     // Create results directory if it doesn't exist
     std.fs.cwd().makeDir("benchmark_results") catch |err| switch (err) {
         error.PathAlreadyExists => {},
-        else => return err,
+        else => {
+            std.log.err("Failed to create benchmark_results directory: {}", .{err});
+            return err;
+        }
     };
     
     // Generate timestamp for filename
@@ -621,12 +624,24 @@ fn exportBenchmarkResults(allocator: std.mem.Allocator, results: []const Benchma
     const filename = try std.fmt.allocPrint(allocator, "benchmark_results/results_{d}.json", .{timestamp});
     defer allocator.free(filename);
     
-    const file = try std.fs.cwd().createFile(filename, .{});
+    const file = std.fs.cwd().createFile(filename, .{}) catch |err| {
+        std.log.err("Failed to create benchmark results file {s}: {}", .{filename, err});
+        return err;
+    };
     defer file.close();
     
     var writer = file.writer();
     
-    // Write JSON header
+    // Write JSON with proper error handling
+    writeJSON(&writer, results, config, timestamp) catch |err| {
+        std.log.err("Failed to write JSON to {s}: {}", .{filename, err});
+        return err;
+    };
+    
+    std.debug.print("Benchmark results exported to: {s}\n", .{filename});
+}
+
+fn writeJSON(writer: anytype, results: []const BenchmarkResult, config: BenchmarkConfig, timestamp: i64) !void {
     try writer.writeAll("{\n");
     try writer.print("  \"timestamp\": {d},\n", .{timestamp});
     try writer.print("  \"config\": {{\n");
@@ -664,6 +679,4 @@ fn exportBenchmarkResults(allocator: std.mem.Allocator, results: []const Benchma
     
     try writer.writeAll("  ]\n");
     try writer.writeAll("}\n");
-    
-    std.debug.print("Benchmark results exported to: {s}\n", .{filename});
 }

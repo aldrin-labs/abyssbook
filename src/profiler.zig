@@ -55,6 +55,8 @@ pub const Profiler = struct {
             const elapsed = @as(u64, @intCast(current_time - data.start_time));
             data.total_time += elapsed;
             data.call_count += 1;
+        } else {
+            std.log.warn("endFunction called for unknown function: {s}", .{function_name});
         }
     }
     
@@ -112,10 +114,12 @@ pub const Profiler = struct {
     }
 };
 
-// Macro for easy profiling
+// Macro for easy profiling with proper error handling
 pub fn ProfiledCall(profiler: *Profiler, comptime function_name: []const u8, function: anytype, args: anytype) !@TypeOf(@call(.auto, function, args)) {
     try profiler.startFunction(function_name);
-    defer profiler.endFunction(function_name) catch {};
+    defer profiler.endFunction(function_name) catch |err| {
+        std.log.warn("Failed to end profiling for {s}: {}", .{function_name, err});
+    };
     return try @call(.auto, function, args);
 }
 

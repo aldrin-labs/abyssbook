@@ -5,6 +5,16 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
     return struct {
         const Self = @This();
         
+        // Configuration constants
+        const HOT_ACCESS_THRESHOLD = 10;
+        const PROMOTION_ACCESS_THRESHOLD = 3;
+        const L1_DEFAULT_SIZE = 1000;
+        const L1_TTL_MS = 5_000;
+        const L2_DEFAULT_SIZE = 10_000;
+        const L2_TTL_MS = 30_000;
+        const L3_DEFAULT_SIZE = 100_000;
+        const L3_TTL_MS = 300_000;
+        
         pub const CacheEntry = struct {
             key: Key,
             value: Value,
@@ -21,6 +31,10 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
             hit_count: usize,
             miss_count: usize,
             eviction_count: usize,
+            // LRU tracking with doubly linked list concept - simplified with timestamps
+            next_eviction_check: usize,
+            
+            const EVICTION_CHECK_INTERVAL = 100;
             
             pub fn init(allocator: std.mem.Allocator, max_size: usize, ttl_ms: u64) CacheLevel {
                 return .{
@@ -30,6 +44,7 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
                     .hit_count = 0,
                     .miss_count = 0,
                     .eviction_count = 0,
+                    .next_eviction_check = 0,
                 };
             }
             
@@ -47,7 +62,7 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
                         // Update access statistics
                         entry.last_access = current_time;
                         entry.access_count += 1;
-                        entry.is_hot = entry.access_count > 10; // Mark as hot if accessed > 10 times
+                        entry.is_hot = entry.access_count > HOT_ACCESS_THRESHOLD;
                         
                         self.hit_count += 1;
                         return entry.value;
@@ -65,9 +80,12 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
             pub fn put(self: *CacheLevel, key: Key, value: Value) !void {
                 const current_time = std.time.milliTimestamp();
                 
-                // Check if we need to evict entries
+                // More efficient eviction - only check periodically or when near capacity
                 if (self.entries.count() >= self.max_size) {
                     try self.evictLRU();
+                } else if (self.entries.count() % EVICTION_CHECK_INTERVAL == 0) {
+                    // Periodic cleanup of expired entries
+                    try self.cleanupExpired();
                 }
                 
                 const entry = CacheEntry{
@@ -82,34 +100,90 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
                 try self.entries.put(key, entry);
             }
             
-            fn evictLRU(self: *CacheLevel) !void {
-                if (self.entries.count() == 0) return;
-                
-                var oldest_key: ?Key = null;
-                var oldest_time: i64 = std.math.maxInt(i64);
+            fn cleanupExpired(self: *CacheLevel) !void {
+                const current_time = std.time.milliTimestamp();
+                var keys_to_remove = std.ArrayList(Key).init(self.entries.allocator);
+                defer keys_to_remove.deinit();
                 
                 var it = self.entries.iterator();
                 while (it.next()) |entry| {
-                    // Prefer evicting non-hot entries first
-                    if (!entry.value_ptr.is_hot and entry.value_ptr.last_access < oldest_time) {
-                        oldest_time = entry.value_ptr.last_access;
-                        oldest_key = entry.key_ptr.*;
+                    const age_ms = @as(u64, @intCast(current_time - entry.value_ptr.timestamp));
+                    if (age_ms > self.ttl_ms) {
+                        try keys_to_remove.append(entry.key_ptr.*);
                     }
                 }
                 
-                // If no non-hot entries, evict the oldest hot entry
-                if (oldest_key == null) {
-                    it = self.entries.iterator();
-                    while (it.next()) |entry| {
-                        if (entry.value_ptr.last_access < oldest_time) {
-                            oldest_time = entry.value_ptr.last_access;
-                            oldest_key = entry.key_ptr.*;
+                for (keys_to_remove.items) |key| {
+                    _ = self.entries.remove(key);
+                    self.eviction_count += 1;
+                }
+            }
+            
+            fn evictLRU(self: *CacheLevel) !void {
+                if (self.entries.count() == 0) return;
+                
+                // More efficient LRU: collect candidates in batches
+                const MAX_CANDIDATES = 10;
+                var candidates: [MAX_CANDIDATES]struct { key: Key, last_access: i64, is_hot: bool } = undefined;
+                var candidate_count: usize = 0;
+                
+                var it = self.entries.iterator();
+                var checked: usize = 0;
+                const max_check = @min(self.entries.count(), 50); // Limit scan
+                
+                while (it.next()) |entry| and (checked < max_check) {
+                    checked += 1;
+                    
+                    if (candidate_count < MAX_CANDIDATES) {
+                        candidates[candidate_count] = .{
+                            .key = entry.key_ptr.*,
+                            .last_access = entry.value_ptr.last_access,
+                            .is_hot = entry.value_ptr.is_hot,
+                        };
+                        candidate_count += 1;
+                    } else {
+                        // Replace worst candidate if this entry is older
+                        var worst_idx: usize = 0;
+                        var worst_time = candidates[0].last_access;
+                        var worst_is_hot = candidates[0].is_hot;
+                        
+                        for (candidates[1..candidate_count], 1..) |candidate, i| {
+                            // Prefer evicting non-hot entries, then oldest
+                            if ((!candidate.is_hot and worst_is_hot) or 
+                                (!candidate.is_hot == !worst_is_hot and candidate.last_access < worst_time)) {
+                                worst_idx = i;
+                                worst_time = candidate.last_access;
+                                worst_is_hot = candidate.is_hot;
+                            }
+                        }
+                        
+                        if ((!entry.value_ptr.is_hot and worst_is_hot) or
+                            (!entry.value_ptr.is_hot == !worst_is_hot and entry.value_ptr.last_access < worst_time)) {
+                            candidates[worst_idx] = .{
+                                .key = entry.key_ptr.*,
+                                .last_access = entry.value_ptr.last_access,
+                                .is_hot = entry.value_ptr.is_hot,
+                            };
                         }
                     }
                 }
                 
-                if (oldest_key) |key| {
-                    _ = self.entries.remove(key);
+                if (candidate_count > 0) {
+                    // Find the best candidate to evict (prefer non-hot, then oldest)
+                    var evict_idx: usize = 0;
+                    var evict_time = candidates[0].last_access;
+                    var evict_is_hot = candidates[0].is_hot;
+                    
+                    for (candidates[1..candidate_count], 1..) |candidate, i| {
+                        if ((!candidate.is_hot and evict_is_hot) or
+                            (!candidate.is_hot == !evict_is_hot and candidate.last_access < evict_time)) {
+                            evict_idx = i;
+                            evict_time = candidate.last_access;
+                            evict_is_hot = candidate.is_hot;
+                        }
+                    }
+                    
+                    _ = self.entries.remove(candidates[evict_idx].key);
                     self.eviction_count += 1;
                 }
             }
@@ -142,9 +216,9 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
         pub fn init(allocator: std.mem.Allocator) Self {
             return .{
                 .allocator = allocator,
-                .l1_cache = CacheLevel.init(allocator, 1000, 5_000),    // 1K entries, 5s TTL
-                .l2_cache = CacheLevel.init(allocator, 10_000, 30_000), // 10K entries, 30s TTL  
-                .l3_cache = CacheLevel.init(allocator, 100_000, 300_000), // 100K entries, 5min TTL
+                .l1_cache = CacheLevel.init(allocator, L1_DEFAULT_SIZE, L1_TTL_MS),
+                .l2_cache = CacheLevel.init(allocator, L2_DEFAULT_SIZE, L2_TTL_MS), 
+                .l3_cache = CacheLevel.init(allocator, L3_DEFAULT_SIZE, L3_TTL_MS),
                 .total_gets = 0,
                 .total_puts = 0,
                 .l1_promotions = 0,
@@ -172,7 +246,9 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
                 // Promote to L1 if accessed frequently
                 if (self.l2_cache.entries.get(key)) |entry| {
                     if (entry.is_hot) {
-                        self.l1_cache.put(key, value) catch {};
+                        self.l1_cache.put(key, value) catch |err| {
+                            std.log.warn("Failed to promote L2->L1: {}", .{err});
+                        };
                         self.l1_promotions += 1;
                     }
                 }
@@ -183,8 +259,10 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
             if (self.l3_cache.get(key)) |value| {
                 // Promote to L2 if accessed frequently
                 if (self.l3_cache.entries.get(key)) |entry| {
-                    if (entry.access_count > 3) {
-                        self.l2_cache.put(key, value) catch {};
+                    if (entry.access_count > PROMOTION_ACCESS_THRESHOLD) {
+                        self.l2_cache.put(key, value) catch |err| {
+                            std.log.warn("Failed to promote L3->L2: {}", .{err});
+                        };
                         self.l2_promotions += 1;
                     }
                 }

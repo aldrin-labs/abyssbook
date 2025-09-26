@@ -50,6 +50,11 @@ run_benchmark() {
     echo -e "${GREEN}Running benchmark suite...${NC}"
     echo "This may take a few minutes depending on your system."
     echo
+    # Ensure benchmark tool is available
+    if [ ! -f "zig-out/bin/bench" ]; then
+        echo "Building benchmark tool..."
+        zig build bench
+    fi
     zig build bench
 }
 
@@ -100,11 +105,42 @@ run_all_tests() {
 
 build_tools() {
     echo -e "${GREEN}Building performance tools...${NC}"
-    zig build bench
-    zig build profile  
-    zig build load-test
-    zig build regression-test
-    echo -e "${GREEN}All tools built successfully!${NC}"
+    
+    # Check if tools need to be built or rebuilt
+    local needs_build=false
+    local tools=("bench" "profiler" "load_test" "regression_test")
+    
+    for tool in "${tools[@]}"; do
+        if [ ! -f "zig-out/bin/$tool" ]; then
+            needs_build=true
+            break
+        fi
+    done
+    
+    # Also check if source files are newer than binaries
+    if [ ! "$needs_build" = true ]; then
+        for src_file in src/*.zig src/*/*.zig; do
+            if [ -f "$src_file" ]; then
+                for tool in "${tools[@]}"; do
+                    if [ "$src_file" -nt "zig-out/bin/$tool" ]; then
+                        needs_build=true
+                        break 2
+                    fi
+                done
+            fi
+        done
+    fi
+    
+    if [ "$needs_build" = true ]; then
+        echo "Building tools..."
+        zig build bench
+        zig build profile  
+        zig build load-test
+        zig build regression-test
+        echo -e "${GREEN}All tools built successfully!${NC}"
+    else
+        echo -e "${YELLOW}Tools are up to date, skipping build${NC}"
+    fi
 }
 
 clean_artifacts() {
