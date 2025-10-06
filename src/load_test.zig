@@ -57,9 +57,9 @@ pub const LoadTestResult = struct {
     avg_cpu_percent: f64,
     
     pub fn printSummary(self: *const LoadTestResult) void {
-        std.debug.print("\n" ++ "=".** 80 ++ "\n");
+        std.debug.print("\n" ++ "=" ** 80 ++ "\n");
         std.debug.print("LOAD TEST RESULTS\n");
-        std.debug.print("=".** 80 ++ "\n");
+        std.debug.print("=" ** 80 ++ "\n");
         
         std.debug.print("Overall Performance:\n");
         std.debug.print("  Total Operations: {d}\n", .{self.total_operations});
@@ -106,7 +106,7 @@ pub const LoadTestResult = struct {
         std.debug.print("  Peak Memory: {d:.2} MB\n", .{self.peak_memory_mb});
         std.debug.print("  Avg CPU: {d:.1}%\n", .{self.avg_cpu_percent});
         
-        std.debug.print("\n" ++ "=".** 80 ++ "\n");
+        std.debug.print("\n" ++ "=" ** 80 ++ "\n");
     }
 };
 

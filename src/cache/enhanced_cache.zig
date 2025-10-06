@@ -131,7 +131,8 @@ pub fn MultiLevelCache(comptime Key: type, comptime Value: type) type {
                 var checked: usize = 0;
                 const max_check = @min(self.entries.count(), 50); // Limit scan
                 
-                while (it.next()) |entry| and (checked < max_check) {
+                while (it.next()) |entry| {
+                    if (checked >= max_check) break;
                     checked += 1;
                     
                     if (candidate_count < MAX_CANDIDATES) {

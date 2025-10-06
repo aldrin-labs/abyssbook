@@ -504,7 +504,7 @@ pub fn runBenchmarks() !void {
     // Print header with CI status
     const ci_detected = config.num_shards < 32;
     std.debug.print("\nAbyssbook Orderbook Benchmark Results{s}:\n", .{if (ci_detected) " (CI Optimized)" else ""});
-    std.debug.print("=".** 60 ++ "\n");
+    std.debug.print("=" ** 60 ++ "\n");
     std.debug.print("Configuration:\n");
     std.debug.print("  Shards: {d}\n", .{config.num_shards});
     std.debug.print("  Iterations: {d}\n", .{config.iterations});
@@ -518,7 +518,7 @@ pub fn runBenchmarks() !void {
     std.debug.print("{s:<25} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12} {s:>10}\n", .{ 
         "Operation", "Avg (µs)", "P50 (µs)", "P95 (µs)", "P99 (µs)", "Ops/sec", "Total (ms)", "Status" 
     });
-    std.debug.print("-".** 105 ++ "\n");
+    std.debug.print("-" ** 105 ++ "\n");
 
     var results = std.ArrayList(BenchmarkResult).init(allocator);
     defer results.deinit();
@@ -575,7 +575,7 @@ pub fn runBenchmarks() !void {
     }
     
     // Print summary
-    std.debug.print("\n" ++ "=".** 60 ++ "\n");
+    std.debug.print("\n" ++ "=" ** 60 ++ "\n");
     std.debug.print("Benchmark Summary:\n");
     std.debug.print("  Total benchmarks: {d}\n", .{benchmarks.len});
     std.debug.print("  Passed targets: {d}\n", .{passed_count});
@@ -585,7 +585,7 @@ pub fn runBenchmarks() !void {
     // Print detailed results for failed benchmarks
     if (failed_count > 0) {
         std.debug.print("\nDetailed Analysis for Failed Benchmarks:\n");
-        std.debug.print("-".** 60 ++ "\n");
+        std.debug.print("-" ** 60 ++ "\n");
         for (results.items) |result| {
             if (targets.getTargetForOperation(result.operation)) |target| {
                 if (!result.isWithinTarget(target)) {

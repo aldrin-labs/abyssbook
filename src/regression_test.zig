@@ -163,9 +163,9 @@ pub const RegressionTester = struct {
     }
     
     pub fn printResults(results: []const RegressionResult) void {
-        std.debug.print("\n" ++ "=".** 80 ++ "\n");
+        std.debug.print("\n" ++ "=" ** 80 ++ "\n");
         std.debug.print("PERFORMANCE REGRESSION TEST RESULTS\n");
-        std.debug.print("=".** 80 ++ "\n");
+        std.debug.print("=" ** 80 ++ "\n");
         
         var passed_count: usize = 0;
         var failed_count: usize = 0;
@@ -190,7 +190,7 @@ pub const RegressionTester = struct {
             std.debug.print("    Change:   {d:+.1}%\n", .{result.throughput_regression_pct});
         }
         
-        std.debug.print("\n" ++ "-".** 80 ++ "\n");
+        std.debug.print("\n" ++ "-" ** 80 ++ "\n");
         std.debug.print("Summary: {d} passed, {d} failed\n", .{ passed_count, failed_count });
         
         if (failed_count == 0) {
@@ -198,7 +198,7 @@ pub const RegressionTester = struct {
         } else {
             std.debug.print("❌ Performance regression detected!\n");
         }
-        std.debug.print("=".** 80 ++ "\n");
+        std.debug.print("=" ** 80 ++ "\n");
     }
 };
 

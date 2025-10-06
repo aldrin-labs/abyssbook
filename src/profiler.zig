@@ -99,7 +99,7 @@ pub const Profiler = struct {
         std.debug.print("\n{s:<30} {s:>12} {s:>12} {s:>12} {s:>8}\n", .{
             "Function", "Total (ms)", "Calls", "Avg (µs)", "% Time"
         });
-        std.debug.print("-".** 76 ++ "\n");
+        std.debug.print("-" ** 76 ++ "\n");
         
         for (results) |result| {
             std.debug.print("{s:<30} {d:>12.2} {d:>12} {d:>12.2} {d:>7.1}%\n", .{

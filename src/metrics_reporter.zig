@@ -70,7 +70,7 @@ pub const MetricsReporter = struct {
         try writer.print("{s:<25} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12} {s:>12}\n", .{
             "Operation", "Avg (µs)", "P50 (µs)", "P95 (µs)", "P99 (µs)", "Ops/sec", "StdDev (µs)"
         });
-        try writer.writeAll("-".** 105 ++ "\n");
+        try writer.writeAll("-" ** 105 ++ "\n");
         
         for (entries) |entry| {
             try writer.print("{s:<25} {d:>12.2} {d:>12.2} {d:>12.2} {d:>12.2} {d:>12.0} {d:>12.2}\n", .{
