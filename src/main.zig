@@ -16,6 +16,9 @@ pub fn main() !u8 {
     // Initialize CLI with error handling
     var registry = cli.init();
     defer registry.deinit();
+    
+    // Set global registry reference for help command access
+    registry.setGlobalRef();
 
     // Convert args iterator to slice for easier handling with error handling
     var arg_list: [32][]const u8 = undefined;

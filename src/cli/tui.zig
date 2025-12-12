@@ -64,10 +64,8 @@ pub fn run() !void {
 
     // Wait for input (simplified for this example)
     const stdin_file = std.fs.File{ .handle = std.posix.STDIN_FILENO };
-    var buffer: [1]u8 = undefined;
-    var stdin = stdin_file.reader(&buffer);
     var read_buf: [1]u8 = undefined;
-    _ = try stdin.read(&read_buf);
+    _ = try stdin_file.read(&read_buf);
 
     std.debug.print("Exiting TUI...\n", .{});
 }
