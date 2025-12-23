@@ -43,7 +43,7 @@ pub const Logger = struct {
     allocator: std.mem.Allocator,
     level: LogLevel,
     original_level: LogLevel,
-    output_writer: std.fs.File.Writer,
+    output_writer: ?std.fs.File.Writer,
     performance_mode: bool = false,
     last_adjustment: i64 = 0,
     thresholds: PerformanceThresholds,
@@ -55,7 +55,7 @@ pub const Logger = struct {
             .allocator = allocator,
             .level = level,
             .original_level = level,
-            .output_writer = std.io.getStdErr().writer(),
+            .output_writer = null, // Use debug.print instead
             .performance_mode = false,
             .last_adjustment = std.time.milliTimestamp(),
             .thresholds = PerformanceThresholds{},
@@ -86,8 +86,8 @@ pub const Logger = struct {
             timestamp_us, level.toString(), module, message
         }) catch return; // Drop message if buffer too small
         
-        // Direct write (simplified for this version)
-        self.output_writer.writeAll(formatted) catch {};
+        // Direct write using debug.print for stderr
+        std.debug.print("{s}", .{formatted});
     }
 
     /// Standard logging with context support
@@ -129,7 +129,7 @@ pub const Logger = struct {
         else
             std.fmt.bufPrint(&buffer, "{{\"timestamp\":\"{s}\",\"level\":\"{s}\",\"module\":\"{s}\",\"message\":\"{s}\"}}\n", .{ timestamp, level.toString(), module, message });
 
-        try self.output_writer.writeAll(formatted catch return);
+        std.debug.print("{s}", .{formatted catch return});
     }
 
     /// Dynamically adjust log level based on performance metrics (lock-free)
@@ -179,9 +179,7 @@ pub const Logger = struct {
         const epoch_seconds = @as(u64, @intCast(timestamp));
 
         // Convert to a simple format for now
-        const buffer = try self.allocator.alloc(u8, 32);
-        const len = std.fmt.formatIntBuf(buffer, epoch_seconds, 10, .lower, .{});
-        return buffer[0..len];
+        return std.fmt.allocPrint(self.allocator, "{d}", .{epoch_seconds});
     }
 };
 

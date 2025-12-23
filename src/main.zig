@@ -16,46 +16,44 @@ pub fn main() !u8 {
     // Initialize CLI with error handling
     var registry = cli.init();
     defer registry.deinit();
+    
+    // Set global registry reference for help command access
+    registry.setGlobalRef();
 
     // Convert args iterator to slice for easier handling with error handling
-    var arg_list = std.ArrayList([]const u8).init(std.heap.page_allocator);
-    defer arg_list.deinit();
-
-    var args_iter = args;
+    var arg_list: [32][]const u8 = undefined;
     var arg_count: usize = 0;
+    var args_iter = args;
     while (args_iter.next()) |arg| {
-        arg_list.append(arg) catch |err| {
-            std.debug.print("Error: Failed to process command line arguments: {any}\n", .{err});
-            logging.errorGlobalWithContext("main", "Failed to process arguments", .{
-                .error_name = @errorName(err),
-                .arg_count = arg_count,
-            });
+        if (arg_count >= arg_list.len) {
+            std.debug.print("Error: Too many command line arguments (max {d})\n", .{arg_list.len});
             return 1;
-        };
+        }
+        arg_list[arg_count] = arg;
         arg_count += 1;
     }
 
     // Log command execution for security monitoring with safety checks
-    if (arg_list.items.len > 1) {
-        const command = if (arg_list.items.len > 1) arg_list.items[1] else "none";
+    if (arg_count > 1) {
+        const command = if (arg_count > 1) arg_list[1] else "none";
         logging.infoGlobalWithContext("main", "Command executed", .{
             .command = command,
-            .total_args = arg_list.items.len,
+            .total_args = arg_count,
         });
     } else {
         logging.infoGlobal("main", "No command provided, showing help");
     }
 
     // Execute the CLI with the provided arguments with comprehensive error handling
-    cli.execute(&registry, arg_list.items) catch |err| {
+    cli.execute(&registry, arg_list[0..arg_count]) catch |err| {
         // Enhanced error reporting to prevent silent failures
         const error_name = @errorName(err);
         std.debug.print("Error executing command: {any} ({s})\n", .{ err, error_name });
 
         logging.errorGlobalWithContext("main", "CLI execution failed", .{
             .error_name = error_name,
-            .command = if (arg_list.items.len > 1) arg_list.items[1] else "none",
-            .total_args = arg_list.items.len,
+            .command = if (arg_count > 1) arg_list[1] else "none",
+            .total_args = arg_count,
         });
 
         // Provide specific error messages for common issues

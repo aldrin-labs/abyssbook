@@ -29,13 +29,16 @@ pub const CommandRegistry = struct {
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) CommandRegistry {
-        var registry = CommandRegistry{
+        const registry = CommandRegistry{
             .commands = std.StringHashMap(Command).init(allocator),
             .allocator = allocator,
         };
-        // Store reference for help command access
-        registry_ref = &registry;
+        // Note: registry_ref will be set after the registry is moved to its final location
         return registry;
+    }
+    
+    pub fn setGlobalRef(self: *CommandRegistry) void {
+        registry_ref = self;
     }
 
     pub fn deinit(self: *CommandRegistry) void {

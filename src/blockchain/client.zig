@@ -101,7 +101,7 @@ pub const BlockchainClient = struct {
         if (now - last_request < BlockchainConstants.RATE_LIMIT_DELAY_MS) {
             // Use nanosleep for more precise timing without blocking threads
             const sleep_time = BlockchainConstants.RATE_LIMIT_DELAY_MS * std.time.ns_per_ms;
-            std.time.sleep(sleep_time);
+            std.Thread.sleep(sleep_time);
         }
         
         _ = self.last_request_time.swap(now, .monotonic);
@@ -119,7 +119,7 @@ pub const BlockchainClient = struct {
                 if (attempt < BlockchainConstants.MAX_RETRIES - 1) {
                     // Exponential backoff
                     const delay = BlockchainConstants.BASE_RETRY_DELAY_MS * (@as(u64, 1) << @intCast(attempt));
-                    std.time.sleep(delay * std.time.ns_per_ms);
+                    std.Thread.sleep(delay * std.time.ns_per_ms);
                 }
                 continue;
             };
@@ -260,7 +260,7 @@ pub const BlockchainClient = struct {
         
         // Convert to hex string
         var order_id_buffer: [BlockchainConstants.ORDER_ID_HEX_LENGTH]u8 = undefined;
-        const order_id = std.fmt.bufPrint(&order_id_buffer, "{}", .{std.fmt.fmtSliceHexLower(&order_id_bytes)}) catch return error.OrderIdGenerationFailed;
+        const order_id = std.fmt.bufPrint(&order_id_buffer, "{s}", .{std.fmt.bytesToHex(&order_id_bytes, .lower)}) catch return error.OrderIdGenerationFailed;
         
         return try self.allocator.dupe(u8, order_id);
     }
@@ -298,7 +298,7 @@ pub const BlockchainClient = struct {
         self.disconnect();
         
         // Securely clear and free owned api_key memory
-        std.crypto.utils.secureZero(u8, self.api_key);
+        @memset(self.api_key, 0);
         self.allocator.free(self.api_key);
     }
     
@@ -346,14 +346,14 @@ pub const Orderbook = struct {
     pub fn deinit(self: *Orderbook, allocator: std.mem.Allocator) void {
         // Clear and free order data securely
         for (self.bids) |bid| {
-            std.crypto.utils.secureZero(u8, @constCast(bid.order_id));
-            std.crypto.utils.secureZero(u8, @constCast(bid.owner_address));
+            @memset(@constCast(bid.order_id), 0);
+            @memset(@constCast(bid.owner_address), 0);
             allocator.free(bid.order_id);
             allocator.free(bid.owner_address);
         }
         for (self.asks) |ask| {
-            std.crypto.utils.secureZero(u8, @constCast(ask.order_id));
-            std.crypto.utils.secureZero(u8, @constCast(ask.owner_address));
+            @memset(@constCast(ask.order_id), 0);
+            @memset(@constCast(ask.owner_address), 0);
             allocator.free(ask.order_id);
             allocator.free(ask.owner_address);
         }
@@ -363,8 +363,8 @@ pub const Orderbook = struct {
         allocator.free(self.asks);
         
         // Clear and free market data
-        std.crypto.utils.secureZero(u8, @constCast(self.market));
-        std.crypto.utils.secureZero(u8, @constCast(self.market_address));
+        @memset(@constCast(self.market), 0);
+        @memset(@constCast(self.market_address), 0);
         allocator.free(self.market);
         allocator.free(self.market_address);
     }
