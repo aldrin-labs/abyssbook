@@ -6,6 +6,8 @@ pub const SIMDMetrics = struct {
     cache_misses: usize = 0,
     start_time: i128 = 0,
     end_time: i128 = 0,
+    memory_bandwidth_gb_sec: f64 = 0,
+    vectorization_efficiency: f64 = 0,
 
     pub fn startTimer(self: *SIMDMetrics) void {
         self.start_time = std.time.nanoTimestamp();
@@ -24,6 +26,22 @@ pub const SIMDMetrics = struct {
         if (total_ops == 0) return 0;
         return @as(f64, @floatFromInt(self.vector_operations)) / total_ops;
     }
+    
+    pub fn recordVectorOperation(self: *SIMDMetrics, vector_width: usize) void {
+        self.vector_operations += vector_width;
+    }
+    
+    pub fn recordScalarOperation(self: *SIMDMetrics) void {
+        self.scalar_operations += 1;
+    }
+    
+    pub fn calculateEfficiency(self: *SIMDMetrics, data_processed_bytes: usize) void {
+        const elapsed_seconds = @as(f64, @floatFromInt(self.getElapsedNanos())) / 1_000_000_000.0;
+        if (elapsed_seconds > 0) {
+            self.memory_bandwidth_gb_sec = @as(f64, @floatFromInt(data_processed_bytes)) / (elapsed_seconds * 1_000_000_000.0);
+        }
+        self.vectorization_efficiency = self.getVectorUtilization();
+    }
 };
 
 pub const SortMetrics = struct {
@@ -31,7 +49,9 @@ pub const SortMetrics = struct {
     swaps: usize = 0,
     start_time: i128 = 0,
     end_time: i128 = 0,
-
+    algorithm_used: []const u8 = "unknown",
+    data_size: usize = 0,
+    
     pub fn startTimer(self: *SortMetrics) void {
         self.start_time = std.time.nanoTimestamp();
     }
@@ -43,6 +63,22 @@ pub const SortMetrics = struct {
     pub fn getElapsedNanos(self: *const SortMetrics) i128 {
         return self.end_time - self.start_time;
     }
+    
+    pub fn recordComparison(self: *SortMetrics) void {
+        self.comparisons += 1;
+    }
+    
+    pub fn recordSwap(self: *SortMetrics) void {
+        self.swaps += 1;
+    }
+    
+    pub fn getEfficiencyRatio(self: *const SortMetrics) f64 {
+        // Compare against theoretical minimum comparisons for the data size
+        if (self.data_size <= 1) return 1.0;
+        const theoretical_min = @as(f64, @floatFromInt(self.data_size)) * @log(@as(f64, @floatFromInt(self.data_size)));
+        const actual = @as(f64, @floatFromInt(self.comparisons));
+        return theoretical_min / actual;
+    }
 };
 
 pub const BatchMetrics = struct {
@@ -50,6 +86,7 @@ pub const BatchMetrics = struct {
     full_batches: usize = 0,
     partial_batches: usize = 0,
     total_orders: usize = 0,
+    total_items: usize = 0,
     start_time: i128 = 0,
     end_time: i128 = 0,
 
@@ -68,6 +105,16 @@ pub const BatchMetrics = struct {
     pub fn getBatchEfficiency(self: *const BatchMetrics) f64 {
         if (self.total_batches == 0) return 0;
         return @as(f64, @floatFromInt(self.full_batches)) / @as(f64, @floatFromInt(self.total_batches));
+    }
+    
+    pub fn recordBatch(self: *BatchMetrics, is_full: bool, item_count: usize) void {
+        self.total_batches += 1;
+        self.total_items += item_count;
+        if (is_full) {
+            self.full_batches += 1;
+        } else {
+            self.partial_batches += 1;
+        }
     }
 };
 

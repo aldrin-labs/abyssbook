@@ -23,7 +23,64 @@ cpupower frequency-set --governor performance
 
 ## Performance Optimization
 
+### 1. Enhanced Benchmarking
+
+Run comprehensive benchmarks to validate performance:
+
+```bash
+# Quick benchmarks
+zig build bench
+
+# Full performance test suite
+./scripts/perf_test.sh all
+
+# Individual test types
+./scripts/perf_test.sh bench        # Benchmarks only
+./scripts/perf_test.sh profile     # Profiling analysis
+./scripts/perf_test.sh load-test   # Load testing  
+./scripts/perf_test.sh regression  # Regression testing
+```
+
+### 2. Performance Monitoring
+
+Monitor key metrics during operation:
+
+```zig
+// Initialize performance monitor
+var monitor = perf_monitor.PerformanceMonitor.init(allocator);
+defer monitor.deinit();
+
+// Record metrics during operations
+monitor.simd_metrics.recordVectorOperation(8);
+monitor.batch_metrics.recordBatch(true, 128);
+
+// Generate performance report
+try monitor.generateReport(std.io.getStdOut().writer());
+```
+
+### 3. Cache Optimization
+
+Use the enhanced multi-level cache for better performance:
+
+```zig
+const enhanced_cache = @import("cache/enhanced_cache.zig");
+
+// Initialize multi-level cache
+var cache = enhanced_cache.MultiLevelCache(u64, []const u8).init(allocator);
+defer cache.deinit();
+
+// Cache operations with automatic promotion/demotion
+try cache.put(key, value);
+if (cache.get(key)) |cached_value| {
+    // Use cached value
+}
+
+// Monitor cache performance
+cache.printStatistics();
+```
+
 ### 1. Shard Configuration
+
 Optimal shard count depends on your system:
 
 ```zig
@@ -41,9 +98,6 @@ var book = try orderbook.ShardedOrderbook.init(
     optimal_shards
 );
 ```
-
-### 2. Memory Layout
-Optimize data structure alignment:
 
 ```zig
 // Cache-aligned order structure

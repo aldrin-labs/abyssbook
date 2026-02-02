@@ -1,0 +1,236 @@
+#!/bin/bash
+
+# Abyssbook Performance Testing Script
+# This script provides easy access to all performance testing tools
+
+set -e
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+print_header() {
+    echo -e "${BLUE}===========================================${NC}"
+    echo -e "${BLUE}    Abyssbook Performance Testing Suite    ${NC}"
+    echo -e "${BLUE}===========================================${NC}"
+    echo
+}
+
+print_usage() {
+    echo "Usage: $0 [COMMAND]"
+    echo
+    echo "Commands:"
+    echo "  bench         Run benchmark suite"
+    echo "  profile       Run performance profiler"
+    echo "  load-test     Run load testing"
+    echo "  regression    Run regression tests"
+    echo "  ci-regression Run CI regression check"
+    echo "  metrics       Test metrics reporting formats"
+    echo "  all           Run all performance tests"
+    echo "  build         Build all performance tools"
+    echo "  clean         Clean build artifacts"
+    echo "  help          Show this help message"
+    echo
+    echo "Examples:"
+    echo "  $0 bench          # Run benchmarks"
+    echo "  $0 all            # Run all performance tests"
+    echo "  $0 build          # Build performance tools"
+    echo "  $0 ci-regression  # Run CI regression check"
+    echo "  $0 metrics        # Test metrics formats"
+    echo
+}
+
+check_zig() {
+    if ! command -v zig &> /dev/null; then
+        echo -e "${RED}Error: Zig compiler not found${NC}"
+        echo "Please install Zig from https://ziglang.org/"
+        exit 1
+    fi
+}
+
+run_benchmark() {
+    echo -e "${GREEN}Running benchmark suite...${NC}"
+    echo "This may take a few minutes depending on your system."
+    echo
+    # Ensure benchmark tool is available
+    if [ ! -f "zig-out/bin/bench" ]; then
+        echo "Building benchmark tool..."
+        zig build bench
+    fi
+    zig build bench
+}
+
+run_profiler() {
+    echo -e "${GREEN}Running performance profiler...${NC}"
+    echo "Analyzing hotspots and performance bottlenecks..."
+    echo
+    zig build profile
+}
+
+run_load_test() {
+    echo -e "${GREEN}Running load test...${NC}"
+    echo "Testing sustained performance under load..."
+    echo
+    zig build load-test
+}
+
+run_regression_test() {
+    echo -e "${GREEN}Running regression tests...${NC}"
+    echo "Checking for performance regressions..."
+    echo
+    # Ensure regression test tool is available
+    if [ ! -f "zig-out/bin/regression_test" ]; then
+        echo "Building regression test tool..."
+        zig build regression-test
+    fi
+    zig build regression-test
+}
+
+run_ci_regression() {
+    echo -e "${GREEN}Running CI regression check...${NC}"
+    echo "Comparing against baseline performance..."
+    echo
+    ./scripts/ci_regression_check.sh
+}
+
+test_metrics_formats() {
+    echo -e "${GREEN}Testing metrics reporting formats...${NC}"
+    echo "Generating sample reports in different formats..."
+    echo
+    # Ensure metrics reporter is available
+    if [ ! -f "zig-out/bin/metrics_reporter" ]; then
+        echo "Building metrics reporter..."
+        zig build test-metrics
+    fi
+    zig build test-metrics
+}
+
+run_all_tests() {
+    echo -e "${GREEN}Running all performance tests...${NC}"
+    echo "This will take several minutes to complete."
+    echo
+    
+    echo -e "${YELLOW}1/4: Running benchmarks...${NC}"
+    run_benchmark
+    echo
+    
+    echo -e "${YELLOW}2/4: Running profiler...${NC}"
+    run_profiler
+    echo
+    
+    echo -e "${YELLOW}3/4: Running load test...${NC}"
+    run_load_test
+    echo
+    
+    echo -e "${YELLOW}4/4: Running regression tests...${NC}"
+    run_regression_test
+    echo
+    
+    echo -e "${GREEN}All performance tests completed!${NC}"
+}
+
+build_tools() {
+    echo -e "${GREEN}Building performance tools...${NC}"
+    
+    # Check if tools need to be built or rebuilt
+    local needs_build=false
+    local tools=("bench" "profiler" "load_test" "regression_test")
+    
+    for tool in "${tools[@]}"; do
+        if [ ! -f "zig-out/bin/$tool" ]; then
+            needs_build=true
+            break
+        fi
+    done
+    
+    # Also check if source files are newer than binaries
+    if [ ! "$needs_build" = true ]; then
+        for src_file in src/*.zig src/*/*.zig; do
+            if [ -f "$src_file" ]; then
+                for tool in "${tools[@]}"; do
+                    if [ "$src_file" -nt "zig-out/bin/$tool" ]; then
+                        needs_build=true
+                        break 2
+                    fi
+                done
+            fi
+        done
+    fi
+    
+    if [ "$needs_build" = true ]; then
+        echo "Building tools..."
+        zig build bench
+        zig build profile  
+        zig build load-test
+        zig build regression-test
+        echo -e "${GREEN}All tools built successfully!${NC}"
+    else
+        echo -e "${YELLOW}Tools are up to date, skipping build${NC}"
+    fi
+}
+
+clean_artifacts() {
+    echo -e "${YELLOW}Cleaning build artifacts...${NC}"
+    rm -rf zig-cache zig-out benchmark_results
+    echo -e "${GREEN}Clean completed!${NC}"
+}
+
+# Main script logic
+case "${1:-help}" in
+    "bench")
+        print_header
+        check_zig
+        run_benchmark
+        ;;
+    "profile")
+        print_header
+        check_zig
+        run_profiler
+        ;;
+    "load-test")
+        print_header
+        check_zig
+        run_load_test
+        ;;
+    "regression")
+        print_header
+        check_zig
+        run_regression_test
+        ;;
+    "ci-regression")
+        print_header
+        check_zig
+        run_ci_regression
+        ;;
+    "metrics")
+        print_header
+        check_zig
+        test_metrics_formats
+        ;;
+    "all")
+        print_header
+        check_zig
+        run_all_tests
+        ;;
+    "build")
+        print_header
+        check_zig
+        build_tools
+        ;;
+    "clean")
+        print_header
+        clean_artifacts
+        ;;
+    "help"|"-h"|"--help")
+        print_header
+        print_usage
+        ;;
+    *)
+        echo -e "${RED}Error: Unknown command '$1'${NC}"
+        echo
+        print_usage
+        exit 1
+        ;;
+esac

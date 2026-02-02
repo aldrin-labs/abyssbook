@@ -2,8 +2,12 @@ const std = @import("std");
 const builtin = @import("builtin");
 const perf = @import("perf_monitor.zig");
 
-// Enhanced SIMD configuration
-const VECTOR_WIDTH = if (builtin.cpu.arch == .x86_64) @as(usize, 8) else @as(usize, 4);
+// Enhanced SIMD configuration with fallbacks
+const VECTOR_WIDTH = switch (builtin.cpu.arch) {
+    .x86_64 => if (std.Target.x86.featureSetHas(builtin.cpu.features, .avx2)) @as(usize, 8) else @as(usize, 4),
+    .aarch64 => @as(usize, 4), // NEON 128-bit
+    else => @as(usize, 2), // Conservative fallback
+};
 const BITONIC_SORT_SIZE = VECTOR_WIDTH * 8; // Increased for better vectorization
 const CACHE_LINE_SIZE = 64;
 const PREFETCH_DISTANCE = 8;
@@ -26,14 +30,28 @@ pub fn SortContext(comptime T: type) type {
             };
         }
 
-        // Prefetch next cache lines
+        // Portable prefetch implementation
         inline fn prefetchNext(self: *Self, idx: usize) void {
             if (idx + PREFETCH_DISTANCE < self.items.len) {
                 const addr = @intFromPtr(&self.items[idx + PREFETCH_DISTANCE]);
-                asm volatile ("prefetcht0 (%[addr])"
-                    : // no outputs
-                    : [addr] "r" (addr),
-                );
+                switch (@import("builtin").cpu.arch) {
+                    .x86_64 => {
+                        asm volatile ("prefetcht0 (%[addr])"
+                            : // no outputs
+                            : [addr] "r" (addr),
+                        );
+                    },
+                    .aarch64 => {
+                        asm volatile ("prfm pldl1keep, [%[addr]]"
+                            : // no outputs
+                            : [addr] "r" (addr),
+                        );
+                    },
+                    else => {
+                        // No prefetch support for other architectures
+                        _ = addr;
+                    },
+                }
             }
         }
     };

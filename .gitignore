@@ -60,10 +60,15 @@ package-lock.json
 
 # Project specific
 bench_results/
+benchmark_results/
 perf_data/
 *.log
 *.tmp
 *.temp
+*.prof
+*.pprof
+perf.data*
+*.flamegraph
 
 # OS specific
 Thumbs.db

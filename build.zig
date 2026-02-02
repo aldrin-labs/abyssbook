@@ -37,6 +37,54 @@ pub fn build(b: *std.Build) void {
     const bench_cmd = b.addRunArtifact(bench_exe);
     const bench_step = b.step("bench", "Run benchmarks");
     bench_step.dependOn(&bench_cmd.step);
+    
+    // Add profiler executable
+    const profiler_exe = b.addExecutable(.{
+        .name = "profiler",
+        .root_source_file = .{ .cwd_relative = "src/profiler.zig" },
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+
+    const profiler_cmd = b.addRunArtifact(profiler_exe);
+    const profiler_step = b.step("profile", "Run performance profiler");
+    profiler_step.dependOn(&profiler_cmd.step);
+    
+    // Add load test executable
+    const load_test_exe = b.addExecutable(.{
+        .name = "load_test",
+        .root_source_file = .{ .cwd_relative = "src/load_test.zig" },
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+
+    const load_test_cmd = b.addRunArtifact(load_test_exe);
+    const load_test_step = b.step("load-test", "Run load testing");
+    load_test_step.dependOn(&load_test_cmd.step);
+    
+    // Add regression test executable
+    const regression_test_exe = b.addExecutable(.{
+        .name = "regression_test",
+        .root_source_file = .{ .cwd_relative = "src/regression_test.zig" },
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+
+    const regression_test_cmd = b.addRunArtifact(regression_test_exe);
+    const regression_test_step = b.step("regression-test", "Run performance regression tests");
+    regression_test_step.dependOn(&regression_test_cmd.step);
+    
+    // Add metrics reporter test executable
+    const metrics_reporter_exe = b.addExecutable(.{
+        .name = "metrics_reporter",
+        .root_source_file = .{ .cwd_relative = "src/metrics_reporter.zig" },
+        .target = target,
+        .optimize = .ReleaseFast,
+    });
+
+    const metrics_reporter_cmd = b.addRunArtifact(metrics_reporter_exe);
+    const metrics_reporter_step = b.step("test-metrics", "Test metrics reporting formats");
+    metrics_reporter_step.dependOn(&metrics_reporter_cmd.step);
 
     // Unit tests
     const unit_tests = b.addTest(.{
@@ -100,4 +148,11 @@ pub fn build(b: *std.Build) void {
     all_tests_step.dependOn(&run_e2e_tests.step);
     all_tests_step.dependOn(&run_security_tests.step);
     all_tests_step.dependOn(&run_blockchain_security_tests.step);
+    
+    // Performance testing step
+    const perf_test_step = b.step("perf-test", "Run all performance tests (benchmarks, profiling, load test)");
+    perf_test_step.dependOn(&bench_cmd.step);
+    perf_test_step.dependOn(&profiler_cmd.step);
+    perf_test_step.dependOn(&load_test_cmd.step);
+    perf_test_step.dependOn(&regression_test_cmd.step);
 }
